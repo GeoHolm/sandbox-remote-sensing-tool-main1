@@ -73,6 +73,14 @@ def main(argv: list[str] | None = None) -> int:
                     help="local CDL store (sets CDL_DIR), e.g. a directory of "
                          "NASS_<year>.tif CONUS mosaics -- see fieldrs/cdl_local.py")
     args = ap.parse_args(argv)
+    from fieldrs.imagery import SOURCE_FIRST_YEAR
+    first = SOURCE_FIRST_YEAR[args.source]
+    if args.years[0] < first:
+        if args.source == "hls":
+            print(f"HLS starts in {first}; analysing {first}-{args.years[1]}.")
+            args.years[0] = first
+        else:
+            print(f"Note: Sentinel-2 is sparse before {first}; early seasons may be undated.")
     if args.cdl_dir:
         os.environ["CDL_DIR"] = args.cdl_dir
 

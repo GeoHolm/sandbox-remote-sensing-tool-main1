@@ -134,7 +134,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"    skipped: {exc}")
     if args.hls:
         print("  warming: HLS series ...", flush=True)
-        analyze_field(aoi, years=yrs, workers=args.workers, rain_free=False, source="hls")
+        from fieldrs.imagery import SOURCE_FIRST_YEAR
+        analyze_field(aoi, years=(max(yrs[0], SOURCE_FIRST_YEAR["hls"]), yrs[1]),
+                      workers=args.workers, rain_free=False, source="hls")
 
     crops = "/".join(dict.fromkeys(c for c in (r.history["crop"] if r.history is not None
                                                  else []) if isinstance(c, str)))

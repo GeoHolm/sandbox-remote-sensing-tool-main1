@@ -26,6 +26,14 @@ python run_field.py my_field.geojson --indices ndvi ndmi --workers 12
 First run for a field reads several hundred scenes and takes a few minutes.
 Everything is cached to `cache/`, so re-running is instant.
 
+**Years.** Sentinel-2 can be analysed from **2018** (`--years 2018 2026`, or
+the app's Years slider); before that it is too sparse to date a season -- 60
+scenes in 2017, 33 in 2016, against ~140 a year from 2018. HLS starts in 2020
+on Planetary Computer, and an earlier start is moved to 2020 with a note. The
+default stays 2020, which is what the field library is pre-computed for; an
+earlier start reads the field again once (about two minutes for 2018-2026).
+CDL covers these years in every state; gridMET from 1979.
+
 ## Use as a library
 
 ```python

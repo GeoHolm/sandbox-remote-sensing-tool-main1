@@ -32,7 +32,7 @@ from fieldrs.aoi import UPLOAD_TYPES, field_bounds, read_upload, single_field
 from fieldrs.catalog import catalog_availability, catalog_summary
 from fieldrs.cdl_local import available_years, cdl_root, use_local
 from fieldrs.climate import FORECAST_DAYS, HEAVY_RAIN_MM, HEAVY_RAIN_WET_DAYS, WIND_MAX_KMH
-from fieldrs.imagery import SOURCE_LABELS
+from fieldrs.imagery import SOURCE_FIRST_YEAR, SOURCE_LABELS
 from fieldrs.cropland import cdl_summary
 from fieldrs.thumbnails import available_periods, build_scene_grid, plot_scene_grid, scenes_in_period
 from fieldrs.imagery import search_scenes
@@ -42,8 +42,10 @@ from fieldrs.phenology import residue_window
 
 # ------------------------------------------------------------- config ---
 
-FIELDS_DIR = Path(__file__).parent.parent / "data" / "fields"
-YEAR_MIN = 2020
+# resolve(): __file__ is relative when Streamlit is started with a relative path.
+FIELDS_DIR = Path(__file__).resolve().parent.parent / "data" / "fields"
+YEAR_MIN = 2018          # earliest selectable: Sentinel-2 from 2018 (SOURCE_FIRST_YEAR)
+DEFAULT_START = 2020     # the library is pre-computed from 2020, so that stays the default
 IMG_MAX_CLOUD = 90
 
 # Directory of local NASS_<year>.tif CONUS CDL mosaics, used instead of the
@@ -91,7 +93,7 @@ def _library_table() -> pd.DataFrame:
     except Exception:                                 # noqa: BLE001
         man = pd.DataFrame(columns=["stem", "label", "shows"])
     try:
-        meta = pd.read_csv(Path(__file__).parent / "outputs" / "demo_library_python.csv",
+        meta = pd.read_csv(Path(__file__).resolve().parent / "outputs" / "demo_library_python.csv",
                            dtype=str).fillna("")
         crops_by_file = dict(zip(meta["file"], meta["crops"]))
     except Exception:                                 # noqa: BLE001
@@ -115,6 +117,8 @@ def _library_table() -> pd.DataFrame:
         rows.append({"stem": f.stem, "label": label, "crops": crops,
                      "shows": m["shows"].iloc[0] if len(m) else "",
                      "_o": order.get(f.stem, len(order))})
+    if not rows:
+        return pd.DataFrame(columns=["stem", "label", "crops", "shows"])
     return (pd.DataFrame(rows).sort_values(["_o", "stem"]).drop(columns="_o")
             .reset_index(drop=True))
 
@@ -220,7 +224,10 @@ field_stem = st.sidebar.selectbox(
 )
 
 years = st.sidebar.slider("Years", YEAR_MIN, date.today().year,
-                          (YEAR_MIN, date.today().year))
+                          (DEFAULT_START, date.today().year),
+                          help="Sentinel-2 from 2018, HLS from 2020. The field library "
+                               "is pre-computed from 2020; an earlier start reads the "
+                               "field again once (about two minutes), then it is cached.")
 
 source = st.sidebar.radio(
     "Imagery", list(SOURCE_LABELS), format_func={
@@ -230,6 +237,10 @@ source = st.sidebar.radio(
          "harmonised with Sentinel-2 on a 30 m grid: more clear images, so shorter "
          "cloud gaps at planting and harvest, at coarser resolution. Each source "
          "is analysed and cached on its own.")
+if years[0] < SOURCE_FIRST_YEAR[source]:
+    st.sidebar.warning(f"{SOURCE_LABELS[source]} starts in {SOURCE_FIRST_YEAR[source]}; "
+                       f"analysing {SOURCE_FIRST_YEAR[source]}-{years[1]}.")
+    years = (SOURCE_FIRST_YEAR[source], max(years[1], SOURCE_FIRST_YEAR[source]))
 
 @st.cache_data(show_spinner=False)
 def _local_cdl_years(root: str) -> list[int]:
@@ -487,7 +498,7 @@ with tab_avail:
     _show(viz.plot_catalog_timeline(avail), "data-availability")
     st.caption("Catalogue metadata only, so this is fast. Optical marks are shaded by scene "
               "cloud cover. The density is the point -- Sentinel-2 alone has looked at this "
-              "field hundreds of times since 2020, and radar adds a stream that weather "
+              "field hundreds of times in these years, and radar adds a stream that weather "
               "cannot interrupt.")
 
     st.subheader("By source")

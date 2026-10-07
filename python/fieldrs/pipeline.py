@@ -7,6 +7,8 @@ pandas objects.
 
 from __future__ import annotations
 
+import warnings
+
 from dataclasses import dataclass, field as dc_field, replace
 from datetime import date
 from pathlib import Path
@@ -24,6 +26,7 @@ from .cdl_split import SplitAdvice, cdl_split_advice
 from .covercrop import cover_crop_all_years
 from .cropland import CdlStack, cdl_history_from_stack, cdl_stack, crop_lookup
 from .extract import extract_field_series
+from .imagery import SOURCE_FIRST_YEAR, SOURCE_LABELS
 from .irrigation import add_to_history, irrigation_history
 from .phenology import phenology_all_years
 from .armor import armor_all_years, armor_series
@@ -233,6 +236,14 @@ def analyze_field(
 
     y_from, y_to = years
     y_to = y_to or date.today().year
+    first = SOURCE_FIRST_YEAR.get(source, y_from)
+    if y_from < first:
+        if source == "hls":
+            raise ValueError(f"HLS on Planetary Computer starts in {first}; "
+                             f"start the year range at {first} or later, or use "
+                             "source='sentinel2' (from 2018).")
+        warnings.warn(f"{SOURCE_LABELS[source]} is sparse before {first} -- seasons "
+                      f"before then will be thin or undated.")
     start, end = analysis_window(y_from, y_to)
     cdl_years = list(range(y_from, min(y_to, date.today().year - 1) + 1))
 

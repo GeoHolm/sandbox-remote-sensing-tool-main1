@@ -129,6 +129,13 @@ SOURCE_LABELS = {
     "hls": "HLS v2 (Sentinel-2 + Landsat 8/9), 30 m",
 }
 
+# First year each source can carry a season analysis. Counted over the Iowa
+# library field on Planetary Computer: Sentinel-2 L2A has 139-149 scenes a
+# year from 2018 (both satellites), 60 in 2017 (Sentinel-2B launched that
+# March), 33 in 2016 and 4 in 2015 -- too few to date a season before 2018.
+# HLS v2 on Planetary Computer starts in 2020; there is nothing to read before.
+SOURCE_FIRST_YEAR = {"sentinel2": 2018, "hls": 2020}
+
 
 def sensor_of(item) -> str:
     """Short sensor label for a STAC item: S2, HLS-S30 or HLS-L30."""
