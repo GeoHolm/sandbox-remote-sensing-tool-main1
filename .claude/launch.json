@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "shiny",
+      "runtimeExecutable": "C:\\Program Files\\R\\R-4.5.2\\bin\\Rscript.exe",
+      "runtimeArgs": [
+        "-e",
+        "shiny::runApp('r', port = 7788, host = '127.0.0.1', launch.browser = FALSE)"
+      ],
+      "port": 7788
+    },
+    {
+      "name": "streamlit",
+      "runtimeExecutable": "python/.venv/bin/streamlit",
+      "runtimeArgs": [
+        "run",
+        "python/app.py",
+        "--server.port",
+        "8501",
+        "--server.address",
+        "127.0.0.1",
+        "--server.headless",
+        "true"
+      ],
+      "port": 8501
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+# ---------------------------------------------------------------------------
+# Cache
+#
+# The analysis caches ARE committed, deliberately. A cold warm_cache run is
+# 40+ minutes of HTTP reads, and CropScape -- which CDL comes from -- is
+# regularly slow or down, so a developer who clones on a bad day cannot warm
+# the library at all. Shipping these makes the repo clone-and-run.
+#
+# Note the patterns exclude cache CONTENTS, not the directory: git will not
+# re-include a file underneath an excluded directory, so `cache/` followed by
+# a negation would not work. The `**/` prefix matters too: a pattern that
+# contains a slash is anchored to this file's directory, so plain
+# `cache/scenes_*` would only match a cache at the repo root and would quietly
+# miss r/cache and python/cache.
+#
+# What is excluded and why:
+#   scenes_*  STAC catalogue results. Keyed on the literal end date, so the
+#             current-year queries mint a new entry every day they run --
+#             committing them would grow history indefinitely. Each one costs
+#             about 9 seconds to rebuild.
+**/cache/scenes_*
+
+# Figures and derived exports, except the two that are runtime dependencies:
+#   demo_library*.csv   read by app.R for the crop labels on the field tiles
+#   r_reference/        read by python/compare_with_r.py for the parity check
+**/outputs/*
+!**/outputs/demo_library.csv
+!**/outputs/demo_library_python.csv
+!**/outputs/r_reference/
+# Kept because the README argues from it: the four-way palette comparison
+# behind "Colouring the three fractions". The other figures in outputs/ are
+# regenerable demo output and stay ignored.
+!**/outputs/18_palette_options.png
+# Kept for the same reason: the two-year cover cycle the soil armor section
+# argues from, and the basis for the future-work notes there.
+!**/outputs/19_two_year_cover.png
+# And the cotton pair, which is the clearest case in the library for why the
+# off-season is the part worth measuring.
+!**/outputs/20_cotton_two_years.png
+**/results/
+
+# R
+*.Rhistory
+.Rproj.user/
+.Rdata
+.RData
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Rasters fetched or written during a run
+*.tif
+
+# Validation run logs -- noise, the CSVs are the record
+validation/*.log
+
+# Local bulk CDL store. Normally lives outside the repo (~/geodata/cdl);
+# this is a backstop for anyone who points CDL_DIR inside it.
+geodata/
+**/geodata/
+*_30m_cdls.tif
+*_30m_cdls.zip
+*.tif.ovr
+
+# ...but the pre-clipped CDL for the demo library MUST ship: it is what makes
+# the deployed Shiny app independent of CropScape. 88 files, 1.7 MB.
+# The parent directory is not excluded, so this negation takes effect.
+!r/cdl_clips/*.tif
+
+# Intermediate HTML from build_methods_pdf.py (use --keep-html to inspect)
+pitch/_methods.html
+METHODS.html

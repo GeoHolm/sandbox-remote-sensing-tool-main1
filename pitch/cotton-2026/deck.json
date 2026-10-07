@@ -1,0 +1,18 @@
+{
+  "v": 4,
+  "createdOnFiles": { "v": 1, "at": "2026-09-25T18:00:00Z" },
+  "title": "Cotton Remote Sensing Pitch",
+  "order": ["cover", "ask", "problem", "built", "demo", "armor", "separation", "dataset", "scorecard", "purity", "uncalibrated", "confound", "buys", "invest", "close", "appendix"],
+  "sections": {
+    "s1": { "description": "Why we are here and what we are asking cotton to fund", "start": "cover" },
+    "s2": { "description": "What the pipeline does and what it can already see on cotton ground", "start": "built" },
+    "s3": { "description": "What we measured against 183 cotton field-years of farmer-reported truth", "start": "dataset" },
+    "s4": { "description": "What calibration data would buy, and the specific ask", "start": "buys" },
+    "s5": { "description": "Engineering cost of Phase 1, for a technical evaluator", "start": "appendix" }
+  },
+  "faces": {
+    "libre-baskerville": { "family": "Libre Baskerville", "href": "https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" },
+    "public-sans": { "family": "Public Sans", "href": "https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;600;700&display=swap" }
+  },
+  "designSystems": []
+}

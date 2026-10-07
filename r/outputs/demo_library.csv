@@ -1,0 +1,16 @@
+"file","area_ha","obs","seasons","crops","boundary","cover_winters","mins"
+"arkansas-rice.geojson",22.6,192,7,"Rice","single unit",2,3.2
+"california-central.geojson",13.2,347,7,"Dbl Crop WinWht/Corn/Dbl Crop Triticale/Corn","single unit",1,6
+"clinton-iowa.geojson",14.8,366,7,"Corn","single unit",1,18.8
+"eldorado-georgia.geojson",17.2,240,7,"Peanuts/Cotton","split",6,3.5
+"example_field.geojson",65.9,368,7,"Soybeans/Corn","single unit",0,6.5
+"example_field_covercrop.geojson",46.7,198,7,"Corn/Soybeans","single unit",5,3.4
+"example_field_overgrown.geojson",173.4,360,7,"Soybeans/Corn","split",0,6.3
+"jefferson-ga-conv-cover.geojson",91.2,243,7,"Corn/Cotton","single unit",6,3.6
+"kansas-rainfed.geojson",12.5,259,7,"Corn/Soybeans","single unit",0,5.8
+"lubbock-pivot.geojson",41.5,640,7,"Cotton/Corn/Fallow/Idle Cropland","single unit",4,7.6
+"mitchell-ga-conservation.geojson",84.6,238,7,"Cotton/Peanuts","single unit",6,0
+"mitchell-ga-conventional.geojson",20.3,247,7,"Cotton/Peanuts/Corn","single unit",4,6
+"screven-ga-notill-bare.geojson",29.5,457,7,"Cotton/Corn/Peanuts","single unit",3,6.4
+"tifton-georgia.geojson",6.6,228,7,"Cotton/Peanuts","single unit",6,2.8
+"washington-pivot.geojson",21.8,257,7,"Alfalfa/Potatoes","single unit",2,4.9

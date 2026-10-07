@@ -1,0 +1,5 @@
+"field","what","year","claimed","now","delta","f_pv","f_npv","f_bs","n_obs","w_start","w_end","w_source","planting","conf"
+"mitchell-ga-conservation","no-till + cover",2020,0.649,0.624,-0.025,0.23,0.394,0.376,12,"2020-03-01","2020-05-24","partial","2020-05-27","high"
+"mitchell-ga-conventional","conventional, no cover",2020,0.508,0.488,-0.02,0.11,0.378,0.512,11,"2020-03-01","2020-06-03","partial","2020-06-06","medium"
+"screven-ga-notill-bare","no-till, no cover",2020,0.48,0.48,0,0.045,0.436,0.52,19,"2020-03-01","2020-05-20","partial","2020-05-23","medium"
+"jefferson-ga-conv-cover","conventional + cover",2021,0.649,0.553,-0.096,0.131,0.422,0.447,14,"2021-03-01","2021-06-04","phenology","2021-06-07","low -- sparse imagery near transitions"

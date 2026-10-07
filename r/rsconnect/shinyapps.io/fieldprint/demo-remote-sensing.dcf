@@ -1,0 +1,12 @@
+name: demo-remote-sensing
+title: demo-remote-sensing
+username: fieldprint
+account: fieldprint
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 17965233
+bundleId: 12584832
+url: https://fieldprint.shinyapps.io/demo-remote-sensing/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

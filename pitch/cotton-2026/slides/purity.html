@@ -1,0 +1,33 @@
+<section id="purity" style="background:#FAF7F0; color:#1F2A24; font-family:'Public Sans', Verdana, sans-serif; padding:128px 128px 160px; display:flex; flex-direction:column; gap:32px">
+<h2 style="font-family:'Libre Baskerville', Georgia, serif; font-size:64px; font-weight:700; line-height:1.1">Bad field boundaries break everything downstream</h2>
+<p style="font-size:32px; line-height:1.45; color:#4A5450; width:1590px">A boundary drawn around two management units blends two crops into one curve. We can detect that before reporting anything &#8212; and it predicts almost perfectly whether we get the crop right.</p>
+<div style="display:flex; flex-direction:column; gap:18px">
+<div style="display:flex; gap:28px; align-items:center">
+<p style="width:400px; font-size:29px; color:#4A5450">Boundary under <b>60%</b> one crop</p>
+<div style="width:129px; height:66px; background:#B04A2F; border-radius:8px"></div>
+<p style="font-size:40px; font-weight:700; color:#B04A2F; font-variant-numeric:tabular-nums">12.9%</p>
+<p style="font-size:25px; color:#7A857F">31 fields</p>
+</div>
+<div style="display:flex; gap:28px; align-items:center">
+<p style="width:400px; font-size:29px; color:#4A5450"><b>60&#8211;75%</b> one crop</p>
+<div style="width:720px; height:66px; background:#C88A3D; border-radius:8px"></div>
+<p style="font-size:40px; font-weight:700; color:#8A5A1E; font-variant-numeric:tabular-nums">72.0%</p>
+<p style="font-size:25px; color:#7A857F">25 fields</p>
+</div>
+<div style="display:flex; gap:28px; align-items:center">
+<p style="width:400px; font-size:29px; color:#4A5450"><b>75&#8211;90%</b> one crop</p>
+<div style="width:900px; height:66px; background:#3E8E7E; border-radius:8px"></div>
+<p style="font-size:40px; font-weight:700; color:#1F5C50; font-variant-numeric:tabular-nums">90.0%</p>
+<p style="font-size:25px; color:#7A857F">90 fields</p>
+</div>
+<div style="display:flex; gap:28px; align-items:center">
+<p style="width:400px; font-size:29px; color:#4A5450">Over <b>90%</b> one crop</p>
+<div style="width:881px; height:66px; background:#3E8E7E; border-radius:8px"></div>
+<p style="font-size:40px; font-weight:700; color:#1F5C50; font-variant-numeric:tabular-nums">88.1%</p>
+<p style="font-size:25px; color:#7A857F">201 fields</p>
+</div>
+</div>
+<p style="font-size:31px; line-height:1.4; color:#4A5450; width:1600px"><b>This is free quality control.</b> Refusing to score the worst 16% of boundaries lifts crop accuracy from 80.7% to 88.7% and costs nothing but an honest "we cannot read this field".</p>
+<p style="position:absolute; left:128px; bottom:64px; font-size:24px; color:#7A857F">Agreement with grower-reported crop, by share of the boundary that CDL assigns to a single class. All 347 field-years.</p>
+<aside>This is the slide that shows operational maturity rather than a science result. Knowing when to refuse to answer is what a platform needs.</aside>
+</section>

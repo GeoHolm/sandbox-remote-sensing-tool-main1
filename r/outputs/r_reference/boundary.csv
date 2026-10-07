@@ -1,0 +1,16 @@
+"field","verdict","frac","area_ha","biggest_ha","mean_pct"
+"arkansas-rice","single unit",0,0,0,99.8
+"california-central","single unit",0.0342,0.45,0.18,82.4
+"clinton-iowa","single unit",0.0651,0.99,0.36,92.3
+"eldorado-georgia","split",0.3037,5.22,4.68,69
+"example_field","single unit",0,0,0,96.5
+"example_field_covercrop","single unit",0,0,0,86.2
+"example_field_overgrown","split",0.3796,65.52,64.44,58.4
+"jefferson-ga-conv-cover","single unit",0.0069,0.63,0.36,60.1
+"kansas-rainfed","single unit",0,0,0,100
+"lubbock-pivot","single unit",0,0,0,98.4
+"mitchell-ga-conservation","single unit",0.0021,0.18,0.09,90.3
+"mitchell-ga-conventional","single unit",0.0133,0.27,0.09,90.4
+"screven-ga-notill-bare","single unit",0.0091,0.27,0.09,97.2
+"tifton-georgia","single unit",0.0132,0.09,0.09,91.4
+"washington-pivot","single unit",0,0,0,95.1

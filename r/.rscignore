@@ -1,0 +1,42 @@
+# Files that must not ship to shinyapps.io.
+#
+# R/gee.R is the important one. pipeline.R sources every file in R/, so
+# rsconnect's dependency scan sees `rgee::` and tries to snapshot a package
+# that is not installed -- which is what produced "The following required
+# packages are not installed: rgee" during deployment. The app never calls a
+# gee_ function; the Earth Engine backend was never wired in. Leaving the file
+# out removes the dependency without changing any behaviour, because
+# pipeline.R's source() loop simply finds one fewer file.
+R/gee.R
+
+# Developer scripts and docs. None are reachable from app.R.
+run_demo.R
+warm_cache.R
+export_r_reference.R
+setup.R
+README.md
+
+# Reference tables for the Python cross-check, not read by the app.
+outputs/r_reference
+
+# NOTE: cache/ is deliberately NOT ignored. It is what makes the eleven
+# example fields open instantly instead of each starting a four-minute read,
+# and on shinyapps.io a cold read is not viable at all. It is most of the
+# bundle size and all of the demo.
+#
+# cdl_clips/ is likewise NOT ignored. 88 pre-clipped CDL rasters (1.7 MB) for
+# the eleven demo fields, 2018-2025. Their main job is a fresh clone: they let
+# a colleague run the demo library without first downloading the ~25 GB of
+# national CDL, and without calling CropScape, which throttles and returns 500s.
+#
+# They would also carry a hosted deployment, where the national store cannot
+# ship at all -- though there an uploaded boundary has no clip and no raster to
+# cut one from, so it would still fall back to CropScape. On a local machine
+# with the store present that case is covered and the clips are just a fast path.
+#
+# Regenerate with r/make_cdl_clips.R when a field or a CDL year is added.
+
+# outputs/*.png also ships (about 3.5 MB of figures the app never reads).
+# outputs/demo_library.csv is in the same directory and IS needed -- it
+# supplies the crop captions on the field tiles -- so the directory cannot be
+# excluded wholesale.
