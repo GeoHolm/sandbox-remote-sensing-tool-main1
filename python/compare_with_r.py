@@ -169,11 +169,50 @@ def main() -> int:
                     issues.append(f"{name} {yr}: armor observation count "
                                   f"{int(m.loc[nb.idxmax(), 'n_obs_r'])} (R) vs "
                                   f"{int(m.loc[nb.idxmax(), 'n_obs_py'])} (Py)")
+                # The window the statistic was taken over, which until now was
+                # never compared at all -- it was not in the R export. Both
+                # sides compute it and a silent disagreement here would move
+                # every number below without explaining any of them.
+                #
+                # window_source must match exactly: it is the flag saying
+                # whether the window came from phenology, one end of it, or
+                # neither, and METHODS.md tells a caller to report it next to
+                # the figure. The dates get the season-marker tolerance rather
+                # than equality, because the window ends at planting minus
+                # three days and so inherits whatever planting disagreement
+                # already exists -- which is reported separately.
+                if "window_source_r" in m:
+                    # fillna before comparing: a row with no window has no
+                    # source on either side, and NA never equals NA, so the
+                    # straight comparison reported every such row as a
+                    # disagreement between two identical blanks.
+                    ws = (m["window_source_r"].fillna("").astype(str)
+                          .ne(m["window_source_py"].fillna("").astype(str)))
+                    for _, o in m[ws].iterrows():
+                        issues.append(
+                            f"{name} {int(o.year)}: window source "
+                            f"'{o.window_source_r}' (R) vs "
+                            f"'{o.window_source_py}' (Py)")
+                for col in ("window_start", "window_end"):
+                    if f"{col}_r" not in m:
+                        continue
+                    a = pd.to_datetime(m[f"{col}_r"], errors="coerce")
+                    b = pd.to_datetime(m[f"{col}_py"], errors="coerce")
+                    both = a.notna() & b.notna()
+                    if not both.any():
+                        continue
+                    dd = (a[both] - b[both]).abs().dt.days
+                    if dd.max() > DATE_TOL_DAYS:
+                        yr = int(m.loc[dd.idxmax(), "year"])
+                        issues.append(f"{name} {yr}: {col} differs by "
+                                      f"{int(dd.max())} days")
+
                 # Every cover fraction, not just the headline -- two of them can
                 # trade against each other and leave armor looking identical.
                 worst = 0.0
                 for col, tol in (("armor", ARMOR_TOL), ("f_pv", ARMOR_TOL),
-                                 ("f_npv", ARMOR_TOL), ("f_bs", ARMOR_TOL)):
+                                 ("f_npv", ARMOR_TOL), ("f_bs", ARMOR_TOL),
+                                 ("ndvi_med", ARMOR_TOL)):
                     a = pd.to_numeric(m[f"{col}_r"], errors="coerce")
                     b = pd.to_numeric(m[f"{col}_py"], errors="coerce")
                     both = a.notna() & b.notna()

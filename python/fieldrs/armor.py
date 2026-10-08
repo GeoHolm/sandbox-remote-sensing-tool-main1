@@ -106,10 +106,89 @@ add_index("f_npv", lambda b: cover_fractions(b)["npv"],
 add_index("f_bs", lambda b: cover_fractions(b)["bs"],
           ["red", "nir", "swir16", "swir22"], 0.0, 1.0,
           "Bare soil fraction. Soil armor is 1 - this.")
+add_index("armor", lambda b: 1.0 - cover_fractions(b)["bs"],
+          ["red", "nir", "swir16", "swir22"], 0.0, 1.0,
+          "Soil armor: fraction of surface covered, living or residue.")
 add_index("dfi",
           lambda b: 100.0 * (1.0 - b["swir22"] / b["swir16"]) * (b["red"] / b["nir"]),
           ["red", "nir", "swir16", "swir22"], -5.0, 45.0,
           "Dead Fuel Index (Cao 2010). Non-photosynthetic material.")
+
+
+# ----------------------------------------------------------- display scale --
+#
+# The colour contract for a per-pixel armor image, so a platform rendering one
+# matches what the Shiny app shows rather than approximating it. These are the
+# same six anchors as veg_palette() in r/R/plotting.R, ramped the same way and
+# over the same fixed 0-1 range.
+#
+# Fixed, not per-scene. The point of showing two dates side by side is that
+# they are comparable, and a per-image stretch makes a dry April look like a
+# wet one.
+#
+# Brown to teal reads correctly without a legend: bare soil is brown, covered
+# ground is green, which is what the numbers mean.
+ARMOR_RAMP = ("#8c510a", "#d8b365", "#f6e8c3", "#c7eae5", "#5ab4ac", "#01665e")
+ARMOR_RANGE = (0.0, 1.0)
+ARMOR_NA_COLOR = "#ececec"      # masked: water, deep shadow, cloud
+
+
+def veg_palette(n: int = 100) -> list[str]:
+    """``n`` hex colours along the armor ramp.
+
+    Reproduces R's ``colorRampPalette(ARMOR_RAMP)(n)``, which interpolates
+    linearly in RGB and then **truncates** each channel rather than rounding
+    it -- that is what ``rgb(..., maxColorValue = 255)`` does. Rounding instead
+    matches R on only 15 of the 100 steps; truncating matches all 100. The
+    difference is one unit per channel, invisible on any single swatch and
+    wrong on every image, which is exactly the kind of mismatch that gets
+    argued about rather than measured.
+    """
+    anchors = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)]
+                        for c in ARMOR_RAMP], dtype=float)
+    if n == 1:
+        return ["#%02x%02x%02x" % tuple(int(v) for v in anchors[0])]
+    pos = np.linspace(0.0, len(anchors) - 1.0, n)
+    lo = np.clip(np.floor(pos).astype(int), 0, len(anchors) - 2)
+    frac = (pos - lo)[:, None]
+    rgb = anchors[lo] * (1.0 - frac) + anchors[lo + 1] * frac
+    return ["#%02x%02x%02x" % tuple(int(v) for v in row) for row in np.floor(rgb)]
+
+
+def armor_colors(values, n: int = 100) -> np.ndarray:
+    """Map armor values to hex colours, exactly as the Shiny app does.
+
+    ``values`` is any array of armor (0-1, NaN where masked). Returns an array
+    of hex strings the same shape, with :data:`ARMOR_NA_COLOR` wherever the
+    input is NaN.
+
+    The index arithmetic mirrors ``matrix_to_raster()`` in r/R/thumbnails.R,
+    including its rounding and clamping, so a pixel lands on the same colour in
+    both implementations.
+    """
+    pal = np.array(veg_palette(n))
+    a = np.asarray(values, dtype=float)
+    lo, hi = ARMOR_RANGE
+    with np.errstate(invalid="ignore"):
+        idx = np.round((a - lo) / (hi - lo) * (len(pal) - 1)).astype(float)
+    bad = ~np.isfinite(idx)
+    idx = np.clip(np.nan_to_num(idx, nan=0.0), 0, len(pal) - 1).astype(int)
+    out = pal[idx]
+    out[bad] = ARMOR_NA_COLOR
+    return out
+
+
+def armor_rgb(values, n: int = 100) -> np.ndarray:
+    """:func:`armor_colors` as a uint8 RGB array, shape ``(..., 3)``.
+
+    What an image writer wants. Masked pixels carry the same pale grey the app
+    uses rather than a transparent hole, so a saved PNG looks like the app's.
+    """
+    hexes = armor_colors(values, n)
+    flat = hexes.reshape(-1)
+    rgb = np.array([[int(c[i:i + 2], 16) for i in (1, 3, 5)] for c in flat],
+                   dtype=np.uint8)
+    return rgb.reshape(hexes.shape + (3,))
 
 ARMOR_BREAKS = (0.40, 0.75)
 ARMOR_LABELS = ("mostly bare", "partly covered", "well covered")

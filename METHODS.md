@@ -157,7 +157,19 @@ the two differ for any non-linear index.
 | `dfi` | 100 (1 − SWIR2.2/SWIR1.6) (Red/NIR) | −5 … 45 |
 
 `ndti`, `ndi7` and `ndsvi` are the multispectral residue indices evaluated by
-Sonmez & Slater (2016). `dfi` is the Dead Fuel Index of Cao et al. (2010).
+Sonmez & Slater (2016). `dfi` is the Dead Fuel Index of Cao et al. (2010). The
+vegetation and water indices are the standard published forms: `ndvi` from
+Rouse et al. (1974), `savi` from Huete (1988), `evi2` from Jiang et al. (2008),
+`ndmi` from Gao (1996), `ndwi` from McFeeters (1996), `ndre` from Gitelson &
+Merzlyak (1994) and `gcvi` from Gitelson et al. (2003). Sources are listed in
+full under *References*, along with the four formulas here that do **not** have
+one.
+
+Two naming collisions worth stating, because both appear in the literature
+under the other's name. Gao's NIR−SWIR1.6 index was published as NDWI and is
+now usually called NDMI, which is what this table calls it; McFeeters' Green−NIR
+index, also published as NDWI, is the one this table calls `ndwi`. They measure
+different things — vegetation water content and open water respectively.
 
 **CAI is not computable here.** The hyperspectral cellulose absorption index the
 residue literature favors needs three narrow bands inside 2000–2200 nm;
@@ -215,6 +227,25 @@ living cover crop or a perennial stand is protected just as well as one under
 stubble, and NDTI scores it as bare. On this library that error was not subtle —
 the Washington alfalfa pivot, the best-protected soil present, ranked **last of
 eleven**. It now ranks first.
+
+### Where this comes from
+
+The model is published, not invented here. Linear unmixing of fPV / fNPV / fBS
+inside a triangle formed by NDVI against a shortwave residue index is
+Guerschman et al. (2009), who built it with the hyperspectral Cellulose
+Absorption Index over Australian savanna. The specific NDVI–DFI pairing this
+pipeline uses — substituting Cao's broadband Dead Fuel Index for CAI, which is
+what makes it computable on Sentinel-2 — is Wang et al. (2019), validated on
+MODIS over the Xilingol grasslands.
+
+**What is ours is the endmember values, not the method.** Guerschman and Wang
+supply the triangle; the three vertex coordinates in §4 were fitted on 65,555
+cloud-free pixels from six fields in this library and are the part that will
+not transfer. See the porting note in `README.md`.
+
+Worth stating plainly because it cuts both ways: the method being published
+means it is prior art, and it also means the accuracy Wang reports is not ours
+to claim. Their validation was grassland at 500 m; this is cropland at 10 m.
 
 ### The model
 
@@ -454,7 +485,7 @@ cover crop` (`max ≥ 0.30`) → `no cover crop detected`. Perennial stands and
 persistently flooded windows return "not applicable" and "not detectable"
 respectively — which are different answers from "none".
 
-> **These thresholds are measured wrong outside the Corn Belt.** Against 347
+> **These thresholds are measured wrong outside the region they came from.** Against 347
 > Georgia field-winters the shipped detector said "likely cover crop" to 332 of
 > 347 fields: **98.4% sensitivity, 7.1% specificity, 57.5% accuracy** against a
 > 55.2% majority-class baseline. The cause is climate, not code — 98.1% of
@@ -614,7 +645,7 @@ stored as if they were NDVI, and then masked its own fix.
 | `ARMOR_ENDMEMBERS` | 6 fields, 4 states | Looks empirical, is local. Refit before use elsewhere |
 | `ARMOR_BREAKS` 0.40 / 0.75 | This library's distribution | Validation suggests ~0.44 / 0.59, crop-specific |
 | `RESIDUE_BREAKS` 0.05 / 0.09 | p33 / p75 of 64 seasons here | Rank among eleven fields, not an absolute scale |
-| `CC_GREEN_MIN` 0.30, `CC_STRONG` 0.35 | Corn Belt literature | **Measured wrong for Georgia** — 7.1% specificity |
+| `CC_GREEN_MIN` 0.30, `CC_STRONG` 0.35 | Mid-Atlantic lineage, origin unverified | **Measured wrong for Georgia** — 7.1% specificity |
 | `CROP_LAGS` | Literature-typical | Never calibrated against a planting date |
 | `SPLIT_*` | Chosen | Never calibrated, though the purity bands behind them now are |
 
@@ -711,15 +742,124 @@ searches in quick succession, not from sustained volume.
 
 ## References
 
+### Spectral indices
+
+- Rouse, J. W., Haas, R. H., Schell, J. A., Deering, D. W. (1974). Monitoring
+  vegetation systems in the Great Plains with ERTS. *Third ERTS Symposium, NASA
+  SP-351.* — NDVI. A symposium paper rather than a journal article; it is the
+  conventional origin citation.
+- Huete, A. R. (1988). A soil-adjusted vegetation index (SAVI). *Remote Sensing
+  of Environment.* — SAVI
+- Jiang, Z., Huete, A. R., Didan, K., Miura, T. (2008). Development of a
+  two-band enhanced vegetation index without a blue band. *Remote Sensing of
+  Environment.* — EVI2
+- Gao, B.-C. (1996). NDWI — a normalized difference water index for remote
+  sensing of vegetation liquid water from space. *Remote Sensing of
+  Environment.* — NDMI (published under the name NDWI; see §2)
+- McFeeters, S. K. (1996). The use of the Normalized Difference Water Index
+  (NDWI) in the delineation of open water features. *International Journal of
+  Remote Sensing.* — NDWI
+- Gitelson, A., Merzlyak, M. N. (1994). Spectral reflectance changes associated
+  with autumn senescence of *Aesculus hippocastanum* L. and *Acer platanoides*
+  L. leaves. *Journal of Plant Physiology.* — NDRE
+- Gitelson, A. A., Gritz, Y., Merzlyak, M. N. (2003). Relationships between leaf
+  chlorophyll content and spectral reflectance and algorithms for
+  non-destructive chlorophyll assessment in higher plant leaves. *Journal of
+  Plant Physiology.* — GCVI
 - Cao, X., Chen, J., Matsushita, B., Imura, H. (2010). Developing a MODIS-based
   index to discriminate dead fuel from photosynthetic vegetation. *International
   Journal of Remote Sensing.* — DFI
 - Sonmez, N. K., Slater, B. (2016). Measuring intensity of tillage and plant
   residue cover using remote sensing. *European Journal of Remote Sensing.* —
   NDTI, NDI7, NDSVI, CAI
+
+### Methods
+
+- Guerschman, J. P., Hill, M. J., Renzullo, L. J., Barrett, D. J., Marks, A. S.,
+  Botha, E. J. (2009). Estimating fractional cover of photosynthetic vegetation,
+  non-photosynthetic vegetation and bare soil in the Australian tropical savanna
+  region upscaling the EO-1 Hyperion and MODIS sensors. *Remote Sensing of
+  Environment,* 113(5), 928–945. doi:10.1016/j.rse.2009.01.006 — the NDVI ×
+  shortwave-index unmixing triangle, originally with CAI
+- Wang, G., Wang, J., Zou, X., Chai, G., Wu, M., Wang, Z. (2019). Estimating the
+  fractional cover of photosynthetic vegetation, non-photosynthetic vegetation
+  and bare soil from MODIS data: assessing the applicability of the NDVI-DFI
+  model in the typical Xilingol grasslands. *International Journal of Applied
+  Earth Observation and Geoinformation,* 76, 154–166.
+  doi:10.1016/j.jag.2018.11.006 — the NDVI–DFI model this pipeline implements
 - Zheng, B., Campbell, J. B., de Beurs, K. M. (2013). Remote sensing of crop
   residue cover using multi-temporal Landsat imagery. *Remote Sensing of
   Environment.* — minimum-NDTI method
+
+### Data
+
 - USDA NASS Cropland Data Layer — https://nassgeodata.gmu.edu/CropScape/
 - Microsoft Planetary Computer, Sentinel-2 L2A —
   https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a
+
+### Formulas in this document with no published source
+
+Listed rather than left implicit. Every index above traces to a paper; these
+three do not, and two of them are described elsewhere in the repository as
+coming from the literature without a paper ever being named. Until each line
+below is closed, treat the method as this project's own construction and say so
+when reporting it.
+
+The NDVI–DFI unmixing was on this list until October 2026 and is now sourced to
+Guerschman et al. (2009) and Wang et al. (2019); see §4.
+
+| What | Where | What is needed |
+|---|---|---|
+| Planting and harvest extraction | §5 | A source for the amplitude-threshold-on-a-smoothed-curve approach. The thresholds and the smoothing penalty are ours; the technique is not new |
+| `CC_GREEN_MIN` 0.30, `CC_STRONG` 0.35, `CC_RESIDUE_MAX` 0.25 | §7 | Partly traced — see below. 0.30 has a documented lineage but not a verified origin; 0.35 and 0.25 have neither |
+| `CROP_LAGS` | §6 | Described as "literature-typical, never calibrated". Same problem, lower stakes |
+
+Closing these matters beyond tidiness. Published prior art is what narrows a
+patent claim, and an unsourced claim of a literature source is weaker than
+saying plainly that a number was chosen.
+
+### What was found for the cover crop thresholds, October 2026
+
+Searched rather than recalled, and recorded with its uncertainty because the
+answer is partial.
+
+**0.30 is a real number in this literature, with a traceable chain of use:**
+
+- Hively, W. D., Duiker, S., McCarty, G. W., Prabhakara, K. (2015). Remote
+  sensing to monitor cover crop adoption in southeastern Pennsylvania.
+  *Journal of Soil and Water Conservation,* 70(6), 340–352.
+  doi:10.2489/jswc.70.6.340 — Landsat and SPOT NDVI, the CDL and windshield
+  surveys over the Chesapeake Bay watershed, 2010–2013. Later work credits this
+  study with determining an in-situ-verified NDVI threshold for identifying
+  winter cover crops.
+- KC, K., Zhao, K., Romanko, M., Khanal, S. (2021). Assessment of the spatial
+  and temporal patterns of cover crops using remote sensing. *Remote Sensing,*
+  13(14), 2689. doi:10.3390/rs13142689 — reuses that threshold over the Maumee
+  River watershed (Ohio, Indiana, Michigan), 2008–2019.
+
+**Three reasons this is not yet a citation.**
+
+1. *The number has not been verified against either primary text.* Both papers
+   are behind paywalls that refused automated retrieval. The 0.30 figure is
+   attested only by later work citing them. One secondary source also suggests
+   the 0.30 cutoff in Maryland originates as a **state Department of
+   Agriculture program rule** marking low-performing or terminated fields,
+   rather than as a finding of the 2015 paper. Those are different kinds of
+   number and the difference matters.
+2. *The statistic differs.* KC et al. apply 0.30 to a **seasonal average NDVI
+   per field**. §7 applies `CC_GREEN_MIN` to **individual observations** when
+   counting green days, and `CC_STRONG` to the **window maximum**. Reusing a
+   threshold against a different statistic is not reusing the threshold.
+3. *`CC_STRONG` 0.35 and `CC_RESIDUE_MAX` 0.25 were not found at all.* No
+   source surfaced for either.
+
+**The geography was wrong and is now corrected.** `covercrop.R`, the root
+README and the cotton deck all described these as Corn Belt or Iowa values. The
+lineage runs through **southeastern Pennsylvania and the Chesapeake Bay**; the
+Corn Belt is where the number was later reused, not where it was established.
+
+That correction sharpens the Georgia result rather than softening it. A
+threshold set in the Mid-Atlantic — milder and wetter than Iowa, and closer to
+Georgia in winter behavior — still reached only 7.1% specificity against
+Georgia ground truth. The failure is not a simple matter of latitude, which is
+what "an Iowa number used in the South" implied.

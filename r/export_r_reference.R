@@ -52,9 +52,16 @@ for (p in files) {
   if (!is.null(rts)) {
     res <- armor_all_years(rts, phen)
     if (!is.null(res)) {
+      # window_source and ndvi_med are here deliberately. Both are produced by
+      # armor_summary() on each side and neither used to be exported, so the
+      # cross-check could not see them -- and window_source is the flag saying
+      # whether the window came from phenology or fell back to fixed dates,
+      # which METHODS.md tells a caller to report alongside the number. A
+      # disagreement there would have been invisible.
       res_all[[nm]] <- cbind(field = nm,
-        res[, c("year","window_start","window_end","n_obs","armor","armor_lo",
-                "armor_hi","f_pv","f_npv","f_bs","min_ndti","note")])
+        res[, c("year","window_start","window_end","window_source","n_obs",
+                "armor","armor_lo","armor_hi","f_pv","f_npv","f_bs",
+                "min_ndti","ndvi_med","note")])
     }
   }
 

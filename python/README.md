@@ -238,6 +238,52 @@ the two measurements behind that decision and `README.md` at the repo root for
 the accuracy ceiling. Anything built on top of this needs calibrating against
 residue line-transect data first.
 
+### Per-pixel armor imagery
+
+`armor` is a registered index, so a per-pixel armor raster comes out of the
+same call as any other:
+
+```python
+from fieldrs import (armor_colors, armor_rgb, compute_index, load_field,
+                     read_scene, search_scenes)
+from fieldrs.imagery import dedupe_scenes
+
+aoi = load_field("field.geojson")
+scenes = dedupe_scenes(search_scenes(aoi, "2020-03-01", "2020-04-15"), aoi)
+sc = read_scene(scenes[0], aoi, bands=["red", "nir", "swir16", "swir22"])
+
+armor = compute_index(sc.bands, "armor")   # float array, 0-1, NaN where masked
+rgb = armor_rgb(armor)                     # uint8 (H, W, 3), ready to write
+```
+
+`armor_colors()` returns hex strings instead, same shape as the input.
+
+**The colour scale is a contract, not a suggestion.** `ARMOR_RAMP`,
+`ARMOR_RANGE` and `ARMOR_NA_COLOR` are the same six anchors, the same fixed
+0–1 range and the same pale grey the Shiny app uses, so an image produced here
+matches one produced there. The ramp is fixed rather than stretched per scene:
+the point of putting two dates side by side is that they are comparable, and a
+per-image stretch makes a dry April look like a wet one.
+
+`veg_palette(n)` reproduces R's `colorRampPalette(ARMOR_RAMP)(n)` exactly,
+including the detail that R **truncates** each channel rather than rounding it.
+Rounding matches R on 15 of the 100 steps; truncating matches all 100.
+
+**What matches and what does not.** On a test scene the two implementations
+produce the same 2,030 field pixels with the same mask, and the median
+per-pixel difference is 0.002 armor. But 5.3% of pixels differ by more than
+0.01 and the worst by 0.059, so **71% of pixels land on the identical colour
+and most of the rest are one step of 100 away** — visually the same image, not
+a bit-identical one.
+
+The cause is the 20 m SWIR bands being resampled onto the 10 m grid. Both sides
+use bilinear, but R resamples onto an explicit target grid with
+`terra::resample` while rasterio resamples during the read, and the half-pixel
+alignment at the window edges differs. It shows up in the upper tail, where a
+few bright pixels diverge; the field averages the validated numbers are built
+on are unaffected — across 105 field-years only one row differs by more than
+0.01 armor. Do not expect checksum equality between the two renderings.
+
 ## Things worth knowing before you trust the numbers
 
 - **Nothing is calibrated.** Every threshold and crop lag is a
@@ -335,20 +381,34 @@ Largest `min_ndti` difference per field:
 | lubbock-pivot | 0.0008 | clinton-iowa | 0.0284 |
 | arkansas-rice | 0.0009 | | |
 
-### The eight expected disagreements
+### The ten expected disagreements
 
 ```
 clinton-iowa 2023:             planting differs by 25 days
 clinton-iowa 2022-23:          cover 'no cover crop detected' (R) vs 'possible cover crop' (Py)
 clinton-iowa 2023:             armor observation count 7 (R) vs 12 (Py)
+clinton-iowa 2023:             window_end differs by 25 days
 clinton-iowa 2023:             f_npv differs by 0.046
 tifton-georgia 2022:           harvest differs by 4 days
 example_field_covercrop 2026:  harvest present in Py only
 mitchell-ga-conservation 2020: harvest differs by 51 days
 mitchell-ga-conventional 2021: peak NDVI differs by 0.021
+eldorado-georgia 2026:         ndvi_med differs by 0.094
 ```
 
-**They come from four root causes, not eight.** Four are Clinton, Iowa 2023.
+Two of those are new in October 2026 and neither is a regression — they are
+columns the comparison previously could not see. `window_source`,
+`window_start`, `window_end` and `ndvi_med` were all computed on both sides but
+omitted from the R export, so four columns of the armor output were never
+checked. `window_source` now matches on all 105 rows. The Clinton `window_end`
+is the 25-day planting difference propagating through `planting - 3`, already
+counted under the same root cause. `eldorado-georgia 2026` is the median's
+known fragility: the two sides see 7 and 8 observations of the same window, and
+one extra date moves `ndvi_med` by 0.094 while time-weighted `armor` moves
+0.002 — which is the whole argument for the summary statistic not being a
+median, made again by accident.
+
+**The rest come from four root causes.** Four are Clinton, Iowa 2023.
 One is a 4-day harvest on Tifton 2022 against a 3-day tolerance. The 2026
 one-sided harvest is the incomplete current season, where R declines to date a
 senescence it cannot see the end of and Python commits to one; it will resolve

@@ -28,7 +28,7 @@
 > | `ARMOR_ENDMEMBERS` | `armor.R` / `armor.py` | 65,555 pixels from six of these fields |
 > | `ARMOR_BREAKS` (0.40 / 0.75) | `armor.R` / `armor.py` | this library's own distribution; validation suggests ~0.44–0.59 and crop-specific |
 > | `RESIDUE_BREAKS` (0.05 / 0.09) | `residue.R` / `residue.py` | p33 / p75 of 64 seasons here |
-> | `CC_GREEN_MIN` / `CC_STRONG` (0.30 / 0.35) | `covercrop.R` / `covercrop.py` | Iowa-typical; **measured wrong for Georgia** — 98% of no-cover fields clear 0.30 |
+> | `CC_GREEN_MIN` / `CC_STRONG` (0.30 / 0.35) | `covercrop.R` / `covercrop.py` | **Mid-Atlantic, not Iowa** — the lineage runs through Chesapeake-region work, not the Corn Belt. **Measured wrong for Georgia** — 98% of no-cover fields clear 0.30. The origin of the number is still unverified; see *What was found for the cover crop thresholds* in `METHODS.md` |
 | `CROP_LAGS`, `SPLIT_*` | various | literature-typical, never calibrated |
 >
 > The endmembers deserve particular care: they came from real pixels, so they
@@ -131,7 +131,7 @@ be re-run in `r/` whenever a field is added.
 | Peak NDVI | within **0.021** everywhere |
 | Cover crop verdicts (90) | **89 / 90** match |
 
-**It reports 8 disagreements, from four root causes** — four from Clinton, Iowa
+**It reports 10 disagreements, from four root causes** — four from Clinton, Iowa
 2023, where the spring is a slow ramp with no distinct trough and the two
 smoothers pick different candidate baselines; a 4-day harvest on Tifton 2022; a
 2026 harvest Python dates and R declines to, which the incomplete season
@@ -139,8 +139,13 @@ explains; and a 51-day harvest gap on Mitchell County 2020, where a cover crop
 sown straight after cotton leaves the autumn curve with no clean return to
 baseline. That last one is the largest disagreement in the library and the only
 one neither implementation flags as low confidence. `python/README.md` lists all
-eight so a developer can tell them from a real regression; the check is *meant*
+ten so a developer can tell them from a real regression; the check is *meant*
 to exit non-zero on a clean checkout.
+
+Two of the ten appeared in October 2026 when `window_source`, `window_start`,
+`window_end` and `ndvi_med` were added to the R export. All four are computed
+by both implementations and none had ever been compared, so a disagreement in
+any of them would have been invisible. `window_source` matches on all 105 rows.
 
 Porting was worth it beyond the deliverable: comparing two implementations
 caught two problems neither would have shown alone. `terra::mask()` defaults to

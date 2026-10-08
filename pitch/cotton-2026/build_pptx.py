@@ -397,14 +397,14 @@ notes(s, "This shows operational maturity rather than a science result. "
 
 # --------------------------------------------------------- 11 uncalibrated ---
 s = slide(header="What an uncalibrated threshold costs", logo=True)
-text(s, "Our cover crop threshold was set from Corn Belt literature, where "
+text(s, "Our cover crop threshold came from Mid-Atlantic literature, where "
         "winter residue sits at NDVI 0.10–0.25. In Georgia the median "
         "field with no cover crop at all peaks at 0.53 — 0.50 on cotton. "
         "Winter weeds, "
         "volunteer and a mild climate put green on ground nobody planted.",
      M, BODY_TOP, 11.4, 0.7, 14, GRAY, spacing=1.3)
 for i, (tag, big, body, col) in enumerate([
-        ("CORN BELT THRESHOLD", "60",
+        ("OUT-OF-REGION THRESHOLD", "60",
          "false alarms out of 68 cotton fields that grew no cover crop. It "
          "called almost every field a cover crop, so the answer carried no "
          "information.", PURPLE),
@@ -496,7 +496,7 @@ table(s, [["What we need", "What it fixes", "Why it cannot wait"],
           ["Residue line transects", "Turns soil armor from a rank into a real percentage of ground covered",
            "The one measurement that separates residue from a cover crop"],
           ["Practice records outside Georgia", "Regional thresholds instead of one national constant",
-           "A Corn Belt number cost us 60 false alarms on 68 fields"],
+           "An out-of-region number cost us 60 false alarms on 68 fields"],
           ["Planting and harvest dates", "The only component still untested against anything",
            "Every seasonal window in the pipeline depends on these"],
           ["Reduced-till fields, 15–30%", "A three-class answer instead of a two-class one",

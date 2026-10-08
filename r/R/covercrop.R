@@ -17,6 +17,14 @@
 # that should be calibrated against known cover-cropped fields before anyone
 # leans on the output.
 #
+# PROVENANCE -- read METHODS.md before quoting these as literature values.
+# 0.30 has a traceable chain of use in the cover crop remote sensing work
+# (Hively 2015, southeastern Pennsylvania; KC 2021, Maumee watershed) but the
+# number has not been verified against either primary text, and those studies
+# apply it to a seasonal field average rather than to single observations the
+# way this module does. 0.35 and 0.25 have no source at all. This comment used
+# to say the thresholds were Corn Belt values; the lineage is Mid-Atlantic.
+#
 # Snow is handled upstream: the SCL mask drops snow-covered pixels, so snowy
 # dates disappear from the record rather than reading as bare soil. That is the
 # right behaviour, but it thins winter coverage -- which is why `n_obs` is

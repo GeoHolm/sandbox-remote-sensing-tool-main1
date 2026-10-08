@@ -12,6 +12,9 @@ Typical use::
 """
 
 from .aoi import field_bounds, geometry_from_geojson, load_field, single_field
+from .armor import (ARMOR_NA_COLOR, ARMOR_RAMP, ARMOR_RANGE, armor_all_years,
+                    armor_band, armor_colors, armor_rgb, armor_series,
+                    armor_summary, cover_fractions, veg_palette)
 from .cache import analysis_window, cache_clear
 from .catalog import catalog_availability, catalog_summary
 from .climate import (field_centroid, gridmet_daily, rain_free_phenology,
@@ -41,6 +44,10 @@ __all__ = [
     "detect_cover_crop", "cover_crop_all_years",
     "field_centroid", "gridmet_daily", "rain_free_phenology",
     "weather_free_events", "weather_free_phenology",
+    "armor_series", "armor_summary", "armor_all_years", "armor_band",
+    "cover_fractions",
+    "armor_colors", "armor_rgb", "veg_palette",
+    "ARMOR_RAMP", "ARMOR_RANGE", "ARMOR_NA_COLOR",
 ]
 
 __version__ = "0.1.0"
