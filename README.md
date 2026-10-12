@@ -63,19 +63,22 @@ boundaries.
 .
 ├── data/fields/        15 example boundaries, shared by both implementations
 ├── r/                  R implementation — Shiny app + pipeline
-└── python/             Python implementation — library + CLI, no app
+└── python/             Python implementation — library + CLI + Streamlit app
 ```
 
 | | `r/` | `python/` |
 |---|---|---|
 | For | Exploring, demonstrating, showing stakeholders | Embedding in a platform |
-| Interface | Shiny app, 7 tabs | Importable package + CLI |
-| Entry point | `shiny::runApp()` | `analyze_field()` / `run_field.py` |
+| Interface | Shiny app, 9 tabs | Importable package + CLI + Streamlit app, 9 tabs |
+| Entry point | `shiny::runApp()` | `analyze_field()` / `run_field.py` / `streamlit run app.py` |
 | Pre-computed demo library | Yes — any field opens in <1 s | No — computes on demand |
 
 Both read the same boundaries from `data/fields/`, hit the same public data
-sources, and implement the same algorithms. Neither needs an account or an API
-key for anything.
+sources, and implement the same algorithms: Sentinel-2 or HLS imagery, winter
+crop and fallow seasons, cover crop seeding and termination, gridMET
+weather-checked field-work dates, USGS irrigation, and the prototype Sentinel-1
+radar and hay-cutting analysis. `python/compare_with_r.py` checks they agree --
+see METHODS.md §19. Neither needs an account or an API key for anything.
 
 ## Quick start
 

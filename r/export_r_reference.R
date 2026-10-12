@@ -17,7 +17,14 @@ files <- sort(list.files(FIELDS_DIR, pattern = "[.]geojson$", full.names = TRUE)
 yrs   <- 2020:(as.integer(format(Sys.Date(), "%Y")) - 1)
 win   <- analysis_window(2020, as.integer(format(Sys.Date(), "%Y")))
 
-phen_all <- cc_all <- hist_all <- adv_all <- res_all <- list()
+phen_all <- cc_all <- hist_all <- adv_all <- res_all <- cdly_all <- list()
+
+# Columns a field may or may not have (fallow periods only exist where a fallow
+# year does), filled with NA so every field's rows bind together.
+pick <- function(df, cols) {
+  for (c in setdiff(cols, names(df))) df[[c]] <- NA
+  df[, cols]
+}
 
 for (p in files) {
   nm <- sub("[.]geojson$", "", basename(p))
@@ -30,6 +37,8 @@ for (p in files) {
   if (is.null(st) || is.null(ts)) { cat("NOT CACHED\n"); next }
 
   hist  <- cdl_history_from_stack(st)
+  hist  <- irrigation_add_to_history(hist, tryCatch(irrigation_history(aoi),
+                                                    error = function(e) NULL))
   crops <- crop_lookup(hist)
   phen  <- phenology_all_years(ts, crops)
   cc    <- cover_crop_all_years(ts, phen, crops)
@@ -38,12 +47,14 @@ for (p in files) {
   hist_all[[nm]] <- cbind(field = nm, hist)
   if (!is.null(phen)) {
     phen_all[[nm]] <- cbind(field = nm, n_obs_total = nrow(ts),
-      phen[, c("year","crop","planting_est","harvest_est","season_days",
-               "peak_ndvi","confidence")])
+      pick(phen, c("year","crop","season_type","planting_est","harvest_est",
+                   "greenup_date","season_days","peak_ndvi","fallow_days",
+                   "fallow_green_days","confidence")))
   }
   if (!is.null(cc)) {
     cc_all[[nm]] <- cbind(field = nm,
-      cc[, c("winter","n_obs","max_ndvi","green_days","verdict")])
+      pick(cc, c("winter","n_obs","max_ndvi","green_days","verdict",
+                 "seeding_est","termination_est")))
   }
   # Residue is warmed separately, so a field without it is skipped rather
   # than failing the whole export.
@@ -65,6 +76,7 @@ for (p in files) {
     }
   }
 
+  cdly_all[[nm]] <- cbind(field = nm, adv$per_year)
   adv_all[[nm]] <- data.frame(
     field = nm, verdict = adv$verdict, frac = round(adv$frac, 4),
     area_ha = round(adv$area_ha, 2), biggest_ha = round(adv$biggest_ha, 2),
@@ -84,3 +96,4 @@ wr(phen_all, "phenology.csv")
 wr(cc_all,   "covercrop.csv")
 wr(adv_all,  "boundary.csv")
 wr(res_all,  "soil_armor.csv")
+wr(cdly_all, "cdl_by_year.csv")

@@ -54,8 +54,12 @@ def cdl_split_advice(stack: CdlStack) -> SplitAdvice:
     for y in stack.years:
         s = cdl_summary(stack.year(y), px_ha)
         doms.append(int(s.code[0]))
+        # Secondary: the next-largest class, crop or not -- a road or a
+        # treeline in second place is as useful to see as a second crop.
         per_year.append({
             "year": y, "dominant": s.crop[0], "pct": float(s.pct[0]),
+            "secondary": s.crop[1] if len(s) > 1 else None,
+            "secondary_pct": float(s.pct[1]) if len(s) > 1 else None,
             "n_classes": len(s),
             "noncrop_pct": float(s.loc[~s.is_crop, "pct"].sum()),
         })

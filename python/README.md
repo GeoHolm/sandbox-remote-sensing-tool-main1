@@ -70,8 +70,9 @@ r = analyze_field(aoi, years=(2020, 2026))
 
 These exist here and not (yet) in the R version.
 
-**App.** `streamlit run app.py` -- a Streamlit port of `r/app.R`, same seven
-tabs, same cache.
+**App.** `streamlit run app.py` -- a Streamlit port of `r/app.R`, same nine
+tabs (Field, CDL, Data availability, Imagery, Season analysis, Cover crops, Soil
+armor, Soil moisture (radar), Summary) and the same sidebar controls.
 
 **Local CDL.** Set `CDL_DIR` to a folder of national CDL GeoTIFFs --
 `national/` or `tif/` subfolders, or flat `NASS_<year>.tif` files -- and CDL is

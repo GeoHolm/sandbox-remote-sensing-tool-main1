@@ -1,9 +1,19 @@
 # ==============================================================================
-# imagery.R -- Find and load Sentinel-2 surface reflectance over a field
+# imagery.R -- Find and load optical surface reflectance over a field
 #
-# Source: Microsoft Planetary Computer's STAC API. Sentinel-2 L2A there is free
-# and needs no account. Imagery is read straight from cloud-optimised GeoTIFFs
-# over HTTP, so only the pixels covering your field are ever transferred.
+# Source: Microsoft Planetary Computer's STAC API. Two imagery sources, both
+# free and needing no account (port of python/fieldrs/imagery.py):
+#
+#   sentinel2  Sentinel-2 L2A at 10 m, cloud-masked with ESA's Scene
+#              Classification Layer. The original.
+#   hls        NASA's Harmonized Landsat Sentinel-2 v2.0: Sentinel-2 (S30) and
+#              Landsat 8/9 (L30) on one 30 m grid, bandpass- and BRDF-adjusted,
+#              cloud-masked with Fmask. Adding Landsat roughly halves the longest
+#              cloud gaps at crop transitions. Planetary Computer holds HLS v2
+#              from 2020 on.
+#
+# Imagery is read straight from cloud-optimised GeoTIFFs over HTTP, so only the
+# pixels covering your field are ever transferred.
 # ==============================================================================
 
 PC_STAC <- "https://planetarycomputer.microsoft.com/api/stac/v1"
@@ -57,6 +67,52 @@ SCL_LABELS <- c(
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+# --- HLS ----------------------------------------------------------------------
+# Friendly name -> HLS asset key, per collection. In S30 the NIR band is B8A,
+# not B08: B8A is the narrow NIR that HLS bandpass-adjusts to match Landsat's
+# B05. L30 has no red edge.
+HLS_BANDS <- list(
+  "hls2-s30" = c(coastal = "B01", blue = "B02", green = "B03", red = "B04",
+                 rededge1 = "B05", rededge2 = "B06", rededge3 = "B07",
+                 nir = "B8A", nir08 = "B8A", swir16 = "B11", swir22 = "B12",
+                 fmask = "Fmask"),
+  "hls2-l30" = c(coastal = "B01", blue = "B02", green = "B03", red = "B04",
+                 nir = "B05", nir08 = "B05", swir16 = "B06", swir22 = "B07",
+                 fmask = "Fmask"))
+HLS_SCALE  <- 0.0001
+HLS_NODATA <- -9999
+
+# HLS keeps slightly negative reflectance (snow, shadow); where red and NIR are
+# both near zero NDVI explodes. A pixel with any band at or below zero is not a
+# usable surface reading.
+HLS_MIN_REFLECTANCE <- 0.0
+
+# Fmask is bit-packed: 1 cloud, 2 adjacent to cloud/shadow, 3 cloud shadow,
+# 4 snow/ice, 5 water, 6-7 aerosol. Drop 1-4, the same things SCL drops. Water
+# stays; aerosol is not masked (it is set on plenty of clear summer scenes).
+FMASK_DROP_BITS <- c(1, 2, 3, 4)
+
+# Edge pixels at 30 m straddle the boundary. Keep pixels whose centre is this far
+# inside it (half a pixel), unless that leaves fewer than HLS_MIN_PIXELS.
+HLS_EDGE_M     <- 15
+HLS_MIN_PIXELS <- 10
+
+# Imagery source -> STAC collections searched.
+SOURCES <- list(sentinel2 = "sentinel-2-l2a", hls = c("hls2-s30", "hls2-l30"))
+SOURCE_LABELS <- c(sentinel2 = "Sentinel-2 L2A, 10 m",
+                   hls = "HLS v2 (Sentinel-2 + Landsat 8/9), 30 m")
+
+# First year each source can carry a season analysis: Sentinel-2 L2A is too
+# sparse before 2018 (two satellites from 2017), HLS v2 on Planetary Computer
+# starts in 2020.
+SOURCE_FIRST_YEAR <- c(sentinel2 = 2018L, hls = 2020L)
+
+#' Short sensor label for a STAC item: S2, HLS-S30 or HLS-L30.
+sensor_of <- function(item) {
+  switch(item$collection %||% "", "sentinel-2-l2a" = "S2", "hls2-s30" = "HLS-S30",
+         "hls2-l30" = "HLS-L30", "?")
+}
+
 # ------------------------------------------------------------------ search ---
 
 #' The cache key search_scenes() uses for a given query.
@@ -64,8 +120,13 @@ SCL_LABELS <- c(
 #' Exposed so a caller can ask whether a catalogue is already on disk without
 #' running the search. Sharing one key function is what stops the question and
 #' the answer drifting apart.
-scenes_cache_key <- function(aoi, start, end, max_cloud = 60, limit = 500) {
-  cache_key(aoi, start, end, max_cloud, limit, "catalog_scenes_v1")
+scenes_cache_key <- function(aoi, start, end, max_cloud = 60, limit = 500,
+                             source = "sentinel2") {
+  # The source joins the key only when it is not the original, so catalogues
+  # cached before HLS existed are still found.
+  if (identical(source, "sentinel2"))
+    cache_key(aoi, start, end, max_cloud, limit, "catalog_scenes_v1")
+  else cache_key(aoi, start, end, max_cloud, limit, "catalog_scenes_v1", source)
 }
 
 #' Search Sentinel-2 scenes covering a field.
@@ -95,12 +156,13 @@ STAC_BACKOFF <- c(2, 6, 15)     # seconds before attempts 2, 3 and 4
 #'
 #' The search is a read, so repeating it is safe. Anything already extracted is
 #' cached per year, so even a final failure loses only the year in flight.
-stac_search_retry <- function(bbox, start, end, limit) {
+stac_search_retry <- function(bbox, start, end, limit,
+                              collections = "sentinel-2-l2a") {
   for (i in seq_len(STAC_TRIES)) {
     res <- tryCatch(
       rstac::stac(PC_STAC) |>
         rstac::stac_search(
-          collections = "sentinel-2-l2a",
+          collections = collections,
           bbox        = bbox,
           datetime    = paste0(start, "T00:00:00Z/", end, "T23:59:59Z"),
           limit       = min(limit, 500)
@@ -143,7 +205,9 @@ stac_search_retry <- function(bbox, start, end, limit) {
 }
 
 search_scenes <- function(aoi, start, end, max_cloud = 60, limit = 500,
-                          refresh = FALSE) {
+                          refresh = FALSE, source = "sentinel2") {
+  if (!source %in% names(SOURCES))
+    stop("source must be one of ", paste(names(SOURCES), collapse = ", "), call. = FALSE)
 
   # Cached to disk like every other network result. This was the one call in
   # the app that always went out to the network: the Imagery tab re-paged the
@@ -156,7 +220,7 @@ search_scenes <- function(aoi, start, end, max_cloud = 60, limit = 500,
   # acquisitions from the one tab whose job is showing what was collected. At
   # day granularity a past-year range caches indefinitely and the current year
   # re-queries once a day, which still removes the cost from every restart.
-  key <- scenes_cache_key(aoi, start, end, max_cloud, limit)
+  key <- scenes_cache_key(aoi, start, end, max_cloud, limit, source)
   hit <- if (refresh) NULL else cache_get(key, "scenes")
   if (!is.null(hit)) {
     message(sprintf("  Cached catalogue: %d scenes, %s to %s.",
@@ -172,13 +236,15 @@ search_scenes <- function(aoi, start, end, max_cloud = 60, limit = 500,
 
   bbox <- field_bbox(aoi)
 
-  message(sprintf("  Searching Sentinel-2, %s to %s...", start, end))
-  items <- stac_search_retry(bbox, start, end, limit)
+  message(sprintf("  Searching %s, %s to %s...", SOURCE_LABELS[[source]], start, end))
+  items <- stac_search_retry(bbox, start, end, limit, SOURCES[[source]])
 
   n_found <- rstac::items_length(items)
   if (n_found == 0) {
-    stop("No Sentinel-2 scenes found for that area and date range.\n",
-         "  Sentinel-2 data starts 2015-06; coverage is best from 2017 onward.",
+    stop("No ", SOURCE_LABELS[[source]], " scenes found for that area and date range.\n",
+         if (source == "sentinel2")
+           "  Sentinel-2 data starts 2015-06; coverage is best from 2017 onward."
+         else "  HLS v2 on Planetary Computer starts 2020-01.",
          call. = FALSE)
   }
 
@@ -200,9 +266,10 @@ search_scenes <- function(aoi, start, end, max_cloud = 60, limit = 500,
     cloud = round(cloud[keep], 1),
     epsg  = vapply(items$features,
               function(f) as.integer(f$properties[["proj:epsg"]] %||% NA_integer_), integer(1)),
+    sensor = vapply(items$features, sensor_of, character(1)),
     stringsAsFactors = FALSE
   )
-  ord <- order(tbl$date)
+  ord <- order(tbl$date, tbl$id)
   tbl <- tbl[ord, ]
   items$features <- items$features[ord]
   tbl$i <- seq_len(nrow(tbl))
@@ -356,6 +423,9 @@ scene_from_item <- function(item, aoi, bands = c("blue", "green", "red", "nir"),
                             mask_clouds = TRUE, clip = TRUE, buffer_m = 100,
                             scl_keep = SCL_KEEP_DEFAULT) {
 
+  if ((item$collection %||% "") %in% names(HLS_BANDS)) {
+    return(scene_from_hls(item, aoi, bands, mask_clouds, clip, buffer_m))
+  }
   unknown <- setdiff(bands, names(S2_BANDS))
   if (length(unknown)) {
     stop("Unknown band(s): ", paste(unknown, collapse = ", "),
@@ -413,6 +483,69 @@ scene_from_item <- function(item, aoi, bands = c("blue", "green", "red", "nir"),
   }
 
   res <- res[[bands]]
+  attr(res, "n_field") <- n_field
+  res
+}
+
+#' One HLS (S30 or L30) scene, clipped to the field, as reflectance (0-1).
+#'
+#' All HLS bands share one 30 m grid, so every band reads the same window and
+#' nothing is resampled. Clipping keeps pixels whose centre is HLS_EDGE_M inside
+#' the boundary, falling back to the whole boundary for a very small field.
+scene_from_hls <- function(item, aoi, bands, mask_clouds = TRUE, clip = TRUE,
+                           buffer_m = 100) {
+  amap <- HLS_BANDS[[item$collection]]
+  unknown <- setdiff(bands, setdiff(names(amap), "fmask"))
+  if (length(unknown)) {
+    stop("Band(s) ", paste(unknown, collapse = ", "), " not in ", item$collection,
+         ". Available: ", paste(setdiff(names(amap), "fmask"), collapse = ", "),
+         call. = FALSE)
+  }
+  needed <- unique(c(bands, if (mask_clouds) "fmask"))
+  raw <- lapply(needed, function(b) {
+    href <- item$assets[[ amap[[b]] ]]$href
+    if (is.null(href)) stop("Band not present in scene: ", b, call. = FALSE)
+    r <- terra::rast(paste0("/vsicurl/", href))
+    win <- terra::buffer(terra::project(terra::vect(sf::st_union(aoi)), terra::crs(r)),
+                         buffer_m)
+    terra::crop(r, terra::ext(win), snap = "out")
+  })
+  names(raw) <- needed
+
+  keep <- !is.na(raw[[1]])
+  out <- list()
+  for (b in bands) {
+    r <- raw[[b]]
+    keep <- keep & (r != HLS_NODATA) & (r * HLS_SCALE > HLS_MIN_REFLECTANCE)
+    out[[b]] <- r * HLS_SCALE
+  }
+  if (mask_clouds) {
+    fm <- raw[["fmask"]]
+    bad <- terra::app(fm, function(v) {
+      v <- as.integer(v); x <- rep(FALSE, length(v))
+      for (bit in FMASK_DROP_BITS) x <- x | bitwAnd(v, bitwShiftL(1L, bit)) != 0
+      x | is.na(v) | v == 255L
+    })
+    keep <- keep & !bad
+  }
+
+  if (clip) {
+    geom <- sf::st_transform(sf::st_union(sf::st_geometry(aoi)), terra::crs(raw[[1]]))
+    inner <- sf::st_buffer(geom, -HLS_EDGE_M)
+    foot <- NULL
+    if (!all(sf::st_is_empty(inner))) {
+      foot <- terra::rasterize(terra::vect(inner), raw[[1]], field = 1)
+      if (sum(!is.na(terra::values(foot))) < HLS_MIN_PIXELS) foot <- NULL
+    }
+    if (is.null(foot)) foot <- terra::rasterize(terra::vect(geom), raw[[1]], field = 1)
+    n_field <- sum(!is.na(terra::values(foot)))
+    keep <- keep & !is.na(foot)
+  } else {
+    n_field <- terra::ncell(raw[[1]])
+  }
+
+  res <- terra::rast(lapply(out, function(r) terra::mask(r, keep, maskvalues = c(0, NA))))
+  names(res) <- bands
   attr(res, "n_field") <- n_field
   res
 }

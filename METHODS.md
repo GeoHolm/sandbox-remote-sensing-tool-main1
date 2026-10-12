@@ -740,6 +740,270 @@ API. Searches retry four times at 2/6/15 s and honor `Retry-After` when the
 service sends one; the throttling seen in practice came from four heavy
 searches in quick succession, not from sustained volume.
 
+## 12. Winter crops and fallow
+
+`phenology_all_years` in `r/R/phenology.R` and `python/fieldrs/phenology.py`.
+
+The summer model (§5) looks for a June–September peak and reads spring green-up
+as planting, so a winter small grain gets an April "planting" or no season at
+all. The CDL label picks the model:
+
+| CDL label | Model | `season_type` |
+|---|---|---|
+| Winter Wheat, Rye, Triticale | winter model | `winter` |
+| Fallow/Idle Cropland | fallow row with the fallow period | `fallow` |
+| none yet (current year) | summer and winter both run; the curve decides | `winter (from curve)`, `fallow (from curve)` or `summer` |
+| anything else | summer model (§5) | `summer` |
+
+**Winter model.** Season `year` is the harvest year. The curve is fitted from
+1 July of the year before to 31 October.
+
+- **Peak:** the spring maximum, between 15 March and 30 June.
+- **Sowing:** the minimum between 1 August and 31 October the autumn before. If
+  the curve then rises at least 0.08 by 31 December, sowing is the 20% point of
+  that rise minus 14 days. It must fall by 15 December and no earlier than
+  15 August.
+- **Green-up:** the 20% point from the late-winter low to the peak.
+- **Harvest:** the 20% point back down from the peak to the summer low, by
+  30 September. The drop has to be at least 0.20.
+- **Windows and confidence:** as in §5.
+- **No crop:** a peak below 0.45 is "no winter crop detected", and the
+  perennial test of §5 applies to the crop year.
+
+**A year with no CDL label** is read as winter only when all of these hold:
+- the winter model finds sowing, a peak of at least 0.45 and a harvest;
+- the summer model is not refusing a perennial;
+- the summer model either found nothing, or only the tail of that same canopy
+  (peak by 10 June and no more than 0.02 above the winter peak).
+
+Autumn emergence is the deciding evidence: a southern spring crop can peak in
+early June too, but has nothing green the autumn before.
+
+**Fallow.** The period runs from the previous season's harvest to the next
+season's planting. `fallow_green_days` counts days the smoothed curve sits at or
+above 0.30 inside it, which is weeds or volunteer grain, and is noted. Soil armor
+and the cover crop check skip winter-crop years: their spring is canopy, not a
+pre-planting period.
+
+Checked on the two Akron, Colorado wheat-fallow fields, where the summer model
+had dated 3 of 6 wheat seasons, all with April–May planting.
+
+## 13. Cover crop seeding and termination
+
+`cover_crop_dates` in `r/R/covercrop.R` and `python/fieldrs/covercrop.py`. Only
+winters whose verdict is a (possible) cover crop are dated. Never "high"
+confidence: nothing is fitted to recorded dates.
+
+- **Seeding.**
+  - Find the trough within −7 to +45 days of the cash harvest.
+  - The rise after it must be at least 0.08 and reach 0.30, within 100 days of
+    the trough.
+  - Seeding is the 20% point of that rise minus 14 days. The rise must start
+    within 90 days of harvest and by 31 January.
+  - A seeding date before the harvest is clamped to the harvest and noted (a
+    cover seeded at harvest or interseeded).
+- **Termination.**
+  - Find the last hump before the pre-plant trough, within 100 days of it,
+    inside the off-season window and after seeding.
+  - It must peak at 0.30 or above and fall at least 0.10.
+  - Termination is the midpoint of the decline minus 7 days (the lag between
+    spraying and browning).
+  - A decline ending in open water (NDVI below 0.05) is flooding and is not
+    dated.
+- **Windows:** ±max(14 days, the observation gap at the crossing).
+
+**`green_days` smoothing.** R fits the local curve with `smooth.spline(spar =
+0.5)`. Python uses `make_smoothing_spline(lam = 800)`, which was chosen by a
+sweep against R over the library's 90 winters:
+- lam 50 gave a mean absolute difference of 5.9 days;
+- lam 800 gives 3.1 days, with 79% of winters within 3 days.
+
+## 14. Weather-checked field-work dates (gridMET)
+
+`r/R/climate.R` and `python/fieldrs/climate.py`.
+
+**The data.** Daily gridMET (4 km, CONUS, 1979 to about two days ago) at the
+field centroid, read through the CSIP climate service at Colorado State.
+
+**What the check does.** NDVI dates the canopy, not the planter or combine, and
+is good to roughly two weeks. Within that window a day nobody could work is the
+least likely answer. The check applies to planting, harvest, cover seeding and
+cover termination:
+
+- A date on a workable day stays.
+- Otherwise it moves to the last workable day before it (farmers act ahead of
+  the forecast), at most `FORECAST_DAYS` = 5 days earlier.
+- Failing that, it moves to the first workable day after.
+- It never leaves its uncertainty window.
+- A cover crop's seeding window never opens before the cash crop's final
+  harvest.
+
+**A day is workable** when all of these hold:
+- its rain is at most `DRY_PR_MM` = 0 mm;
+- it is not within `HEAVY_RAIN_WET_DAYS` = 1 day after `HEAVY_RAIN_MM` = 25 mm
+  of rain (wet soil);
+- with the wind check on, its daily-mean wind is below `WIND_MAX_KMH` = 30 km/h.
+  gridMET has no gusts, so the limit is on the daily mean.
+
+**Outputs.** `<event>_date`, `_shift_d`, `_pr_mm`, `_wind_kmh` and
+`_weather_note`, plus `season_days_final` and `cover_days_final`. The `_est`
+columns are never changed.
+
+## 15. Irrigation (USGS irrigated agriculture maps)
+
+`r/R/irrigation.R` and `python/fieldrs/irrigation.py`.
+
+**The maps.** Binary CONUS rasters in EPSG:5070: 2002 and 2007 at 50 m, 2012 and
+2017 at 30 m.
+
+**The share.** The irrigated share is the fraction of pixels whose centre lies
+inside the boundary that are mapped 1. A field smaller than a pixel takes the
+pixel under its centroid.
+
+- **Labels:**
+  - irrigated at 50% or more;
+  - partly irrigated at 10% or more;
+  - otherwise not irrigated.
+- **Which map:** each CDL year takes the nearest map at or before it, and says
+  which.
+- **Consistency:** `irrigated_maps` ("3 of 4") shows how many maps agree.
+
+**Caveat.** Single maps are not reliable at field level (§10). There is no map
+after 2017.
+
+## 16. HLS imagery
+
+`r/R/imagery.R`, `r/R/extract.R`, `python/fieldrs/imagery.py` and
+`python/fieldrs/extract.py`.
+
+**The data.** NASA HLS v2.0 from Planetary Computer, from 2020: S30 (Sentinel-2)
+and L30 (Landsat 8/9) on one 30 m grid.
+
+- **Masking:** Fmask bits 1–4 are dropped (cloud, adjacent, shadow, snow).
+  Water and aerosol are kept.
+- **Bad pixels:** any band at or below zero reflectance is dropped.
+- **Edge pixels:** pixels are kept when their centre is 15 m inside the
+  boundary, or the whole boundary is used if that leaves fewer than 10.
+- **NIR band:** S30 uses B8A, the narrow NIR that HLS matches to Landsat B05.
+
+**NDVI transfer to the Sentinel-2 scale.** Every NDVI threshold here was set on
+Sentinel-2 L2A, and HLS reads higher over bare ground, so HLS NDVI is mapped
+onto the Sentinel-2 scale:
+- S30: `ndvi = 1.0733 · ndvi_hls − 0.0758`
+- L30: `ndvi = 1.0707 · ndvi_hls − 0.0686`
+
+These were fitted on same-day field medians: 2,941 S30 and 818 L30 pairs, RMSE
+0.026 and 0.024.
+
+**Spike filter, HLS only.** It drops a reading that is more than 0.10 from the
+nearest reading on both sides, in the same direction, within 20 days. From
+November to March a reading with no neighbour on one side is judged against the
+other side alone, when that side holds two or more readings within 20 days that
+agree to 0.05. Both the transfer and the spike filter are applied after the
+cache, which stays raw.
+
+## 17. Sentinel-1 radar: planting and harvest windows
+
+`r/R/sar.R` and `python/fieldrs/sar.py`. **A prototype.** Nothing is checked
+against grower dates.
+
+**The data.** Planetary Computer `sentinel-1-rtc`: terrain-corrected gamma0,
+10 m, linear power.
+
+- **Pixels:** those with their centre 10 m inside the boundary. The scene must
+  cover at least 80% of them.
+- **Field values:** VV and VH are averaged in linear power, then converted to
+  dB.
+- **One per pass:** one acquisition per (date, relative orbit).
+
+**Moisture and freeze.** Wetting brightens VV just as tillage roughening does.
+
+- **Rain index:** an antecedent precipitation index
+  `API_t = 0.7·API_{t−1} + 0.3·pr_t`, divided by 0.3. It is read for the UTC
+  date minus one day, because passes are around 6 pm local the evening before.
+- **Moisture fit:** per orbit, VV on bare (NDVI < 0.30), unfrozen dates is
+  regressed on log(1 + API). The residual `vv_adj` removes both the rain effect
+  and the orbit offset. At least 10 dates are needed.
+- **Freeze:** dates whose 3-day mean air temperature is 1 °C or below are
+  frozen and dropped.
+- **VH:** each orbit's VH is centred on its own median.
+
+**Events.**
+- **Planting:** the largest drop in `vv_adj` on bare ground, from 1 April to
+  7 days after the NDVI planting window.
+- **Harvest:** the largest drop in VH from 14 days before to 28 days after the
+  NDVI harvest window.
+- `in_ndvi_window` reports agreement, not accuracy.
+
+**Narrowing.** Inside each NDVI window:
+- The strongest drop is scored as z: the drop over 1.4826 × the median absolute
+  deviation of all intervals of the same kind.
+- At z ≥ 2 the window narrows to the workable days (§14, plus not frozen) inside
+  that interval. Otherwise rain days are struck out.
+- A step more than 1 z stronger outside the window is flagged as a conflict.
+- Read `span_days`, not `candidate_days`, as how far a date is pinned down.
+
+**What was found on four test fields:**
+- Harvest is narrowed in 2–5 of 6 seasons per field, from about 30 days to 7–11.
+- Planting almost never, because backscatter at a 6–12-day revisit carries
+  little planting signal here.
+- Filters that ignore NDVI (a workable day in the interval, the same moisture
+  state at both ends, a step that persists) did not improve agreement with the
+  NDVI windows.
+
+## 18. Hay cuttings
+
+`r/R/forage.R` and `python/fieldrs/forage.py`. **A prototype.** Nothing is
+checked against grower dates.
+
+**Which years.** Those CDL calls Alfalfa, Other Hay/Non Alfalfa,
+Clover/Wildflowers or Vetch. Also a year with no CDL label yet, when the year
+before was forage and the season model found a perennial stand. Pasture is
+excluded, because grazing looks like a slow cut.
+
+**Finding a cut.** Only 1 April to 15 November is searched.
+
+- **Stand:** NDVI at or above 0.60.
+- **Trough:** the first low after the drop. The decline is followed until NDVI
+  rises 0.06 above its lowest reading so far, or 21 days pass.
+- **Drop:** at least 0.20, against a full-stand noise level of 0.016 (median) and
+  0.060 (95th percentile).
+- **Bracket:** the first scene at least halfway down to the trough, and the
+  scene before it.
+- **Labels:** a trough below 0.20 is "to bare soil" (tillage, reseeding,
+  removal). No regrowth of 0.15 within 45 days is flagged.
+
+**Narrowing.** Radar VH from every orbit (no VV moisture fit is needed) narrows
+the bracket when the strongest drop inside it reaches z ≥ 2, with z scored on
+growing-season intervals. Rain days are then struck out.
+
+**On the Washington pivot:** 20 hay cuts in five alfalfa years. Radar narrowed 12
+of them, and the median bracket went from 5 days to 4.
+
+## 19. Keeping R and Python in step
+
+Every section above exists in both implementations. `python/compare_with_r.py`
+diffs the Python results against R's `r/export_r_reference.R` output.
+
+**Must match exactly:**
+- verdicts and season types;
+- CDL crop names, dominant and secondary classes;
+- irrigation labels.
+
+**Tolerances:**
+- dates and fallow days: ±3 days (fallow days carry both ends' tolerance);
+- peak NDVI: ±0.02;
+- green days: ±10;
+- observations: ±2.
+
+The remaining date disagreements come from the two smoothers being matched by
+sweep rather than identical (§3). Sections 14–18 were also checked on identical
+inputs fed to both sides:
+- **Weather, irrigation, HLS, radar and hay cuts:** every value matched, apart
+  from float32 rounding in backscatter.
+- **Winter, fallow and cover crop dates:** these differ only where a smoothed
+  curve sits on a threshold.
+
 ## References
 
 ### Spectral indices

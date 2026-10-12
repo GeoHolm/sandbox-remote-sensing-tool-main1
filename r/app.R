@@ -22,7 +22,14 @@ source("pipeline.R")
 # field extraction asks for 8 and grows the pool once, on demand.
 ensure_workers(6)
 
-YEAR_MIN <- 2020
+YEAR_MIN <- 2018        # earliest selectable: Sentinel-2 L2A is too sparse before 2018
+DEFAULT_START <- 2020   # the library is pre-computed from 2020, so that stays the default
+
+# Directory of local NASS_<year>.tif CONUS CDL mosaics, used instead of the
+# CropScape network service. Handed to R/cdl_local.R through CDL_DIR; an
+# explicit CDL_DIR in the environment wins. Same default as python/app.py.
+LOCAL_CDL <- "/mnt/cephfs/csip-data/csip-lamps/CropScape_CDL"
+if (!nzchar(Sys.getenv("CDL_DIR")) && dir.exists(LOCAL_CDL)) Sys.setenv(CDL_DIR = LOCAL_CDL)
 
 # Loose on purpose: the contact sheet is meant to show what the satellite
 # actually collected, including the passes that turned out to be unusable.
@@ -356,8 +363,32 @@ ui <- page_navbar(
     uiOutput("current_field"),
     sliderInput("years", "Years", min = YEAR_MIN,
                 max = as.integer(format(Sys.Date(), "%Y")),
-                value = c(YEAR_MIN, as.integer(format(Sys.Date(), "%Y"))),
+                value = c(DEFAULT_START, as.integer(format(Sys.Date(), "%Y"))),
                 sep = "", step = 1),
+    radioButtons("source", "Imagery",
+                 choices = c("Sentinel-2 (10 m, original)" = "sentinel2",
+                             "HLS: Sentinel-2 + Landsat (30 m)" = "hls")),
+    uiOutput("source_note"),
+    uiOutput("cdl_source_note"),
+    checkboxInput("rain_check", "Weather check on field-work dates (gridMET)", TRUE),
+    conditionalPanel(
+      "input.rain_check",
+      radioButtons("wx_mode", "Check", c("Rain only", "Rain and wind"), inline = TRUE),
+      numericInput("dry_mm", "Max rain on a rain-free day (mm)", value = DRY_PR_MM,
+                   min = 0, max = 10, step = 0.5),
+      conditionalPanel(
+        "input.wx_mode == 'Rain and wind'",
+        numericInput("wind_kmh", "Max daily-mean wind (km/h)", value = WIND_MAX_KMH,
+                     min = 5, max = 80, step = 1),
+        div(class = "text-muted small mb-2",
+            "gridMET has only the daily MEAN wind at 10 m -- no gusts -- so the ",
+            "limit applies to the mean. 30 km/h is about 20 mph.")),
+      numericInput("forecast_days", "Forecast horizon (days)", value = FORECAST_DAYS,
+                   min = 0, max = 14, step = 1),
+      numericInput("heavy_mm", "Heavy rain (mm/day)", value = HEAVY_RAIN_MM,
+                   min = 5, max = 100, step = 5),
+      numericInput("wet_days", "Days too wet after heavy rain", value = HEAVY_RAIN_WET_DAYS,
+                   min = 0, max = 7, step = 1)),
     actionButton("run", "Run analysis", class = "btn-primary w-100"),
     div(class = "mt-2", uiOutput("clear_ui")),
     hr(),
@@ -641,7 +672,41 @@ ui <- page_navbar(
                "validates all three fractions at once.")))
   ),
 
-  # ---- 8. summary -----------------------------------------------------------
+  # ---- 8. soil moisture (radar) -------------------------------------------
+  # Sentinel-1 backscatter for the loaded field, read against its NDVI planting
+  # and harvest windows; hay cuttings in forage years. Like soil armor it is a
+  # separate read of the archive, so it runs on a button and is cached after.
+  nav_panel(
+    "Soil moisture (radar)",
+    card(card_header("Sentinel-1 radar against the NDVI planting and harvest windows"),
+         card_body(fillable = FALSE,
+           div(class = "alert alert-warning",
+               tags$strong("Prototype. Nothing here is calibrated against grower-reported dates."),
+               " Radar backscatter moves with soil roughness and with soil moisture, ",
+               "and the moisture correction is fitted on this field's own data. Read ",
+               "the dates as candidates, not measurements."),
+           layout_columns(
+             col_widths = c(5, 5, 2),
+             div(class = "text-muted small",
+                 "Tillage and planting change surface roughness; rain changes ",
+                 "moisture. ", tags$strong("VV is shown with the rain-driven part removed"),
+                 " by regressing it on an antecedent precipitation index from gridMET, ",
+                 "fitted per orbit on bare, unfrozen dates. Frozen dates are dropped."),
+             div(class = "text-muted small",
+                 tags$strong("Bars along the top of each panel"),
+                 " mark the interval holding the largest VV drop in spring (orange) and ",
+                 "the largest VH drop near the harvest window (brown). ",
+                 tags$strong("Black bars along the bottom"), " are NDVI windows narrowed ",
+                 "by radar and weather together. In hay years, ", tags$strong("purple"),
+                 " marks each cutting. Blue bars are daily rain."),
+             actionButton("run_s1", "Run radar analysis", class = "btn-primary w-100")),
+           uiOutput("s1_status"),
+           uiOutput("s1_metrics"),
+           uiOutput("s1_plot_ui"),
+           uiOutput("s1_tables")))
+  ),
+
+  # ---- 9. summary -----------------------------------------------------------
   nav_panel(
     "Summary",
     card(card_header("Management history inferred from satellite"),
@@ -717,7 +782,7 @@ server <- function(input, output, session) {
     f <- one
     rv$field <- f
     rv$pick  <- pick
-    rv$ts <- rv$phen <- rv$cc <- rv$hist <- rv$avail <- NULL
+    rv$ts <- rv$phen <- rv$cc <- rv$phen_raw <- rv$cc_raw <- rv$hist <- rv$avail <- NULL
     rv$cdlst <- rv$cdladv <- NULL
     rv$msg <- if (dropped > 0L) {
       sprintf(paste0("Boundary reduced to its one substantive field; %d ",
@@ -800,7 +865,7 @@ server <- function(input, output, session) {
 
   observeEvent(input$clear_field, {
     rv$field <- rv$pick <- NULL
-    rv$ts <- rv$phen <- rv$cc <- rv$hist <- rv$avail <- NULL
+    rv$ts <- rv$phen <- rv$cc <- rv$phen_raw <- rv$cc_raw <- rv$hist <- rv$avail <- NULL
     rv$cdlst <- rv$cdladv <- rv$msg <- NULL
     rv$draw_field <- rv$draw_st <- rv$draw_adv <- NULL
     clear_drawings()
@@ -849,13 +914,59 @@ server <- function(input, output, session) {
       type = "message")
   })
 
+  # Effective year range: the slider, with the start raised to the first year
+  # the selected imagery source can carry (Sentinel-2 2018, HLS 2020).
+  yrs <- reactive({
+    y <- input$years
+    first <- SOURCE_FIRST_YEAR[[input$source %||% "sentinel2"]]
+    if (y[1] < first) c(first, max(y[2], first)) else y
+  })
+
+  output$source_note <- renderUI({
+    src <- input$source %||% "sentinel2"
+    if (input$years[1] >= SOURCE_FIRST_YEAR[[src]]) return(NULL)
+    div(class = "alert alert-warning small py-1",
+        sprintf("%s starts in %d; analysing %d-%d.", SOURCE_LABELS[[src]],
+                SOURCE_FIRST_YEAR[[src]], yrs()[1], yrs()[2]))
+  })
+
+  output$cdl_source_note <- renderUI({
+    y <- tryCatch(cdl_available_years_cached(), error = function(e) integer(0))
+    div(class = "text-muted small mb-2",
+        if (cdl_use_local() && length(y))
+          sprintf("CDL: local (%s, %d-%d)", basename(cdl_root()), min(y), max(y))
+        else "CDL: CropScape (network)")
+  })
+
+  # The weather check is applied on top of the analysis, not inside it, so
+  # switching it or changing a threshold never re-runs the pipeline -- the same
+  # split as python/fieldrs/pipeline.apply_rain_check().
+  observe({
+    phen <- rv$phen_raw; cc <- rv$cc_raw
+    if (is.null(phen)) {
+      rv$phen <- NULL; rv$cc <- cc; rv$weather <- NULL; rv$wx_check <- NULL
+      return()
+    }
+    on <- isTRUE(input$rain_check)
+    wind <- on && identical(input$wx_mode, "Rain and wind")
+    win <- analysis_window(isolate(yrs())[1], isolate(yrs())[2])
+    r <- apply_rain_check(isolate(rv$field), phen, cc, win$start, win$end,
+                          rain_free = on, dry_mm = input$dry_mm %||% DRY_PR_MM,
+                          wind_max_kmh = if (wind) input$wind_kmh %||% WIND_MAX_KMH else NULL,
+                          forecast_days = input$forecast_days %||% FORECAST_DAYS,
+                          heavy_mm = input$heavy_mm %||% HEAVY_RAIN_MM,
+                          wet_days = input$wet_days %||% HEAVY_RAIN_WET_DAYS)
+    rv$phen <- r$phen; rv$cc <- r$cc; rv$weather <- r$weather; rv$wx_check <- r$check
+  })
+
   # ---- the analysis run ----------------------------------------------------
 
   # One code path, two callers: the button computes, and selecting a field tries
   # the same thing with only_cached = TRUE. Keeping them in one function is what
   # guarantees the pre-warmed library is keyed identically to what the button
   # would produce -- otherwise a warmed field would silently miss and re-read.
-  run_analysis <- function(field, years, only_cached = FALSE, stage = NULL) {
+  run_analysis <- function(field, years, only_cached = FALSE, stage = NULL,
+                           source = "sentinel2") {
     st <- function(a, b) if (is.null(stage)) NULL else stage(a, b)
     win <- analysis_window(years[1], years[2])
     yrs <- years[1]:min(years[2], as.integer(format(Sys.Date(), "%Y")) - 1)
@@ -871,10 +982,13 @@ server <- function(input, output, session) {
 
     ts <- extract_field_series(field, win$start, win$end, indices = "ndvi",
                                workers = 8, only_cached = only_cached,
-                               progress = st(0.30, 0.90))
+                               progress = st(0.30, 0.90), source = source)
     if (is.null(ts)) return(NULL)
 
     hist  <- if (is.null(cdlst)) NULL else cdl_history_from_stack(cdlst)
+    # Irrigation is a local read and never blocks the run.
+    irr <- tryCatch(irrigation_history(field), error = function(e) NULL)
+    hist <- irrigation_add_to_history(hist, irr)
     crops <- if (is.null(hist)) NULL else crop_lookup(hist)
     phen  <- phenology_all_years(ts, crops)
     cc    <- cover_crop_all_years(ts, phen, crops)
@@ -887,7 +1001,7 @@ server <- function(input, output, session) {
 
   apply_result <- function(res, note) {
     rv$avail <- res$avail; rv$cdlst <- res$cdlst; rv$hist <- res$hist
-    rv$cdladv <- res$cdladv; rv$ts <- res$ts; rv$phen <- res$phen; rv$cc <- res$cc
+    rv$cdladv <- res$cdladv; rv$ts <- res$ts; rv$phen_raw <- res$phen; rv$cc_raw <- res$cc
     rv$msg <- sprintf("%d observations, %d seasons.%s",
                       nrow(res$ts), if (is.null(res$phen)) 0 else nrow(res$phen),
                       if (nzchar(note)) paste0(" ", note) else "")
@@ -896,9 +1010,10 @@ server <- function(input, output, session) {
   # Selecting a field opens it straight away when the library has been warmed.
   # Silent on a miss: the field still loads, the user just presses Run.
   try_cached <- function(field) {
-    yrs <- isolate(input$years)
+    yrs <- isolate(yrs())
     if (is.null(field) || is.null(yrs)) return(FALSE)
-    res <- tryCatch(run_analysis(field, yrs, only_cached = TRUE),
+    res <- tryCatch(run_analysis(field, yrs, only_cached = TRUE,
+                                 source = isolate(input$source) %||% "sentinel2"),
                     error = function(e) NULL)
     if (is.null(res)) return(FALSE)
     apply_result(res, "Loaded from cache.")
@@ -908,9 +1023,9 @@ server <- function(input, output, session) {
   # Results belong to a year range. Moving the slider invalidates them, so drop
   # what is on screen rather than leave 2020-2026 numbers under a 2022-2024
   # label, and try the cache again in case that range happens to be warmed too.
-  observeEvent(input$years, {
+  observeEvent(list(input$years, input$source), {
     req(rv$field)
-    rv$ts <- rv$phen <- rv$cc <- rv$hist <- rv$avail <- NULL
+    rv$ts <- rv$phen <- rv$cc <- rv$phen_raw <- rv$cc_raw <- rv$hist <- rv$avail <- NULL
     rv$cdlst <- rv$cdladv <- NULL
     rv$msg <- NULL
     try_cached(rv$field)
@@ -927,7 +1042,8 @@ server <- function(input, output, session) {
                       detail = msg)
         }
       }
-      res <- run_analysis(rv$field, input$years, only_cached = FALSE, stage = stage)
+      res <- run_analysis(rv$field, yrs(), only_cached = FALSE, stage = stage,
+                          source = input$source %||% "sentinel2")
       setProgress(1, detail = "Done")
       apply_result(res, "")
     })
@@ -995,7 +1111,7 @@ server <- function(input, output, session) {
 
     st <- withProgress(
       message = "Reading crop history for the drawn boundary...", value = 0.5,
-      tryCatch(cdl_stack(aoi, seq(input$years[1], min(input$years[2],
+      tryCatch(cdl_stack(aoi, seq(yrs()[1], min(yrs()[2],
                                   as.integer(format(Sys.Date(), "%Y")) - 1L))),
                error = function(e) e))
 
@@ -1065,10 +1181,18 @@ server <- function(input, output, session) {
 
   output$tbl_rotation <- renderDT({
     need_run(rv$hist, "crop rotation")
-    dt_dl(rv$hist[, c("year", "crop", "pct", "n_classes")],
-          filename = dl_name("crop-rotation"),
-              colnames = c("Year", "Dominant crop", "% of field", "Classes present"),
-              rownames = FALSE, options = list(dom = "t", pageLength = 10))
+    h <- rv$hist
+    out <- data.frame(Year = h$year, `Dominant crop` = h$crop, `% of field` = h$pct,
+                      `Classes present` = h$n_classes, check.names = FALSE)
+    # USGS irrigated-agriculture maps, nearest map at or before each year.
+    if ("irrigated" %in% names(h)) {
+      out$Irrigated <- ifelse(is.na(h$irrigation_map), NA,
+        sprintf("%s (%d map; irrigated in %s maps)", h$irrigated, h$irrigation_map,
+                h$irrigated_maps))
+      out$`Irrigated %` <- h$irrigated_pct
+    }
+    dt_dl(out, filename = dl_name("crop-rotation"),
+          rownames = FALSE, options = list(dom = "t", pageLength = 10))
   })
 
   # ---- 2. CDL --------------------------------------------------------------
@@ -1099,7 +1223,8 @@ server <- function(input, output, session) {
     dt_dl(
       filename = dl_name("cdl-by-year"),
       data.frame(Year = p$year, `Dominant crop` = p$dominant,
-                 `% of field` = p$pct, `Classes present` = p$n_classes,
+                 `% of field` = p$pct, `Secondary class` = p$secondary,
+                 `Secondary %` = p$secondary_pct, `Classes present` = p$n_classes,
                  `Non-crop %` = round(p$noncrop_pct, 1), check.names = FALSE),
       rownames = FALSE, options = list(dom = "t", pageLength = 12))
   })
@@ -1155,9 +1280,9 @@ server <- function(input, output, session) {
   # indicator below. If these two ever disagreed the indicator would be
   # looking up a different cache entry than the button writes.
   img_window <- reactive({
-    list(start = sprintf("%d-01-01", input$years[1]),
+    list(start = sprintf("%d-01-01", yrs()[1]),
          end   = min(as.character(Sys.Date()),
-                     sprintf("%d-12-31", input$years[2])))
+                     sprintf("%d-12-31", yrs()[2])))
   })
 
   scenes_r <- reactive({
@@ -1222,8 +1347,8 @@ server <- function(input, output, session) {
   # and would leave it empty on a tab Shiny had not rendered yet. A period with
   # no usable scenes simply says so when you pick it.
   output$period_picker <- renderUI({
-    from <- as.Date(sprintf("%d-01-01", input$years[1]))
-    to   <- min(Sys.Date(), as.Date(sprintf("%d-12-31", input$years[2])))
+    from <- as.Date(sprintf("%d-01-01", yrs()[1]))
+    to   <- min(Sys.Date(), as.Date(sprintf("%d-12-31", yrs()[2])))
     mons <- seq(from, to, by = "month")
     ps <- rev(unique(sprintf("%s-Q%d", format(mons, "%Y"),
                              (as.integer(format(mons, "%m")) - 1) %/% 3 + 1)))
@@ -1312,8 +1437,11 @@ server <- function(input, output, session) {
         req(input$phen_year)
         y   <- as.integer(input$phen_year)
         row <- rv$phen[rv$phen$year == y, ]
+        wind <- isTRUE(input$rain_check) && identical(input$wx_mode, "Rain and wind")
         plot_phenology(rv$ts, y, phen = row,
-                       crop = if (nrow(row)) row$crop else NULL)
+                       crop = if (nrow(row)) row$crop else NULL,
+                       weather = rv$weather,
+                       wind_max_kmh = if (wind) input$wind_kmh else NULL)
       }
     )
   })
@@ -1322,14 +1450,30 @@ server <- function(input, output, session) {
     need_run(rv$phen, "season markers")
     p <- rv$phen
     out <- data.frame(
-      Year = p$year, Crop = p$crop,
+      Year = p$year, Crop = p$crop, `Season type` = p$season_type,
       Planting = fmt_win(p$planting_est, p$planting_lo, p$planting_hi),
-      `Peak NDVI` = sprintf("%.2f (%s)", p$peak_ndvi, format(p$peak_date, "%d %b")),
+      `Peak NDVI` = ifelse(is.na(p$peak_ndvi), NA,
+                           sprintf("%.2f (%s)", p$peak_ndvi, format(p$peak_date, "%d %b"))),
       Harvest = fmt_win(p$harvest_est, p$harvest_lo, p$harvest_hi),
       `Season (days)` = p$season_days,
-      Confidence = p$confidence,
       check.names = FALSE
     )
+    # Weather-checked final dates, when the check ran.
+    if ("planting_date" %in% names(p)) {
+      out$`Final planting` <- fmt_final(p$planting_date, p$planting_shift_d)
+      out$`Planting weather` <- p$planting_weather_note
+      out$`Final harvest` <- fmt_final(p$harvest_date, p$harvest_shift_d)
+      out$`Harvest weather` <- p$harvest_weather_note
+    }
+    if ("season_days_final" %in% names(p)) out$`Season, final (days)` <- p$season_days_final
+    if ("fallow_days" %in% names(p)) {
+      out$`Fallow` <- ifelse(is.na(p$fallow_start) & is.na(p$fallow_end), NA,
+                             sprintf("%s to %s", format(p$fallow_start, "%d %b %Y"),
+                                     format(p$fallow_end, "%d %b %Y")))
+      out$`Fallow days` <- p$fallow_days
+      out$`Green days in fallow` <- p$fallow_green_days
+    }
+    out$Confidence <- p$confidence
     dt_dl(out, rownames = FALSE, filename = dl_name("season-markers"),
           options = list(dom = "t", pageLength = 10))
   })
@@ -1352,12 +1496,24 @@ server <- function(input, output, session) {
   output$tbl_cc <- renderDT({
     need_run(rv$cc, "cover crop assessment")
     c1 <- rv$cc
-    dt_dl(
-      filename = dl_name("cover-crops"),
-      data.frame(Winter = c1$winter, `Clear obs` = c1$n_obs,
-                 `Max NDVI` = c1$max_ndvi, `Green days` = c1$green_days,
-                 Verdict = c1$verdict, check.names = FALSE),
-      rownames = FALSE, options = list(dom = "t", pageLength = 10))
+    out <- data.frame(Winter = c1$winter, `Clear obs` = c1$n_obs,
+                      `Max NDVI` = c1$max_ndvi, `Green days` = c1$green_days,
+                      Verdict = c1$verdict, check.names = FALSE)
+    if ("seeding_est" %in% names(c1)) {
+      out$Seeding <- fmt_win(c1$seeding_est, c1$seeding_lo, c1$seeding_hi)
+      out$Termination <- fmt_win(c1$termination_est, c1$termination_lo, c1$termination_hi)
+      if ("seeding_date" %in% names(c1)) {
+        out$`Final seeding` <- fmt_final(c1$seeding_date, c1$seeding_shift_d)
+        out$`Final termination` <- fmt_final(c1$termination_date, c1$termination_shift_d)
+      }
+      out$`Cover days` <- if ("cover_days_final" %in% names(c1)) c1$cover_days_final
+                          else c1$cover_days
+      out$`Dates confidence` <- c1$dates_confidence
+      out$`Dates note` <- c1$dates_note
+    }
+    out$Notes <- c1$notes
+    dt_dl(filename = dl_name("cover-crops"), out,
+          rownames = FALSE, options = list(dom = "t", pageLength = 10))
   })
 
   # ---- 7. soil armor -------------------------------------------------------
@@ -1367,7 +1523,7 @@ server <- function(input, output, session) {
   # library covers it, so for those fields this returns straight away.
   residue_r <- eventReactive(input$run_residue, {
     req(rv$field, rv$phen)
-    yrs <- isolate(input$years)
+    yrs <- isolate(yrs())
     withProgress(message = "Reading shortwave infrared", value = 0, {
       ts <- armor_series(rv$field, yrs, workers = 8,
                            progress = function(d, t, m) {
@@ -1382,7 +1538,7 @@ server <- function(input, output, session) {
   # pressed, computed from the cache rather than guessed.
   output$residue_cost <- renderUI({
     req(rv$field)
-    warm <- !is.null(tryCatch(armor_series(rv$field, input$years, only_cached = TRUE),
+    warm <- !is.null(tryCatch(armor_series(rv$field, yrs(), only_cached = TRUE),
                               error = function(e) NULL))
     if (warm) {
       div(class = "alert alert-success imagery-timing py-2 px-3 mb-0 small",
@@ -1468,7 +1624,7 @@ server <- function(input, output, session) {
   residue_cached <- reactive({
     req(rv$field, rv$phen)
     rv$residue_tick
-    ts <- tryCatch(armor_series(rv$field, input$years, only_cached = TRUE),
+    ts <- tryCatch(armor_series(rv$field, yrs(), only_cached = TRUE),
                    error = function(e) NULL)
     if (is.null(ts)) return(NULL)
     tryCatch(armor_all_years(ts, rv$phen, "spring"), error = function(e) NULL)
@@ -1479,18 +1635,40 @@ server <- function(input, output, session) {
     p <- rv$phen
     cc <- rv$cc
     res <- residue_cached()
+    # Weather-checked final dates when the check ran, NDVI estimates otherwise
+    # -- the same rule as python/fieldrs/pipeline.FieldResult.summary.
+    rain <- "planting_date" %in% names(p)
+    winter_for <- function(y, col) {
+      if (is.null(cc) || !col %in% names(cc)) return(NA_character_)
+      r <- cc[cc$fall_year == y, ]
+      if (!nrow(r) || is.na(r[[col]][1])) NA_character_ else as.character(r[[col]][1])
+    }
+    seed_col <- if (!is.null(cc) && "seeding_date" %in% names(cc)) "seeding_date" else "seeding_est"
+    term_col <- if (!is.null(cc) && "termination_date" %in% names(cc)) "termination_date" else "termination_est"
+    irrigated_for <- function(y) {
+      h <- rv$hist
+      if (is.null(h) || !"irrigated" %in% names(h)) return(NA_character_)
+      m <- h[h$year == y, ]
+      if (!nrow(m) || is.na(m$irrigation_map)) return(NA_character_)
+      sprintf("%s (%d map; irrigated in %s maps)", m$irrigated, m$irrigation_map,
+              m$irrigated_maps)
+    }
     data.frame(
       Year = p$year,
       Crop = p$crop,
-      `Planting (est.)` = format(p$planting_est, "%d %b"),
-      `Harvest (est.)`  = format(p$harvest_est, "%d %b"),
+      `Season type` = p$season_type,
+      Planting = if (rain) fmt_final(p$planting_date, p$planting_shift_d)
+                 else format(p$planting_est, "%d %b %Y"),
+      Harvest  = if (rain) fmt_final(p$harvest_date, p$harvest_shift_d)
+                 else format(p$harvest_est, "%d %b %Y"),
       `Season (days)`   = p$season_days,
+      `Season, final (days)` = p$season_days_final %||% rep(NA_integer_, nrow(p)),
       `Peak NDVI`       = p$peak_ndvi,
-      `Following winter` = vapply(p$year, function(y) {
-        if (is.null(cc)) return(NA_character_)
-        r <- cc[cc$fall_year == y, ]
-        if (!nrow(r)) NA_character_ else r$verdict
-      }, character(1)),
+      `Fallow days`     = p$fallow_days %||% rep(NA_integer_, nrow(p)),
+      Irrigated         = vapply(p$year, irrigated_for, character(1)),
+      `Following winter` = vapply(p$year, winter_for, character(1), col = "verdict"),
+      `Cover seeding`     = vapply(p$year, winter_for, character(1), col = seed_col),
+      `Cover termination` = vapply(p$year, winter_for, character(1), col = term_col),
       # Deliberately labelled "before planting": the window that produced this
       # runs from the PREVIOUS crop's harvest to this season's planting, so the
       # residue measured is last year's crop, not this one's. Dropping the
@@ -1520,6 +1698,146 @@ server <- function(input, output, session) {
       check.names = FALSE
     )
   })
+
+  # ---- soil moisture (radar) ----------------------------------------------
+
+  # One result per field, year range and imagery source. A field whose radar
+  # series is already cached opens without a press.
+  s1_key <- reactive({
+    req(rv$field)
+    paste(cache_key(rv$field, "s1_app"), yrs()[1], yrs()[2], input$source %||% "sentinel2")
+  })
+  s1_store <- reactiveVal(list())
+
+  s1_res <- reactive({
+    req(rv$field, rv$ts, rv$phen)
+    k <- s1_key()
+    hit <- s1_store()[[k]]
+    if (!is.null(hit)) return(hit)
+    win <- analysis_window(yrs()[1], yrs()[2])
+    tryCatch(s1_analysis(rv$field, win$start, win$end, rv$ts, rv$phen, only_cached = TRUE),
+             error = function(e) NULL)
+  })
+
+  observeEvent(input$run_s1, {
+    req(rv$field, rv$ts, rv$phen)
+    win <- analysis_window(yrs()[1], yrs()[2])
+    res <- withProgress(message = "Reading Sentinel-1 radar over the field", value = 0.2, {
+      tryCatch(s1_analysis(rv$field, win$start, win$end, rv$ts, rv$phen),
+               error = function(e) e)
+    })
+    if (inherits(res, "error")) {
+      showNotification(paste("Radar analysis failed:", conditionMessage(res)),
+                       type = "error", duration = 12)
+    } else if (is.null(res)) {
+      showNotification("No Sentinel-1 acquisitions found over this field.", type = "warning")
+    } else {
+      st <- s1_store(); st[[s1_key()]] <- res; s1_store(st)
+    }
+  })
+
+  output$s1_status <- renderUI({
+    need_run(rv$phen, "season analysis the radar is read against")
+    res <- s1_res()
+    if (is.null(res)) {
+      return(div(class = "alert alert-info mt-2",
+                 tags$strong("First load."), " Not read yet. Reads every Sentinel-1 pass ",
+                 "over the field for the selected years -- about a minute, cached after. ",
+                 "Uses gridMET weather, so CONUS only. Press Run radar analysis."))
+    }
+    fits <- attr(res$ctx, "moisture_fit")
+    fit_txt <- if (length(fits)) paste(vapply(names(fits), function(o)
+      sprintf("orbit %s: r = %.2f on %d bare dates", o, fits[[o]]$r, fits[[o]]$n), ""),
+      collapse = "; ") else "not possible (too few bare dates)"
+    tagList(
+      div(class = "alert alert-success mt-2 py-2", tags$strong("Loaded."),
+          " The radar series for this field and year range is cached."),
+      div(class = "text-muted small mb-2",
+          sprintf("%d acquisitions from orbit(s) %s. Moisture fit %s. ", nrow(res$s1),
+                  paste(res$orbits, collapse = ", "), fit_txt),
+          "The fit and the noise level are estimated from every year in the range, ",
+          "so the numbers shift a little with the start year.",
+          if (length(fits) < length(res$orbits))
+            " Orbits with fewer than 10 bare, unfrozen dates get no moisture fit and are left out of the planting and harvest detection."))
+  })
+
+  output$s1_metrics <- renderUI({
+    res <- s1_res(); req(res)
+    ev <- res$events; ref <- res$refined; cuts <- res$cuts
+    boxes <- list()
+    if (nrow(ev) && nrow(ref)) {
+      for (name in c("harvest", "planting")) {
+        e <- ev[ev$event == name & !is.na(ev$in_ndvi_window), ]
+        boxes[[length(boxes) + 1]] <- value_box(
+          title = sprintf("%s inside NDVI window", tools::toTitleCase(name)),
+          value = sprintf("%d of %d", sum(e$in_ndvi_window), nrow(e)),
+          p(class = "small mb-0", "Radar searched beyond the window. Agreement, not accuracy."))
+      }
+      for (name in c("harvest", "planting")) {
+        e <- ref[ref$event == name, ]; rw <- e[e$basis == "radar + weather", ]
+        boxes[[length(boxes) + 1]] <- value_box(
+          title = sprintf("%s narrowed by radar", tools::toTitleCase(name)),
+          value = if (nrow(rw)) sprintf("%d of %d \u00b7 %d\u2192%d d", nrow(rw), nrow(e),
+                                        as.integer(stats::median(rw$ndvi_days)),
+                                        as.integer(stats::median(rw$span_days)))
+                  else sprintf("0 of %d", nrow(e)),
+          p(class = "small mb-0", sprintf("Radar step inside the window stood out from noise (z \u2265 2). Conflicts: %d.",
+                                          sum(e$conflict))))
+      }
+    }
+    if (!is.null(cuts) && nrow(cuts)) {
+      hay <- cuts[cuts$kind == "cut", ]
+      boxes[[length(boxes) + 1]] <- value_box(title = "Hay cuts found", value = nrow(hay),
+        p(class = "small mb-0", "Drops to bare soil are counted separately."))
+      boxes[[length(boxes) + 1]] <- value_box(title = "Cuts narrowed by radar",
+        value = sprintf("%d of %d", sum(grepl("radar", hay$basis)), nrow(hay)))
+      if (nrow(hay)) boxes[[length(boxes) + 1]] <- value_box(title = "Median cut bracket",
+        value = sprintf("%d \u2192 %d days", as.integer(stats::median(hay$ndvi_days)),
+                        as.integer(stats::median(hay$span_days))))
+    }
+    if (!length(boxes)) return(div(class = "text-muted small",
+      "No NDVI planting or harvest windows and no hay years: nothing to read the radar against."))
+    do.call(layout_columns, c(list(col_widths = rep(3, length(boxes))), boxes))
+  })
+
+  output$s1_plot_ui <- renderUI({
+    res <- s1_res(); req(res)
+    n <- length(unique(format(res$ctx$date, "%Y")))
+    plotOutput("plot_s1", height = 300 * n + 120)
+  })
+
+  output$plot_s1 <- renderPlot({
+    res <- s1_res(); req(res)
+    plot_s1(res, rv$phen)
+  })
+
+  output$s1_tables <- renderUI({
+    res <- s1_res(); req(res)
+    tagList(
+      if (!is.null(res$cuts) && nrow(res$cuts)) card(
+        card_header("Hay cuttings"),
+        div(class = "text-muted small mb-2",
+            "For years CDL calls alfalfa or other hay the season model has no planting ",
+            "or harvest to date -- the field operation is the cutting. NDVI finds each cut ",
+            "(a drop of at least 0.20 from a stand above 0.60); radar narrows the bracket ",
+            "when a VH drop inside it stands out; rain days are struck out. A drop to bare ",
+            "soil is tillage, reseeding or removal, not a cut."),
+        DTOutput("tbl_s1_cuts")),
+      if (nrow(res$refined)) card(
+        card_header("Narrowed windows"),
+        div(class = "text-muted small mb-2",
+            "Agreement with NDVI is built in here, so it is not a result. Read span_days, ",
+            "not candidate_days, as how far the date is pinned down."),
+        DTOutput("tbl_s1_refined")),
+      if (nrow(res$events)) tags$details(class = "mt-2",
+        tags$summary("Radar searched beyond the NDVI windows"), DTOutput("tbl_s1_events")))
+  })
+
+  s1_dt <- function(d, name) dt_dl(d, rownames = FALSE, filename = dl_name(name),
+                                   options = list(pageLength = 25, dom = "t", scrollX = TRUE))
+  output$tbl_s1_cuts    <- renderDT(s1_dt(s1_res()$cuts, "hay-cuttings"))
+  output$tbl_s1_refined <- renderDT(s1_dt(s1_res()$refined, "radar-narrowed-windows"))
+  output$tbl_s1_events  <- renderDT(s1_dt(s1_res()$events, "radar-events"))
 
   output$tbl_summary <- renderDT({
     dt_dl(summary_tbl(), rownames = FALSE,
@@ -1703,7 +2021,7 @@ server <- function(input, output, session) {
   armor_pack <- function() {
     req(rv$field)
     rv$residue_tick
-    ts <- tryCatch(armor_series(rv$field, input$years, only_cached = TRUE),
+    ts <- tryCatch(armor_series(rv$field, yrs(), only_cached = TRUE),
                    error = function(e) NULL)
     if (is.null(ts) || is.null(rv$phen)) return(NULL)
     list(ts = ts,
@@ -1724,7 +2042,7 @@ server <- function(input, output, session) {
     bb  <- as.numeric(sf::st_bbox(sf::st_transform(rv$field, 4326)))
     ctr <- sf::st_coordinates(
       sf::st_centroid(sf::st_union(sf::st_transform(rv$field, 4326))))
-    win <- analysis_window(input$years[1], input$years[2])
+    win <- analysis_window(yrs()[1], yrs()[2])
     ap  <- armor_pack()
 
     figs <- if (!length(drawn)) {
@@ -1915,6 +2233,16 @@ provisional.
         wr(rv$ts, "series", "ndvi-by-date")
         wr(ap$ts, "series", "cover-fractions-by-date")
         wr(rv$avail, "series", "acquisitions-by-source")
+        wr(rv$weather, "series", "weather-gridmet")
+        wr(tryCatch(irrigation_history(rv$field), error = function(e) NULL),
+           "tables", "irrigation-maps")
+        s1 <- tryCatch(isolate(s1_res()), error = function(e) NULL)
+        if (!is.null(s1)) {
+          wr(s1$events, "tables", "radar-events")
+          wr(s1$refined, "tables", "radar-narrowed-windows")
+          if (!is.null(s1$cuts) && nrow(s1$cuts)) wr(s1$cuts, "tables", "hay-cuttings")
+          wr(s1$s1, "series", "sentinel1-by-date")
+        }
 
         incProgress(0.1, detail = "boundary and briefing")
         b <- rv$field[, intersect(c("field_id", "area_ha"), names(rv$field)),
@@ -1936,6 +2264,13 @@ provisional.
     }
   )
 
+}
+
+# A weather-checked final date with how far it moved from the estimate.
+fmt_final <- function(d, shift) {
+  ifelse(is.na(d), "--",
+         ifelse(is.na(shift) | shift == 0, format(d, "%d %b %Y"),
+                sprintf("%s (%+d d)", format(d, "%d %b %Y"), as.integer(shift))))
 }
 
 # Format an estimate with its uncertainty window.

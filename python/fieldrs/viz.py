@@ -618,3 +618,98 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
         loc="lower right", ncol=3, fontsize=8, frameon=False)
     fig.tight_layout()
     return fig
+
+
+# ------------------------------------------------------------- radar ---
+
+def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
+            phen: pd.DataFrame, events: pd.DataFrame, refined: pd.DataFrame,
+            title: str | None = None, cuts: pd.DataFrame | None = None):
+    """Sentinel-1 backscatter against NDVI phenology, one panel per year.
+
+    ``ctx``, ``events`` and ``refined`` come from fieldrs.sar (s1_context,
+    s1_events, s1_refine); ``weather`` is daily gridMET with ``pr_mm``.
+    Moisture-adjusted VV and orbit-centered VH in dB on the left axis, NDVI
+    scaled onto it, daily rain on the right. Bars along the top mark the radar
+    interval found by searching beyond the NDVI window; black bars along the
+    bottom mark windows narrowed by radar and weather together. For hay years,
+    ``cuts`` (fieldrs.forage.forage_cuts) adds each cut's NDVI bracket as a
+    purple band and its narrowed dates as a purple bar along the bottom.
+    """
+    years = sorted(ctx["date"].dt.year.unique())
+    height = 3.1 * len(years) + 1.0
+    fig, axes = plt.subplots(len(years), 1, figsize=(13, height), squeeze=False)
+    axes = axes[:, 0]
+    w = weather.set_index("date")
+    for ax, y in zip(axes, years):
+        g = ctx[ctx["date"].dt.year == y].sort_values("date")
+        ok = g[~g["frozen"]]
+        ax.axhline(0, color="0.7", lw=0.5)
+        ax.plot(ok["date"], ok["vv_adj"], "o-", ms=3, lw=0.8, color="C0",
+                label="VV, moisture-adjusted (dB)")
+        ax.plot(ok["date"], ok["vh_c"], "-", lw=0.8, color="C2", alpha=0.7,
+                label="VH, orbit-centered (dB)")
+        fz = g[g["frozen"]]
+        ax.plot(fz["date"], fz["vv_adj"], "x", color="0.5", ms=5, label="frozen (dropped)")
+        n = ndvi[ndvi.index.year == y]
+        ax.plot(n.index, n * 10 - 6, color="darkgreen", lw=1.4, label="NDVI × 10 − 6")
+        ax.set_title(f"{y}", loc="left", fontsize=10)
+        if phen is not None:
+            for p in phen[phen["year"] == y].itertuples():
+                if pd.notna(p.planting_lo):
+                    ax.axvspan(p.planting_lo, p.planting_hi, color="orange", alpha=0.18,
+                               label="NDVI planting window")
+                if pd.notna(p.harvest_lo):
+                    ax.axvspan(p.harvest_lo, p.harvest_hi, color="saddlebrown", alpha=0.15,
+                               label="NDVI harvest window")
+                crop = p.crop if isinstance(p.crop, str) else "crop not yet in CDL"
+                ax.set_title(f"{y} · {crop}", loc="left", fontsize=10)
+        if events is not None and len(events):
+            for e in events[(events["year"] == y) & events["s1_from"].notna()].itertuples():
+                c = "darkorange" if e.event == "planting" else "saddlebrown"
+                ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0, color=c,
+                           label=f"radar {e.event} interval")
+        if refined is not None and len(refined):
+            for e in refined[(refined["year"] == y)
+                             & (refined["basis"] == "radar + weather")].itertuples():
+                ax.axvspan(e.refined_lo, e.refined_hi + pd.Timedelta(days=1),
+                           ymin=0.0, ymax=0.08, color="black",
+                           label="narrowed by radar + weather")
+        if cuts is not None and len(cuts):
+            for c in cuts[cuts["year"] == y].itertuples():
+                bare = c.kind == "to bare soil"
+                ax.axvspan(c.ndvi_from, c.ndvi_to, color="grey" if bare else "purple",
+                           alpha=0.12,
+                           label="drop to bare soil (NDVI)" if bare
+                           else "hay cut, NDVI bracket")
+                ax.axvspan(c.refined_lo, c.refined_hi + pd.Timedelta(days=1),
+                           ymin=0.0, ymax=0.08, color="0.4" if bare else "purple",
+                           label="drop to bare soil, narrowed" if bare
+                           else "hay cut, narrowed")
+            kinds = cuts[cuts["year"] == y]["kind"]
+            n_cut = int((kinds == "cut").sum())
+            if n_cut:
+                ax.set_title(f"{ax.get_title(loc='left')} · {n_cut} cut"
+                             f"{'s' if n_cut != 1 else ''}", loc="left", fontsize=10)
+        ax2 = ax.twinx()
+        wy = w[w.index.year == y]
+        if "pr_mm" in wy:
+            ax2.bar(wy.index, wy["pr_mm"], width=1, color="C9", alpha=0.35)
+        ax2.set_ylim(0, 90)
+        ax2.set_ylabel("rain mm", fontsize=8)
+        ax.set_xlim(pd.Timestamp(f"{y}-01-01"), pd.Timestamp(f"{y}-12-31"))
+        ax.set_ylim(-7, 7)
+    h, l = [], []
+    for ax in axes:
+        for hh, ll in zip(*ax.get_legend_handles_labels()):
+            if ll not in l:
+                h.append(hh); l.append(ll)
+    # The legend and title take a fixed ~1 inch at the top, whatever the
+    # number of panels.
+    top = 1 - 1.0 / height
+    fig.legend(h, l, loc="upper center", bbox_to_anchor=(0.5, 1 - 0.3 / height),
+               ncol=4, fontsize=8, frameon=False)
+    if title:
+        fig.suptitle(title, y=1 - 0.05 / height, fontsize=12)
+    fig.tight_layout(rect=(0, 0, 1, top))
+    return fig

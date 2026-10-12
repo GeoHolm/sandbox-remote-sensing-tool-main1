@@ -6,8 +6,9 @@ Upload a field boundary, see what satellite data exists for it, and read the
 management story back out of the NDVI record: crop rotation, planting and
 harvest windows, and off-season cover.
 
-Same 7 views as the R Shiny app: Field, CDL, Data availability, Imagery,
-Season analysis, Cover crops, Summary. Same underlying fieldrs pipeline and
+Same 9 views as the R Shiny app: Field, CDL, Data availability, Imagery,
+Season analysis, Cover crops, Soil armor, Soil moisture (radar), Summary. Same
+underlying fieldrs pipeline and
 disk cache -- a field warmed from the CLI or the R app opens instantly here
 too, because both key on the same field geometry + query.
 """
@@ -16,6 +17,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import date
 from pathlib import Path
 
@@ -38,6 +40,8 @@ from fieldrs.thumbnails import available_periods, build_scene_grid, plot_scene_g
 from fieldrs.imagery import search_scenes
 from fieldrs import viz
 from fieldrs.armor import armor_all_years, armor_band, armor_series
+from fieldrs.climate import GridmetError
+from fieldrs.sar import s1_analysis
 from fieldrs.phenology import residue_window
 
 # ------------------------------------------------------------- config ---
@@ -363,9 +367,10 @@ if result is None:
 
 # --------------------------------------------------------------- tabs ---
 
-tab_field, tab_cdl, tab_avail, tab_imagery, tab_season, tab_cover, tab_armor, tab_summary = st.tabs(
+(tab_field, tab_cdl, tab_avail, tab_imagery, tab_season, tab_cover, tab_armor,
+ tab_moisture, tab_summary) = st.tabs(
     ["Field", "CDL", "Data availability", "Imagery", "Season analysis", "Cover crops",
-     "Soil armor", "Summary"]
+     "Soil armor", "Soil moisture (radar)", "Summary"]
 )
 
 # Soil armor is its own pass over four bands, so like the Imagery tab it runs
@@ -799,7 +804,164 @@ with tab_armor:
             "line transects scoring green, residue and bare separately -- which "
             "validates all three fractions at once.")
 
-# ---- 8. Summary -------------------------------------------------------------
+# ---- 8. Soil moisture (radar) -----------------------------------------------
+#
+# Sentinel-1 backscatter for the loaded field -- library or upload -- read
+# against its NDVI planting and harvest windows. Like soil armor it is a
+# separate read of the archive, so it runs on a button and is cached after.
+
+if "s1" not in st.session_state:
+    st.session_state.s1 = {}
+s1_key = (field_key[0], years, source)
+
+
+@st.cache_data(show_spinner=False)
+def _s1_cached(_aoi, _result, key):
+    try:
+        return s1_analysis(_aoi, _result, only_cached=True)
+    except GridmetError:
+        return None
+
+
+with tab_moisture:
+    st.subheader("Sentinel-1 radar against the NDVI planting and harvest windows")
+    st.warning(
+        "**Prototype. Nothing here is calibrated against grower-reported dates.** "
+        "Radar backscatter moves with soil roughness and with soil moisture, and "
+        "the moisture correction is fitted on this field's own data. Read the "
+        "dates as candidates, not measurements.")
+    c1, c2, c3 = st.columns([5, 5, 3])
+    c1.caption("Tillage and planting change surface roughness; rain changes "
+               "moisture. **VV is shown with the rain-driven part removed** by "
+               "regressing it on an antecedent precipitation index from gridMET, "
+               "fitted per orbit on bare, unfrozen dates. Frozen dates are dropped.")
+    c2.caption("**Bars along the top of each panel** mark the interval holding the "
+               "largest VV drop in spring (orange: seedbed or planter smoothing the "
+               "surface) and the largest VH drop near the harvest window (brown: "
+               "canopy removed). **Black bars along the bottom** are NDVI windows "
+               "narrowed by radar and weather together. In hay years, **purple** "
+               "marks each cutting. Blue bars are daily rain.")
+    with c3:
+        st.write("")
+        run_s1 = st.button("Run radar analysis", type="primary",
+                           use_container_width=True)
+
+    s1_res = st.session_state.s1.get(s1_key) or _s1_cached(aoi, result, s1_key)
+    if s1_res is not None:
+        st.success("**Already loaded.** The radar series for this field and year "
+                   "range is cached -- it runs instantly.")
+    else:
+        st.info("**First load.** Not read yet. Reads every Sentinel-1 pass over the "
+                "field for the selected years -- **about a minute**, cached after. "
+                "Uses the NDVI windows above, and gridMET weather, so CONUS only.")
+
+    if run_s1:
+        with st.spinner("Reading Sentinel-1 radar over the field..."):
+            try:
+                fresh = s1_analysis(aoi, result)
+            except GridmetError as exc:
+                fresh = exc
+        if isinstance(fresh, GridmetError):
+            st.error(f"Weather unavailable, so the radar cannot be moisture-"
+                     f"corrected: {fresh}")
+        elif fresh is None:
+            st.error("No Sentinel-1 acquisitions found over this field.")
+        else:
+            st.session_state.s1[s1_key] = fresh
+            _s1_cached.clear()
+            st.rerun()
+
+    if s1_res is None:
+        st.caption("Press **Run radar analysis** to read the radar for this field.")
+    else:
+        ev, ref = s1_res["events"], s1_res["refined"]
+        fits = s1_res["ctx"].attrs.get("moisture_fit", {})
+        st.caption(
+            f"{len(s1_res['s1'])} acquisitions from orbit(s) "
+            f"{', '.join(map(str, s1_res['orbits']))}. Moisture fit "
+            + ("; ".join(f"orbit {o}: r = {f['r']:.2f} on {f['n']} bare dates"
+                         for o, f in fits.items()) or "not possible (too few bare dates)")
+            + ". The fit and the noise level are estimated from every year in "
+              "the range, so the numbers shift a little with the start year.")
+        if len(fits) < len(s1_res["orbits"]):
+            st.caption("Orbits with fewer than 10 bare, unfrozen dates get no "
+                       "moisture fit and are left out of the detection.")
+
+        cuts = s1_res.get("cuts")
+        has_cuts = cuts is not None and len(cuts)
+        if len(ev) and len(ref):
+            m = st.columns(4)
+            for col, name in zip(m[:2], ("harvest", "planting")):
+                e = ev[(ev["event"] == name) & ev["in_ndvi_window"].notna()]
+                hit = int(e["in_ndvi_window"].astype(bool).sum())
+                col.metric(f"{name.capitalize()} inside NDVI window",
+                           f"{hit} of {len(e)}",
+                           help="Radar searched beyond the window: seasons where its "
+                                "interval overlaps the NDVI window. Agreement, not "
+                                "accuracy.")
+            for col, name in zip(m[2:], ("harvest", "planting")):
+                e = ref[ref["event"] == name]
+                rw = e[e["basis"] == "radar + weather"]
+                val = (f"{len(rw)} of {len(e)} · {int(rw['ndvi_days'].median())}→"
+                       f"{int(rw['span_days'].median())} d" if len(rw)
+                       else f"0 of {len(e)}")
+                col.metric(f"{name.capitalize()} narrowed by radar", val,
+                           help="Seasons where a radar step inside the NDVI window "
+                                "stood out from noise (z >= 2), and the median "
+                                "window span before and after. Conflicts, where a "
+                                "stronger step sat outside the window: "
+                                f"{int(e['conflict'].sum())}.")
+        elif not has_cuts:
+            st.caption("No NDVI planting or harvest windows for this field, so "
+                       "there is nothing to read the radar against.")
+
+        if has_cuts:
+            hay = cuts[cuts["kind"] == "cut"]
+            m = st.columns(3)
+            m[0].metric("Hay cuts found", f"{len(hay)}",
+                        help="Across the years CDL calls alfalfa or other hay. "
+                             "Drops to bare soil are counted separately.")
+            m[1].metric("Narrowed by radar",
+                        f"{int(hay['basis'].str.contains('radar').sum())} of {len(hay)}",
+                        help="Cuts whose NDVI bracket a Sentinel-1 VH drop "
+                             "(z >= 2) narrowed.")
+            m[2].metric("Median bracket",
+                        f"{int(hay['ndvi_days'].median())} → "
+                        f"{int(hay['span_days'].median())} days",
+                        help="Days between the last high and first low NDVI "
+                             "scene, and the span left after radar and weather.")
+
+        _show(viz.plot_s1(s1_res["ctx"], s1_res["weather"], s1_res["ndvi"],
+                          result.phenology, ev, ref, cuts=cuts),
+              "sentinel1-radar-by-year")
+
+        if has_cuts:
+            st.subheader("Hay cuttings")
+            st.caption("For years CDL calls alfalfa or other hay, the season model "
+                       "has no planting or harvest to date -- the field operation is "
+                       "the cutting. **NDVI finds each cut**: a drop of at least "
+                       "0.20 from a stand above 0.60, bracketed between the last "
+                       "high scene and the first low one. **Radar narrows** the "
+                       "bracket when a VH drop inside it stands out from noise, and "
+                       "**rain days are struck out**. Purple on the chart. A drop "
+                       "to bare soil (grey) is tillage, reseeding or removal, not a "
+                       "cut. Prototype: not checked against grower cutting dates.")
+            st.dataframe(_fmt_dates(cuts), hide_index=True, use_container_width=True)
+
+        if len(ref):
+            st.subheader("Narrowed windows")
+            st.caption("Inside each NDVI window: a radar drop that stands out from "
+                       "this field's scene-to-scene noise narrows the date to the "
+                       "workable days in its interval; otherwise only rain days are "
+                       "struck out. Agreement with NDVI is built in here, so it is "
+                       "not a result. **Read span_days, not candidate_days**, as how "
+                       "far the date is pinned down.")
+            st.dataframe(_fmt_dates(ref), hide_index=True, use_container_width=True)
+        if len(ev):
+            with st.expander("Radar searched beyond the NDVI windows"):
+                st.dataframe(_fmt_dates(ev), hide_index=True, use_container_width=True)
+
+# ---- 9. Summary -------------------------------------------------------------
 
 with tab_summary:
     st.subheader("Management history inferred from satellite")

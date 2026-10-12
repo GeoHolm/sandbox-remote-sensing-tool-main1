@@ -40,6 +40,13 @@ CC_STRONG = 0.35
 CC_WATER_NDVI = 0.05
 CC_WATER_SHARE = 0.25       # share of window observations under water
 
+# Smoothing penalty for green_days. Stiffer than phenology's SMOOTH_LAM because
+# the R reference fits this local curve with smooth.spline(spar = 0.5), not the
+# 0.35 the season model uses. Swept against R's green_days over the library's
+# 90 winters: lam 50 gave mean |difference| 5.9 days (58% within 3 days), 800
+# gives 3.1 (79%); 400 and 1600 were close behind, 3200 worse again.
+CC_SMOOTH_LAM = 800.0
+
 
 def detect_cover_crop(ts: pd.DataFrame, fall_year: int,
                       phen: pd.DataFrame | None = None,
@@ -114,7 +121,7 @@ def detect_cover_crop(ts: pd.DataFrame, fall_year: int,
                (ts["date"] >= win_start - timedelta(days=45)) &
                (ts["date"] <= win_end + timedelta(days=45))]
     try:
-        curve = daily_series(local, index)
+        curve = daily_series(local, index, lam=CC_SMOOTH_LAM)
         w = curve[(curve["date"] >= win_start) & (curve["date"] <= win_end)]
         green_days = int((w["value"].dropna() >= CC_GREEN_MIN).sum())
     except ValueError:

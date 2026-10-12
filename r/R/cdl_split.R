@@ -30,8 +30,12 @@ cdl_split_advice <- function(st) {
 
   per_year <- do.call(rbind, lapply(names(st), function(nm) {
     s <- cdl_summary(st[[nm]])
+    # Secondary: the next-largest class, crop or not -- a road or a treeline
+    # in second place is as useful to see as a second crop.
     data.frame(year = as.integer(sub("cdl_", "", nm)),
                dominant = s$crop[1], pct = s$pct[1],
+               secondary = if (nrow(s) > 1) s$crop[2] else NA_character_,
+               secondary_pct = if (nrow(s) > 1) s$pct[2] else NA_real_,
                n_classes = nrow(s),
                noncrop_pct = sum(s$pct[!s$is_crop]),
                stringsAsFactors = FALSE)

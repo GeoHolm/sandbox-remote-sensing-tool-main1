@@ -22,6 +22,11 @@
 #' @param min_valid Minimum fraction of clear field pixels to keep a scene.
 #' @param workers   Parallel processes. 1 forces sequential.
 #' @param progress  Optional function(done, total, msg) for a Shiny progress bar.
+#' @param source    "sentinel2" (the original, 10 m) or "hls" (Sentinel-2 and
+#'                  Landsat harmonised, 30 m) -- see imagery.R SOURCES. Each
+#'                  row's `sensor` says which instrument it came from.
+#' @param harmonize Map HLS NDVI onto the Sentinel-2 scale and drop HLS spikes
+#'                  (see HLS_TRANSFER, SPIKE_NDVI). Off only to inspect raw HLS.
 #' @return Long data frame: one row per scene per index.
 extract_field_series <- function(aoi,
                                  start   = "2020-01-01",
@@ -32,21 +37,32 @@ extract_field_series <- function(aoi,
                                  workers   = 8,
                                  refresh   = FALSE,
                                  only_cached = FALSE,
-                                 progress  = NULL) {
+                                 progress  = NULL,
+                                 source    = "sentinel2",
+                                 harmonize = TRUE) {
+  if (!source %in% names(SOURCES))
+    stop("source must be one of ", paste(names(SOURCES), collapse = ", "), call. = FALSE)
 
-  key <- cache_key(aoi, start, end, indices, max_cloud, min_valid, "field_series_v3")
+  # The source joins the key only when it is not the original, so every
+  # Sentinel-2 series cached before HLS existed is still found. ("hls", 2): the
+  # second HLS read, with non-positive reflectance masked -- same as Python.
+  key <- if (source == "sentinel2")
+    cache_key(aoi, start, end, indices, max_cloud, min_valid, "field_series_v3")
+  else cache_key(aoi, start, end, indices, max_cloud, min_valid, "field_series_v3",
+                 source, 2)
   hit <- if (refresh) NULL else cache_get(key, "series")
   if (!is.null(hit)) {
     if (!is.null(progress)) progress(1, 1, "Loaded from cache")
     message(sprintf("  Cached: %d observations.", nrow(hit)))
-    return(hit)
+    return(if (harmonize) hls_post(hit) else hit)
   }
   # Used by the app to open a pre-warmed field instantly: a miss returns NULL
   # rather than silently starting several hundred scene reads.
   if (only_cached) return(NULL)
 
   bands  <- bands_for(indices)
-  scenes <- search_scenes(aoi, start, end, max_cloud = max_cloud, limit = 5000)
+  scenes <- search_scenes(aoi, start, end, max_cloud = max_cloud, limit = 5000,
+                          source = source)
   groups <- scene_groups(scenes)    # ranked candidates per date, chosen up front
   signed <- sign_scenes(scenes)
   n      <- length(groups)
@@ -72,7 +88,8 @@ extract_field_series <- function(aoi,
     items = signed$features[idx],
     date  = scenes$table$date[idx[1]],
     ids   = scenes$table$id[idx],
-    cloud = scenes$table$cloud[idx]
+    cloud = scenes$table$cloud[idx],
+    sensor = scenes$table$sensor[idx]
   ))
 
   use_parallel <- ensure_workers(workers)
@@ -147,8 +164,8 @@ extract_field_series <- function(aoi,
                   length(unique(out$date)), n, nrow(out),
                   if (n_dup) sprintf(", %d same-date duplicates dropped", n_dup) else ""))
 
-  cache_put(key, out, "series")
-  out
+  cache_put(key, out, "series")      # raw: the HLS transfer is applied on the way out
+  if (harmonize) hls_post(out) else out
 }
 
 #' Worker: one scene -> one row per index.
@@ -210,6 +227,7 @@ extract_one_scene <- function(job, aoi, specs, min_valid, root) {
           valid_frac = vf,
           cloud      = job$cloud[k],
           scene_id   = job$ids[k],
+          sensor     = job$sensor[k] %||% "S2",
           stringsAsFactors = FALSE
         )
       })
@@ -225,6 +243,77 @@ extract_one_scene <- function(job, aoi, specs, min_valid, root) {
 
   if (is.null(last_err)) list(status = "cloudy", rows = NULL)
   else list(status = "error", rows = NULL, msg = last_err)
+}
+
+# --- HLS -> Sentinel-2 NDVI transfer --------------------------------------------
+# Every NDVI threshold here was set on Sentinel-2 L2A, and HLS reads higher over
+# bare and residue-covered ground (narrow NIR, LaSRC, BRDF normalisation). So
+# HLS NDVI is mapped onto the Sentinel-2 scale, ndvi_s2 = a * ndvi_hls + b, per
+# HLS sensor. Fitted in python/fieldrs/extract.py (HLS_TRANSFER_FIT): least
+# squares on same-day field medians, 15 library fields 2020-2026, 2,941 S30 and
+# 818 L30 pairs, residual RMSE 0.026 / 0.024. Keep the two in step.
+HLS_TRANSFER <- list("HLS-S30" = c(1.0733, -0.0758), "HLS-L30" = c(1.0707, -0.0686))
+HLS_STAT_COLS <- c("mean", "median", "p10", "p90")
+
+# HLS spike filter. HLS's Fmask misses some partial snow and thin cloud that
+# Sentinel-2's SCL catches; one such spike is enough for a "possible cover crop"
+# verdict. A reading more than SPIKE_NDVI from the nearest reading on BOTH
+# sides, same direction, within SPIKE_DAYS, is dropped. From November to March
+# a reading with no neighbour within SPIKE_DAYS on one side is judged against
+# the other side alone, if that side has at least two readings within
+# SPIKE_DAYS that agree to SPIKE_NDVI / 2. HLS only.
+SPIKE_NDVI <- 0.10
+SPIKE_DAYS <- 20
+SPIKE_WINTER_MONTHS <- c(11, 12, 1, 2, 3)
+
+#' Drop single-date spikes from one index's series (see SPIKE_NDVI).
+despike <- function(df, index = "ndvi", jump = SPIKE_NDVI, days = SPIKE_DAYS) {
+  sel <- which(df$index == index)
+  sel <- sel[order(df$date[sel])]
+  if (length(sel) < 3) return(df)
+  v <- df$mean[sel]; t <- as.numeric(df$date[sel])
+  month <- as.integer(format(df$date[sel], "%m"))
+  drop <- integer(0)
+  for (k in seq_along(sel)) {
+    before <- rev(which(seq_along(sel) < k & t[k] - t <= days))
+    after  <- which(seq_along(sel) > k & t - t[k] <= days)
+    if (length(before) && length(after)) {
+      dp <- v[k] - v[before[1]]; dn <- v[k] - v[after[1]]
+      if ((dp > jump && dn > jump) || (dp < -jump && dn < -jump)) drop <- c(drop, k)
+    } else if (month[k] %in% SPIKE_WINTER_MONTHS) {
+      side <- if (length(before)) before else after
+      if (length(side) >= 2) {
+        ref <- v[side]
+        if (max(ref) - min(ref) <= jump / 2 && abs(v[k] - stats::median(ref)) > jump)
+          drop <- c(drop, k)
+      }
+    }
+  }
+  if (!length(drop)) return(df)
+  df[-sel[drop], , drop = FALSE]
+}
+
+#' HLS NDVI rows mapped onto the Sentinel-2 L2A scale. Untransformed values are
+#' kept in <stat>_raw columns; Sentinel-2 rows pass through unchanged.
+harmonize_to_s2 <- function(df) {
+  if (!"sensor" %in% names(df) || !any(df$sensor %in% names(HLS_TRANSFER))) return(df)
+  for (c in HLS_STAT_COLS) df[[paste0(c, "_raw")]] <- df[[c]]
+  for (sensor in names(HLS_TRANSFER)) {
+    ab <- HLS_TRANSFER[[sensor]]
+    m <- df$sensor == sensor & df$index == "ndvi"
+    for (c in HLS_STAT_COLS) df[[c]][m] <- ab[1] * df[[paste0(c, "_raw")]][m] + ab[2]
+    df$sd[m] <- abs(ab[1]) * df$sd[m]
+  }
+  df
+}
+
+#' Transfer to the Sentinel-2 scale, then drop spikes -- HLS series only. Applied
+#' on the way out of the cache, so the cached series stays raw.
+hls_post <- function(df) {
+  if (!"sensor" %in% names(df) || !any(df$sensor %in% names(HLS_TRANSFER))) return(df)
+  out <- despike(harmonize_to_s2(df))
+  rownames(out) <- NULL
+  out
 }
 
 #' Daily-interpolated index series, which the phenology and cover crop code

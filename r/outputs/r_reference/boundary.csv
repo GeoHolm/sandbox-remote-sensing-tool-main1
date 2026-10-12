@@ -1,11 +1,13 @@
 "field","verdict","frac","area_ha","biggest_ha","mean_pct"
+"akron-co-wheat-fallow-even","single unit",0,0,0,100
+"akron-co-wheat-fallow-odd","single unit",0,0,0,100
 "arkansas-rice","single unit",0,0,0,99.8
 "california-central","single unit",0.0342,0.45,0.18,82.4
 "clinton-iowa","single unit",0.0651,0.99,0.36,92.3
 "eldorado-georgia","split",0.3037,5.22,4.68,69
-"example_field","single unit",0,0,0,96.5
 "example_field_covercrop","single unit",0,0,0,86.2
 "example_field_overgrown","split",0.3796,65.52,64.44,58.4
+"example_field","single unit",0,0,0,96.5
 "jefferson-ga-conv-cover","single unit",0.0069,0.63,0.36,60.1
 "kansas-rainfed","single unit",0,0,0,100
 "lubbock-pivot","single unit",0,0,0,98.4

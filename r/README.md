@@ -41,6 +41,21 @@ cc    <- cover_crop_all_years(ts, phen, crop_lookup(hist))
 Every formula and chart behind these tabs is documented in
 [`../METHODS.md`](../METHODS.md).
 
+**Sidebar controls.**
+- **Imagery:** Sentinel-2 (10 m, from 2018) or HLS (Sentinel-2 + Landsat, 30 m,
+  from 2020). Each is analysed and cached on its own.
+- **Weather check (gridMET):** moves planting, harvest and cover crop dates off
+  days unfit for field work (METHODS.md §14). Switching it or changing a
+  threshold never re-runs the analysis.
+
+**Soil moisture (radar) tab.** A prototype that reads Sentinel-1 for the loaded
+field, library or upload, on a button, and caches it. It shows:
+- where radar and weather can narrow the NDVI planting and harvest windows;
+- for hay years, the dates of each cutting.
+
+See METHODS.md §17–18. The same analysis runs in the Python app, and
+`python/compare_with_r.py` keeps the two in step.
+
 ## The app
 
 | Tab | What it shows |

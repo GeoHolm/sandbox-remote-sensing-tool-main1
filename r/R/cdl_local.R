@@ -29,6 +29,11 @@
 
 CDL_TIF_DIRS <- c("national", "tif")
 
+# Flat NASS_<year>.tif files directly under the root, as on the CSIP share. The
+# pattern is anchored at both ends so NASS_<year>_10m.tif, a 10 m product on
+# another grid, never matches. Same rule as python/fieldrs/cdl_local.py.
+CDL_NASS_RE <- "^NASS_([0-9]{4})[.]tif$"
+
 # Pre-clipped CDL, one small GeoTIFF per field per year, keyed by the same
 # geometry hash the rest of the cache uses.
 #
@@ -76,7 +81,8 @@ cdl_year_tif <- function(year) {
     hits <- hits[!grepl("[.]ovr[.]tif$", hits)]
     if (length(hits)) return(hits[1])
   }
-  NA_character_
+  flat <- file.path(cdl_root(), sprintf("NASS_%d.tif", year))
+  if (file.exists(flat)) flat else NA_character_
 }
 
 #' Does this file exist AND open AND read to its far corner?
@@ -105,12 +111,15 @@ cdl_readable <- function(path) {
 #' Years present in the store and actually usable.
 cdl_available_years <- function() {
   out <- integer(0)
-  for (sub in CDL_TIF_DIRS) {
-    fs <- list.files(file.path(cdl_root(), sub), pattern = "[.]tif$",
-                     full.names = TRUE)
+  # The subfolders first, then flat files under the root itself.
+  for (d in c(file.path(cdl_root(), CDL_TIF_DIRS), cdl_root())) {
+    fs <- list.files(d, pattern = "[.]tif$", full.names = TRUE)
     fs <- fs[!grepl("[.]ovr[.]tif$", fs)]
     for (f in fs) {
-      y <- suppressWarnings(as.integer(substr(basename(f), 1, 4)))
+      b <- basename(f)
+      y <- if (grepl(CDL_NASS_RE, b, ignore.case = TRUE))
+        as.integer(sub(CDL_NASS_RE, "\\1", b, ignore.case = TRUE))
+      else suppressWarnings(as.integer(substr(b, 1, 4)))
       if (!is.na(y) && !(y %in% out) && cdl_readable(f)) out <- c(out, y)
     }
   }

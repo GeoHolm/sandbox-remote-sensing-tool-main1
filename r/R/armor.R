@@ -201,6 +201,13 @@ armor_summary <- function(ts, phen, year, season = c("spring", "full")) {
 
   w <- residue_window(phen, year, season)
   if (is.null(w)) {
+    cur <- if (!is.null(phen) && "season_type" %in% names(phen))
+      phen[phen$year == year, ] else NULL
+    if (!is.null(cur) && nrow(cur) == 1 && startsWith(cur$season_type, "winter")) {
+      return(row(note = paste0(
+        "no window: a winter crop, sown the autumn before, so its spring is ",
+        "canopy rather than a pre-planting period.")))
+    }
     return(row(note = paste0(
       "no window: planting falls at or before the start of the window, so ",
       "there is no pre-planting period to measure.")))

@@ -30,6 +30,13 @@ OBS_TOL = 2              # scenes
 NDVI_TOL = 0.02          # peak NDVI
 NDTI_TOL = 0.02          # residue indices, same reasoning
 ARMOR_TOL = 0.03         # cover fractions are 0-1; 3 points is the tolerance
+# green_days comes from a local smoothing spline, and R's smooth.spline(spar =
+# 0.5) and Python's make_smoothing_spline(lam = 800) are matched by a sweep, not
+# by construction: mean |difference| 3.1 days across the library, a long tail
+# where the curve hovers on the 0.30 line. 10 days flags the tail, not the norm.
+GREEN_DAYS_TOL = 10
+IRRIG_TOL = 0.1          # irrigated share (%): same pixels on both sides
+CDL_SECONDARY_PCT = 5.0  # secondary CDL class compared only at or above this share
 
 
 def _fields_dir() -> Path:
@@ -57,6 +64,8 @@ def main() -> int:
     res_path = ref / "soil_armor.csv"
     r_res = pd.read_csv(res_path) if res_path.exists() else None
     r_hist = pd.read_csv(ref / "cdl_history.csv")
+    cdly_path = ref / "cdl_by_year.csv"
+    r_cdly = pd.read_csv(cdly_path) if cdly_path.exists() else None
 
     years = (2020, date.today().year)
     issues: list[str] = []
@@ -111,6 +120,34 @@ def main() -> int:
             for _, b in bad.iterrows():
                 issues.append(f"{name} {int(b.year)}: crop '{b.crop_r}' (R) vs "
                               f"'{b.crop_py}' (Py)")
+            # USGS irrigation: same pixels on both sides, so near-exact.
+            if "irrigated_pct_r" in merged and "irrigated_pct_py" in merged:
+                d = (merged["irrigated_pct_r"] - merged["irrigated_pct_py"]).abs()
+                lab = (merged["irrigated_r"].fillna("") != merged["irrigated_py"].fillna(""))
+                for _, b in merged[(d > IRRIG_TOL) | lab].iterrows():
+                    issues.append(f"{name} {int(b.year)}: irrigation {b.irrigated_r} "
+                                  f"{b.irrigated_pct_r}% (R) vs {b.irrigated_py} "
+                                  f"{b.irrigated_pct_py}% (Py)")
+
+        # --- CDL per year: dominant and secondary class ---------------------
+        if r_cdly is not None and res.advice is not None:
+            rcy = r_cdly[r_cdly["field"] == name]
+            m = rcy.merge(res.advice.per_year, on="year", suffixes=("_r", "_py"))
+            for col in ("dominant", "secondary"):
+                if f"{col}_r" not in m:
+                    continue
+                bad = m[m[f"{col}_r"].fillna("") != m[f"{col}_py"].fillna("")]
+                if col == "secondary":
+                    # A secondary class under 5% is a few boundary pixels, and
+                    # the R cache may hold CropScape-API CDL where Python reads
+                    # the local rasters: the two clip edges differently. Only a
+                    # real second unit in the field has to match.
+                    big = ((pd.to_numeric(bad["secondary_pct_r"], errors="coerce") >= CDL_SECONDARY_PCT)
+                           & (pd.to_numeric(bad["secondary_pct_py"], errors="coerce") >= CDL_SECONDARY_PCT))
+                    bad = bad[big]
+                for _, b in bad.iterrows():
+                    issues.append(f"{name} {int(b.year)}: CDL {col} "
+                                  f"'{b[f'{col}_r']}' (R) vs '{b[f'{col}_py']}' (Py)")
 
         # --- season markers -----------------------------------------------
         worst_plant = worst_harv = 0
@@ -136,6 +173,24 @@ def main() -> int:
                 for _, o in m[only].iterrows():
                     issues.append(f"{name} {int(o.year)}: {label} present in "
                                   f"{'R' if pd.notna(o[f'{col}_r']) else 'Py'} only")
+            # Which season model ran is a decision, so it must match exactly.
+            if "season_type_r" in m and "season_type_py" in m:
+                st = m["season_type_r"].fillna("") != m["season_type_py"].fillna("")
+                for _, o in m[st].iterrows():
+                    issues.append(f"{name} {int(o.year)}: season type "
+                                  f"'{o.season_type_r}' (R) vs '{o.season_type_py}' (Py)")
+            if "fallow_days_r" in m and "fallow_days_py" in m:
+                a = pd.to_numeric(m["fallow_days_r"], errors="coerce")
+                b = pd.to_numeric(m["fallow_days_py"], errors="coerce")
+                # Fallow spans harvest to the next planting, so it carries both
+                # ends' tolerance.
+                d = (a - b).abs()
+                for i in d[d > 2 * DATE_TOL_DAYS].index:
+                    issues.append(f"{name} {int(m.at[i, 'year'])}: fallow days "
+                                  f"{a[i]:.0f} (R) vs {b[i]:.0f} (Py)")
+                for i in m.index[a.notna() ^ b.notna()]:
+                    issues.append(f"{name} {int(m.at[i, 'year'])}: fallow period in "
+                                  f"{'R' if pd.notna(a[i]) else 'Py'} only")
             nd = (m["peak_ndvi_r"] - m["peak_ndvi_py"]).abs()
             worst_ndvi = float(nd.max())
             if worst_ndvi > NDVI_TOL:
@@ -154,6 +209,25 @@ def main() -> int:
             for _, b in bad.iterrows():
                 issues.append(f"{name} {b.winter}: cover '{b.verdict_r}' (R) vs "
                               f"'{b.verdict_py}' (Py)")
+            if "green_days_r" in m:
+                gd = (pd.to_numeric(m["green_days_r"], errors="coerce")
+                      - pd.to_numeric(m["green_days_py"], errors="coerce")).abs()
+                for i in gd[gd > GREEN_DAYS_TOL].index:
+                    issues.append(f"{name} {m.at[i, 'winter']}: green days differ by "
+                                  f"{gd[i]:.0f}")
+            for col in ("seeding_est", "termination_est"):
+                if f"{col}_r" not in m or f"{col}_py" not in m:
+                    continue
+                a = pd.to_datetime(m[f"{col}_r"], errors="coerce")
+                b = pd.to_datetime(m[f"{col}_py"], errors="coerce")
+                both = a.notna() & b.notna()
+                dd = (a[both] - b[both]).abs().dt.days
+                for i in dd[dd > DATE_TOL_DAYS].index:
+                    issues.append(f"{name} {m.at[i, 'winter']}: cover {col.split('_')[0]} "
+                                  f"differs by {int(dd[i])} days")
+                for i in m.index[a.notna() ^ b.notna()]:
+                    issues.append(f"{name} {m.at[i, 'winter']}: cover {col.split('_')[0]} "
+                                  f"dated in {'R' if pd.notna(a[i]) else 'Py'} only")
         rec["cover_mismatch"] = mismatches
 
         # --- residue indices ----------------------------------------------
@@ -244,8 +318,9 @@ def main() -> int:
             print("  -", i)
         return 1
     print("No disagreements beyond tolerance "
-          f"(dates +/-{DATE_TOL_DAYS}d, obs +/-{OBS_TOL}, peak NDVI +/-{NDVI_TOL}). "
-          "Verdicts and crop names matched exactly.")
+          f"(dates +/-{DATE_TOL_DAYS}d, obs +/-{OBS_TOL}, peak NDVI +/-{NDVI_TOL}, "
+          f"green days +/-{GREEN_DAYS_TOL}). Verdicts, crop names, season types, "
+          "CDL classes and irrigation labels matched exactly.")
     return 0
 
 
