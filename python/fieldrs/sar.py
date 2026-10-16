@@ -90,6 +90,17 @@ SAR_BARE_NDVI = 0.30
 # before the combine.
 SAR_PLANT_FROM = "04-01"
 SAR_PLANT_AFTER_D = 7
+# A winter crop is sown the autumn before its harvest year, so its sowing is
+# searched from the start of the winter model's sowing search (1 August of that
+# autumn), not from 1 April -- which left the span empty for every wheat year.
+
+
+def _plant_from(p, y: int) -> pd.Timestamp:
+    """Start of the radar planting search for season ``y`` (row ``p``)."""
+    from .phenology import WINTER_SOW_SEARCH
+    if str(getattr(p, "season_type", "") or "").startswith("winter"):
+        return pd.Timestamp(f"{y - 1}-{WINTER_SOW_SEARCH[0]}")
+    return pd.Timestamp(f"{y}-{SAR_PLANT_FROM}")
 SAR_HARVEST_BEFORE_D = 14
 SAR_HARVEST_AFTER_D = 28
 
@@ -274,13 +285,20 @@ def s1_intervals(ctx: pd.DataFrame) -> pd.DataFrame:
     # An orbit with too few bare dates gets no moisture fit, and its VV_adj is
     # NaN. Left in, one stray acquisition (a single orbit-128 pass over the
     # Mitchell Co. fields) blanks the two intervals either side of it.
+    # Date, then orbit: with two passes on one day the order decides which
+    # acquisitions pair into intervals, so it must not be left to an unstable
+    # sort (R sorts the same way).
     m = (ctx[~ctx["frozen"] & ctx["vv_adj"].notna()]
-         .sort_values("date").reset_index(drop=True))
+         .sort_values(["date", "orbit"], kind="mergesort").reset_index(drop=True))
     m["date_a"] = m["date"].shift()
     m["d_vv_adj"] = m["vv_adj"].diff()
     m["d_vh"] = m["vh_c"].diff()
     m["bare_both"] = m["bare"] & m["bare"].shift(fill_value=False)
-    return m.iloc[1:].reset_index(drop=True)
+    m = m.iloc[1:]
+    # Two orbits can pass on the same day (Akron sits under four). A same-day
+    # "interval" is just the residual difference between two orbits, not a
+    # change on the ground, and spans no field day.
+    return m[m["date"] > m["date_a"]].reset_index(drop=True)
 
 
 def s1_events(ctx: pd.DataFrame, phen: pd.DataFrame) -> pd.DataFrame:
@@ -301,7 +319,7 @@ def s1_events(ctx: pd.DataFrame, phen: pd.DataFrame) -> pd.DataFrame:
         y = int(p.year)
         specs = []
         if pd.notna(p.planting_lo):
-            lo = pd.Timestamp(f"{y}-{SAR_PLANT_FROM}")
+            lo = _plant_from(p, y)
             hi = p.planting_hi + D(days=SAR_PLANT_AFTER_D)
             w = iv[(iv["date_a"] >= lo) & (iv["date"] <= hi) & iv["bare_both"]]
             specs.append(("planting", w, "d_vv_adj", p.planting_lo, p.planting_hi,
@@ -422,7 +440,7 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
             col = "d_vv_adj" if event == "planting" else "d_vh"
             pool = iv[iv["bare_both"]] if event == "planting" else iv
             if event == "planting":
-                span = (pd.Timestamp(f"{y}-{SAR_PLANT_FROM}"), hi + D(days=SAR_PLANT_AFTER_D))
+                span = (_plant_from(p, y), hi + D(days=SAR_PLANT_AFTER_D))
             else:
                 span = (lo - D(days=SAR_HARVEST_BEFORE_D), hi + D(days=SAR_HARVEST_AFTER_D))
             # Field days of an interval are date_a .. date - 1.

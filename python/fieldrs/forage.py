@@ -203,10 +203,12 @@ def forage_cuts(ndvi: pd.Series | None, phen: pd.DataFrame | None,
     # irrigated stand that is never bare usually cannot get.
     iv, sd = None, float("nan")
     if ctx is not None and len(ctx):
-        m = ctx[~ctx["frozen"]].sort_values("date").reset_index(drop=True)
+        m = (ctx[~ctx["frozen"]].sort_values(["date", "orbit"], kind="mergesort")
+             .reset_index(drop=True))
         m["date_a"] = m["date"].shift()
         m["d_vh"] = m["vh_c"].diff()
-        iv = m.iloc[1:].reset_index(drop=True)
+        iv = m.iloc[1:]
+        iv = iv[iv["date"] > iv["date_a"]].reset_index(drop=True)   # no same-day pairs
         season = iv[iv["date"].dt.strftime("%m-%d").between(*CUT_SEASON)]
         sd = _robust_sd(season["d_vh"])
     work = workable_days(weather) if weather is not None and len(weather) else None

@@ -598,14 +598,20 @@ plot_phenology_timeline <- function(ts, phen = NULL, index = "ndvi", panels = 2,
 
     # Off-season shading: everything outside an estimated growing season.
     if (shade_offseason && !is.null(phen)) {
-      for (y in grp) {
-        p <- phen[phen$year == y, ]
-        if (nrow(p) != 1 || is.na(p$planting_est)) next
-        prev <- phen[phen$year == y - 1, ]
-        left <- if (nrow(prev) == 1 && !is.na(prev$harvest_est)) prev$harvest_est else
-          as.Date(sprintf("%d-11-01", y - 1))
-        graphics::rect(max(left, from), -1, p$planting_est, 2,
-                       col = grDevices::adjustcolor("#5ab4ac", 0.10), border = NA)
+      # Every season, clipped to this panel: from the most recent harvest
+      # before its planting, in any year (before a wheat sowing the previous
+      # year is fallow, and the off-season runs back to the wheat harvest
+      # before it). A winter crop's off-season can start in the previous
+      # panel, so looping over this panel's years missed it. Same as viz.py.
+      hv_all <- as.Date(phen$harvest_est)
+      for (i in seq_len(nrow(phen))) {
+        pl <- as.Date(phen$planting_est[i])
+        if (is.na(pl)) next
+        hv <- hv_all[!is.na(hv_all) & hv_all < pl]
+        left <- if (length(hv)) max(hv) else as.Date(sprintf("%d-11-01", phen$year[i] - 1))
+        a <- max(left, from); b <- min(pl, to)
+        if (a < b) graphics::rect(a, -1, b, 2,
+                                  col = grDevices::adjustcolor("#5ab4ac", 0.10), border = NA)
       }
     }
 
@@ -620,18 +626,24 @@ plot_phenology_timeline <- function(ts, phen = NULL, index = "ndvi", panels = 2,
       if (is.null(phen)) next
       p <- phen[phen$year == y, ]
       if (nrow(p) != 1) next
-      if (!is.na(p$planting_est)) {
-        graphics::abline(v = p$planting_est, col = "#2c7fb8", lwd = 1.6, lty = 2)
-      }
-      if (!is.na(p$harvest_est)) {
-        graphics::abline(v = p$harvest_est, col = "#d95f0e", lwd = 1.6, lty = 2)
-      }
       if (!is.na(p$crop)) {
         graphics::text(as.Date(sprintf("%d-07-01", y)), 0.045, p$crop,
                        cex = 0.72, col = "grey25")
       }
     }
 
+    # Event lines from EVERY season whose date falls in this panel, not only the
+    # panel's own years: a winter crop is sown the autumn before its harvest
+    # year, so its sowing can sit in the previous panel (Akron: 2024 wheat sown
+    # 12 Sep 2023 was missing from the 2020-2023 panel).
+    if (!is.null(phen)) {
+      for (ev in c("planting", "harvest")) {
+        d_ev <- as.Date(phen[[paste0(ev, "_est")]])
+        d_ev <- d_ev[!is.na(d_ev) & d_ev >= from & d_ev <= to]
+        if (length(d_ev)) graphics::abline(v = d_ev, lwd = 1.6, lty = 2,
+          col = if (ev == "planting") "#2c7fb8" else "#d95f0e")
+      }
+    }
     graphics::points(dd$date, dd$mean, pch = 19, col = "#01665e", cex = 0.42)
     mark_suspect(dd, cex = 1.1)
   }

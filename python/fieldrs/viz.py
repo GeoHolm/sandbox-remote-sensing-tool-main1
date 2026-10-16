@@ -579,17 +579,23 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
         ax.set_title(str(grp[0]) if len(grp) == 1 else f"{min(grp)} - {max(grp)}",
                      fontsize=11)
         ax.grid(axis="y", color="#eeeeee")
+        # Off-season for EVERY season, clipped to this panel: from the most
+        # recent harvest before its planting, in any year (before a wheat
+        # sowing the previous year is fallow, and the off-season runs back to
+        # the wheat harvest before it). A winter crop's off-season can start
+        # in the previous panel, so looping over this panel's years missed it.
+        if shade_offseason:
+            for yy, p in p_by.items():
+                plant = _v(p, "planting_est")
+                if plant is None:
+                    continue
+                earlier = [h for h in harvests if h < plant]
+                left = max(earlier) if earlier else pd.Timestamp(f"{yy - 1}-11-01")
+                a, b = max(left, lo), min(plant, hi)
+                if a < b:
+                    ax.axvspan(a, b, color="#5ab4ac", alpha=0.10, lw=0)
         for y in grp:
             p = p_by.get(y)
-            plant = _v(p, "planting_est")
-            if shade_offseason and plant is not None:
-                # From the most recent harvest before this planting, in any
-                # year: before a wheat sowing the previous year is fallow, and
-                # the off-season runs back to the wheat harvest before it.
-                earlier = [h for h in harvests if h < plant]
-                left = max(earlier) if earlier else pd.Timestamp(f"{y - 1}-11-01")
-                if left < plant:
-                    ax.axvspan(max(left, lo), plant, color="#5ab4ac", alpha=0.10, lw=0)
             dy = dd[dd["date"].dt.year == y]
             if len(dy) >= 8:
                 try:
@@ -600,16 +606,21 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
             ax.axvline(pd.Timestamp(f"{y}-01-01"), color="#cccccc", ls=":", lw=1)
             if p is None:
                 continue
+            crop = p.get("crop")
+            if isinstance(crop, str):
+                ax.text(pd.Timestamp(f"{y}-07-01"), 0.045, crop, ha="center",
+                        fontsize=8, color="#404040")
+        # Event lines from EVERY season whose date falls in this panel, not only
+        # the panel's own years: a winter crop is sown the autumn before its
+        # harvest year, so its sowing can sit in the previous panel (Akron:
+        # 2024 wheat sown 12 Sep 2023 was missing from the 2020-2023 panel).
+        for p in p_by.values():
             for ev, colour in (("planting", "#2c7fb8"), ("harvest", "#d95f0e")):
                 est, final = _v(p, f"{ev}_est"), _v(p, f"{ev}_date")
                 if est is not None and lo <= est <= hi:
                     ax.axvline(est, color=colour, lw=1.6, ls="--")
                 if final is not None and lo <= final <= hi:
                     ax.axvline(final, color=colour, lw=2.2)
-            crop = p.get("crop")
-            if isinstance(crop, str):
-                ax.text(pd.Timestamp(f"{y}-07-01"), 0.045, crop, ha="center",
-                        fontsize=8, color="#404040")
         ax.scatter(dd["date"], dd["mean"], s=5, color="#01665e", zorder=5)
         _mark_suspect(ax, dd, s=34)
         ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 4, 7, 10)))
@@ -678,24 +689,27 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
         n = ndvi[ndvi.index.year == y]
         ax.plot(n.index, n * 10 - 6, color="darkgreen", lw=1.4, label="NDVI × 10 − 6")
         ax.set_title(f"{y}", loc="left", fontsize=10)
+        # Every season's windows and intervals are drawn in every panel and the
+        # axis clips them: a winter crop's sowing (autumn before its harvest
+        # year) belongs to next year's season but falls in this year's panel.
         if phen is not None:
-            for p in phen[phen["year"] == y].itertuples():
+            for p in phen.itertuples():
                 if pd.notna(p.planting_lo):
                     ax.axvspan(p.planting_lo, p.planting_hi, color="orange", alpha=0.18,
                                label="NDVI planting window")
                 if pd.notna(p.harvest_lo):
                     ax.axvspan(p.harvest_lo, p.harvest_hi, color="saddlebrown", alpha=0.15,
                                label="NDVI harvest window")
-                crop = p.crop if isinstance(p.crop, str) else "crop not yet in CDL"
-                ax.set_title(f"{y} · {crop}", loc="left", fontsize=10)
+                if int(p.year) == y:
+                    crop = p.crop if isinstance(p.crop, str) else "crop not yet in CDL"
+                    ax.set_title(f"{y} · {crop}", loc="left", fontsize=10)
         if events is not None and len(events):
-            for e in events[(events["year"] == y) & events["s1_from"].notna()].itertuples():
+            for e in events[events["s1_from"].notna()].itertuples():
                 c = "darkorange" if e.event == "planting" else "saddlebrown"
                 ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0, color=c,
                            label=f"radar {e.event} interval")
         if refined is not None and len(refined):
-            for e in refined[(refined["year"] == y)
-                             & (refined["basis"] == "radar + weather")].itertuples():
+            for e in refined[refined["basis"] == "radar + weather"].itertuples():
                 ax.axvspan(e.refined_lo, e.refined_hi + pd.Timedelta(days=1),
                            ymin=0.0, ymax=0.08, color="black",
                            label="narrowed by radar + weather")

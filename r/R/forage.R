@@ -110,10 +110,11 @@ forage_cuts <- function(ndvi, phen, ctx = NULL, weather = NULL) {
   # never bare usually cannot get.
   iv <- NULL; sd <- NA_real_
   if (!is.null(ctx) && nrow(ctx)) {
-    m <- ctx[!ctx$frozen, ]; m <- m[order(m$date), ]
+    m <- ctx[!ctx$frozen, ]; m <- m[order(m$date, m$orbit), ]   # same as forage.py
     nn <- nrow(m)
     if (nn >= 2) {
       iv <- data.frame(date_a = m$date[-nn], date = m$date[-1], d_vh = diff(m$vh_c))
+      iv <- iv[iv$date > iv$date_a, ]               # no same-day orbit pairs
       md <- format(iv$date, "%m-%d")
       sd <- .robust_sd(iv$d_vh[md >= CUT_SEASON[1] & md <= CUT_SEASON[2]])
     }

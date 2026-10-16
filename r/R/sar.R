@@ -27,6 +27,15 @@ SAR_API_DECAY        <- 0.7    # antecedent precipitation index decay per day
 SAR_FROZEN_C         <- 1.0    # 3-day mean air temperature at or below: frozen
 SAR_BARE_NDVI        <- 0.30   # bare field: nearest optical NDVI below this
 SAR_PLANT_FROM       <- "04-01"
+# A winter crop is sown the autumn before its harvest year, so its sowing is
+# searched from 1 August of that autumn (the winter model's sowing search), not
+# from 1 April -- which left the span empty for every wheat year.
+.plant_from <- function(p, y) {
+  st <- if ("season_type" %in% names(p)) p$season_type else ""
+  if (!is.na(st) && startsWith(st, "winter"))
+    as.Date(sprintf("%d-%s", y - 1, WINTER_SOW_SEARCH[1]))
+  else as.Date(sprintf("%d-%s", y, SAR_PLANT_FROM))
+}
 SAR_PLANT_AFTER_D    <- 7
 SAR_HARVEST_BEFORE_D <- 14
 SAR_HARVEST_AFTER_D  <- 28
@@ -191,7 +200,7 @@ moisture_adjust <- function(s1) {
 #' The operation, if any, happened between date_a and date.
 s1_intervals <- function(ctx) {
   m <- ctx[!ctx$frozen & !is.na(ctx$vv_adj), ]
-  m <- m[order(m$date), ]
+  m <- m[order(m$date, m$orbit), ]        # date, then orbit -- same as sar.py
   n <- nrow(m)
   if (n < 2) return(m[0, ])
   m$date_a    <- c(as.Date(NA), m$date[-n])
@@ -199,6 +208,9 @@ s1_intervals <- function(ctx) {
   m$d_vh      <- c(NA, diff(m$vh_c))
   m$bare_both <- m$bare & c(FALSE, m$bare[-n])
   out <- m[-1, ]
+  # Two orbits can pass on the same day (Akron sits under four). A same-day
+  # "interval" is the residual between two orbits, not a change on the ground.
+  out <- out[out$date > out$date_a, ]
   rownames(out) <- NULL
   out
 }
@@ -216,7 +228,7 @@ s1_events <- function(ctx, phen) {
     p <- phen[i, ]; y <- p$year
     specs <- list()
     if (!is.na(p$planting_lo)) {
-      lo <- as.Date(sprintf("%d-%s", y, SAR_PLANT_FROM)); hi <- p$planting_hi + SAR_PLANT_AFTER_D
+      lo <- .plant_from(p, y); hi <- p$planting_hi + SAR_PLANT_AFTER_D
       specs[[length(specs) + 1]] <- list(event = "planting", col = "d_vv_adj",
         w = iv[iv$date_a >= lo & iv$date <= hi & iv$bare_both, ],
         nlo = p$planting_lo, nhi = p$planting_hi, nest = .phen_col(p, "planting_date", "planting_est"))
@@ -295,7 +307,7 @@ s1_refine <- function(ctx, phen, weather) {
       col <- if (event == "planting") "d_vv_adj" else "d_vh"
       pool <- if (event == "planting") iv[iv$bare_both, ] else iv
       span <- if (event == "planting")
-        c(as.Date(sprintf("%d-%s", y, SAR_PLANT_FROM)), hi + SAR_PLANT_AFTER_D)
+        c(.plant_from(p, y), hi + SAR_PLANT_AFTER_D)
       else c(lo - SAR_HARVEST_BEFORE_D, hi + SAR_HARVEST_AFTER_D)
       first <- pool$date_a; last <- pool$date - 1
       neg <- !is.na(pool[[col]]) & pool[[col]] < 0
@@ -410,9 +422,16 @@ plot_s1 <- function(res, phen = NULL, title = NULL) {
     crop <- if (!is.null(p) && nrow(p) && !is.na(p$crop[1]) && nzchar(p$crop[1])) p$crop[1]
             else "crop not yet in CDL"
     lab <- sprintf("%d · %s", y, crop)
-    if (!is.null(p) && nrow(p)) {
-      if (!is.na(p$planting_lo)) span(p$planting_lo, p$planting_hi, grDevices::adjustcolor("orange", 0.18))
-      if (!is.na(p$harvest_lo)) span(p$harvest_lo, p$harvest_hi, grDevices::adjustcolor("saddlebrown", 0.15))
+    # Every season's windows and intervals in every panel, clipped by the plot
+    # region: a winter crop's sowing (autumn before its harvest year) belongs to
+    # next year's season but falls in this year's panel.
+    if (!is.null(phen) && nrow(phen)) {
+      for (i in seq_len(nrow(phen))) {
+        if (!is.na(phen$planting_lo[i]))
+          span(phen$planting_lo[i], phen$planting_hi[i], grDevices::adjustcolor("orange", 0.18))
+        if (!is.na(phen$harvest_lo[i]))
+          span(phen$harvest_lo[i], phen$harvest_hi[i], grDevices::adjustcolor("saddlebrown", 0.15))
+      }
     }
     if (!is.null(cuts) && nrow(cuts)) {
       cy <- cuts[cuts$year == y, ]
@@ -427,13 +446,13 @@ plot_s1 <- function(res, phen = NULL, title = NULL) {
       if (n_cut) lab <- sprintf("%s · %d cut%s", lab, n_cut, if (n_cut != 1) "s" else "")
     }
     if (!is.null(ev) && nrow(ev)) {
-      ey <- ev[ev$year == y & !is.na(ev$s1_from), ]
+      ey <- ev[!is.na(ev$s1_from), ]                 # all seasons; plot clips
       for (i in seq_len(nrow(ey)))
         span(ey$s1_from[i], ey$s1_to[i],
              if (ey$event[i] == "planting") "darkorange" else "saddlebrown", 6.1, 7)
     }
     if (!is.null(ref) && nrow(ref)) {
-      ry <- ref[ref$year == y & ref$basis == "radar + weather", ]
+      ry <- ref[ref$basis == "radar + weather", ]    # all seasons; plot clips
       for (i in seq_len(nrow(ry))) span(ry$refined_lo[i], ry$refined_hi[i] + 1, "black", -7, -6.1)
     }
     graphics::abline(h = 0, col = "grey70", lwd = 0.5)

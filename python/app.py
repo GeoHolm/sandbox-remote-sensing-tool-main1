@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import time
 from datetime import date
 from pathlib import Path
 
@@ -329,14 +330,30 @@ if "field_key" not in st.session_state or st.session_state.field_key != field_ke
 
 if analyze_clicked:
     prog = st.sidebar.progress(0.0, text="Starting...")
+    read = {"scenes": 0}
 
     def _progress(done: int, total: int, msg: str) -> None:
+        read["scenes"] = total
         prog.progress(min(done / max(total, 1), 1.0), text=msg)
 
-    with st.spinner("Running the pipeline -- first run for a field reads several "
-                    "hundred scenes and can take a few minutes."):
-        st.session_state.base = analyze_field(aoi, years=years, progress=_progress,
-                                              rain_free=False, source=source)
+    t0 = time.time()
+    try:
+        with st.spinner("Running the pipeline -- first run for a field reads several "
+                        "hundred scenes and can take a few minutes."):
+            st.session_state.base = analyze_field(aoi, years=years, progress=_progress,
+                                                  rain_free=False, source=source)
+    except Exception as exc:                          # noqa: BLE001
+        prog.empty()
+        st.sidebar.error(f"Analysis failed: {exc}")
+        st.stop()
+    # The bar only moves while imagery is read, so a cached field finishes
+    # without ever touching it -- clear it rather than leave "Starting...".
+    prog.empty()
+    took = time.time() - t0
+    st.sidebar.success(
+        f"Analysis done in {took:.0f} s -- read {read['scenes']} scenes."
+        if read["scenes"] else
+        f"Analysis done in {took:.1f} s -- imagery already cached.")
     st.session_state.rain_key = None
 
 if st.session_state.rain_key != rain_key:

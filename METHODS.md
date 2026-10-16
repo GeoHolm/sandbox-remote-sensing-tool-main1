@@ -934,6 +934,13 @@ against grower dates.
 - **Harvest:** the largest drop in VH from 14 days before to 28 days after the
   NDVI harvest window.
 - `in_ndvi_window` reports agreement, not accuracy.
+- **Winter crops:** sowing is searched from 1 August of the autumn before the
+  harvest year (the winter model's sowing search), not from 1 April. From
+  1 April the span was empty for every wheat year.
+- **Same-day passes:** two orbits passing on one day give no interval. Their
+  difference is orbit residual, not a change on the ground. Intervals are
+  built in date-then-orbit order on both sides, so R and Python pair the same
+  acquisitions. Akron sits under four orbits and had 81 same-day dates.
 
 **Narrowing.** Inside each NDVI window:
 - The strongest drop is scored as z: the drop over 1.4826 × the median absolute
