@@ -23,6 +23,7 @@ from .climate import (DRY_PR_MM, FORECAST_DAYS, HEAVY_RAIN_MM, HEAVY_RAIN_WET_DA
                       gridmet_daily, weather_free_events,
                       weather_free_phenology)
 from .cdl_check import cdl_check
+from .outliers import flag_outliers
 from .cdl_split import SplitAdvice, cdl_split_advice
 from .covercrop import cover_crop_all_years
 from .cropland import CdlStack, cdl_history_from_stack, cdl_stack, crop_lookup
@@ -272,6 +273,9 @@ def analyze_field(
     cc = cover_crop_all_years(series, phen, crops)
     # Flag seasons whose curve contradicts their CDL label -- see cdl_check.py.
     phen = cdl_check(phen, history)
+    # Mark suspect readings (missed snow, thin cloud, shadow). Flagged only:
+    # nothing above ran without them -- see outliers.py.
+    series = flag_outliers(series, phen)
     advice = cdl_split_advice(stack) if stack is not None else None
 
     res_ts = res = None

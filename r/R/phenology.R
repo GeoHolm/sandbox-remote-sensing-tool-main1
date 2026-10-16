@@ -513,6 +513,10 @@ plot_phenology <- function(ts, year, phen = NULL, crop = NULL, index = "ndvi",
 
   if (!is.null(curve)) graphics::lines(curve$date, curve$value, col = "#01665e", lwd = 2)
   graphics::points(d$date, d$mean, pch = 19, col = "#01665e", cex = 0.75)
+  mark_suspect(d, cex = 1.7)
+  if ("suspect" %in% names(d) && any(d$suspect, na.rm = TRUE))
+    graphics::legend("topleft", legend = "suspect reading (flagged, kept)", pch = 1,
+                     col = "#d7301f", pt.cex = 1.5, pt.lwd = 1.5, bty = "n", cex = 0.8)
 
   # Daily rain hanging from the top on its own axis; with a wind limit, grey
   # ticks along the bottom on days at or over it.
@@ -629,6 +633,7 @@ plot_phenology_timeline <- function(ts, phen = NULL, index = "ndvi", panels = 2,
     }
 
     graphics::points(dd$date, dd$mean, pch = 19, col = "#01665e", cex = 0.42)
+    mark_suspect(dd, cex = 1.1)
   }
 
   graphics::legend("bottomright", bty = "n", horiz = TRUE, cex = 0.72,
@@ -742,3 +747,13 @@ residue_windows <- function(phen, years = NULL, season = c("spring", "full")) {
 }
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
+
+
+#' Ring suspect readings (flag_outliers()) in red on the current plot.
+mark_suspect <- function(d, cex = 1.4) {
+  if (!"suspect" %in% names(d)) return(invisible())
+  x <- d[!is.na(d$suspect) & d$suspect, ]
+  if (nrow(x)) graphics::points(x$date, x$mean, pch = 1, col = "#d7301f",
+                                cex = cex, lwd = 1.5)
+  invisible()
+}

@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap, ListedColormap
 from matplotlib.patches import Rectangle
+from matplotlib.lines import Line2D
 
 from .cropland import CDL_CLASSES, cdl_name, cdl_summary
 
@@ -311,6 +312,9 @@ def plot_phenology(ts: pd.DataFrame, year: int, phen: pd.Series | dict | None = 
     if curve is not None:
         ax.plot(curve["date"], curve["value"], color="#01665e", lw=2)
     ax.scatter(d["date"], d["mean"], color="#01665e", s=18, zorder=5)
+    _mark_suspect(ax, d, s=70)
+    if "suspect" in d and d["suspect"].fillna(False).astype(bool).any():
+        ax.legend(handles=[SUSPECT_HANDLE], loc="upper left", fontsize=8, frameon=False)
 
     if weather is not None and "pr_mm" in weather and len(weather):
         w = weather[(weather["date"] >= lo) & (weather["date"] <= hi)]
@@ -607,17 +611,35 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
                 ax.text(pd.Timestamp(f"{y}-07-01"), 0.045, crop, ha="center",
                         fontsize=8, color="#404040")
         ax.scatter(dd["date"], dd["mean"], s=5, color="#01665e", zorder=5)
+        _mark_suspect(ax, dd, s=34)
         ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 4, 7, 10)))
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%b %y"))
         ax.tick_params(axis="x", labelsize=8)
 
-    axes[-1, 0].legend(handles=[
-        Line2D([], [], color="#2c7fb8", ls="--", lw=1.6, label="planting"),
-        Line2D([], [], color="#d95f0e", ls="--", lw=1.6, label="harvest"),
-        Patch(color="#5ab4ac", alpha=0.25, label="off-season")],
-        loc="lower right", ncol=3, fontsize=8, frameon=False)
+    handles = [Line2D([], [], color="#2c7fb8", ls="--", lw=1.6, label="planting"),
+               Line2D([], [], color="#d95f0e", ls="--", lw=1.6, label="harvest"),
+               Patch(color="#5ab4ac", alpha=0.25, label="off-season")]
+    if "suspect" in d and d["suspect"].any():
+        handles.append(SUSPECT_HANDLE)
+    axes[-1, 0].legend(handles=handles, loc="lower right", ncol=len(handles),
+                       fontsize=8, frameon=False)
     fig.tight_layout()
     return fig
+
+
+# Suspect readings (outliers.flag_outliers): hollow red rings around the point.
+SUSPECT_HANDLE = Line2D([], [], ls="", marker="o", markerfacecolor="none",
+                        markeredgecolor="#d7301f", markersize=7,
+                        label="suspect reading (flagged, kept)")
+
+
+def _mark_suspect(ax, d: pd.DataFrame, s: float = 50) -> None:
+    if "suspect" not in d:
+        return
+    x = d[d["suspect"].fillna(False).astype(bool)]
+    if len(x):
+        ax.scatter(x["date"], x["mean"], s=s, facecolors="none",
+                   edgecolors="#d7301f", linewidths=1.3, zorder=6)
 
 
 # ------------------------------------------------------------- radar ---

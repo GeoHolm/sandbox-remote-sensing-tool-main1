@@ -1052,6 +1052,43 @@ Twenty seasons are mixed. Both implementations flag the same seasons.
 and each side may have cached a different copy of CDL. None of this is checked
 against grower records yet.
 
+## 21. Suspect readings
+
+`r/R/outliers.R` and `python/fieldrs/outliers.py`. Readings are flagged, never
+removed. Every date, verdict and cut in the tool uses all readings.
+
+**What's flagged.** The cloud mask misses some snow, thin cloud and shadow. A
+reading is flagged as suspect when either:
+- it is more than 0.10 from the nearest reading on both sides, in the same
+  direction, both within 20 days; or
+- in November to March, with no neighbour within 20 days on one side, it is more
+  than 0.10 from the median of at least two readings on the other side that
+  agree to 0.05.
+
+This is the same test as the HLS spike filter (§16).
+
+**Never flagged:**
+- **Open water:** any reading below NDVI 0.05.
+- **Hay cutting season:** anything between 1 April and 15 November in a year
+  read as hay (§18). A dip there is a cut, and a peak is the stand regrowing
+  between cuts.
+
+**Why nothing is deleted.** Tested on the library's 5,216 Sentinel-2 readings:
+- Deleting spikes year-round would remove 87 readings, 20 of them hay-cut
+  troughs.
+- Distance from the fitted curve flags 9% of readings, mostly June–September,
+  where the smoother fails to follow real harvests and cuts.
+- Even a winter-only filter removed open water on the rice field. That flipped
+  a cover crop verdict from "flooded, not detectable" to "no cover crop
+  detected", and moved two planting dates by up to 7 days.
+
+**On the library**, 58 of 5,216 readings (1.1%) are flagged. R and Python flag
+the same readings on identical input.
+
+**Where it shows.** Flagged readings are ringed in red on the season charts. The
+Season analysis tab gives the count and a table of them, and the series
+download has `suspect` and `suspect_reason` columns.
+
 ## References
 
 ### Spectral indices

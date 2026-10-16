@@ -566,7 +566,8 @@ ui <- page_navbar(
              "(orange) dates; shading is the off-season between them. NDVI sees ",
              "the canopy, not the planter -- these are inferred from green-up ",
              "and senescence and are good to roughly two weeks. Each season is ",
-             "smoothed on its own, never across years."))),
+             "smoothed on its own, never across years."),
+           uiOutput("suspect_ui"))),
     card(card_header("Season markers, all years"),
          card_body(fillable = FALSE, DTOutput("tbl_phen")))
   ),
@@ -1008,6 +1009,9 @@ server <- function(input, output, session) {
     cc    <- cover_crop_all_years(ts, phen, crops)
     # Flag seasons whose curve contradicts their CDL label -- see R/cdl_check.R.
     phen  <- cdl_check(phen, hist)
+    # Mark suspect readings (missed snow, thin cloud, shadow). Flagged only:
+    # nothing above ran without them -- see R/outliers.R.
+    ts    <- flag_outliers(ts, phen)
     adv   <- if (is.null(cdlst)) NULL else
                tryCatch(cdl_split_advice(cdlst), error = function(e) NULL)
 
@@ -1486,6 +1490,33 @@ server <- function(input, output, session) {
                        wind_max_kmh = if (wind) input$wind_kmh else NULL)
       }
     )
+  })
+
+  output$suspect_ui <- renderUI({
+    req(rv$ts)
+    if (!"suspect" %in% names(rv$ts)) return(NULL)
+    sus <- rv$ts[!is.na(rv$ts$suspect) & rv$ts$suspect, ]
+    tagList(
+      div(class = "text-muted small mt-2",
+          strong(sprintf("Suspect readings: %d of %d", nrow(sus), sum(rv$ts$index == "ndvi"))),
+          " -- ringed in red on the charts. Flagged, not removed: every date and ",
+          "verdict here uses all readings. A reading is suspect when it jumps more ",
+          "than 0.10 away from both neighbours within 20 days (in winter, from a ",
+          "steady run on one side) -- what missed snow, thin cloud or shadow look ",
+          "like. Never flagged: open water (NDVI below 0.05) and anything in a hay ",
+          "year's cutting season, where a sharp dip is a cut."),
+      if (nrow(sus)) tags$details(class = "mt-1",
+        tags$summary("Suspect readings"), DTOutput("tbl_suspect")))
+  })
+
+  output$tbl_suspect <- renderDT({
+    req(rv$ts, "suspect" %in% names(rv$ts))
+    sus <- rv$ts[!is.na(rv$ts$suspect) & rv$ts$suspect, ]
+    dt_dl(data.frame(Date = format(sus$date), NDVI = round(sus$mean, 3),
+                     Why = sus$suspect_reason, `Clear fraction` = round(sus$valid_frac, 2),
+                     Scene = sus$scene_id, check.names = FALSE),
+          rownames = FALSE, filename = dl_name("suspect-readings"),
+          options = list(dom = "t", pageLength = 25))
   })
 
   output$tbl_phen <- renderDT({

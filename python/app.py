@@ -647,6 +647,23 @@ with tab_season:
                        "those seasons' dates are NDVI estimates, not checked for weather. "
                        f"First error: {next(iter(bad.values()))}")
 
+        if "suspect" in result.series:
+            sus = result.series[result.series["suspect"].fillna(False).astype(bool)]
+            n_ndvi = int((result.series["index"] == "ndvi").sum())
+            st.caption(
+                f"**Suspect readings: {len(sus)} of {n_ndvi}** -- ringed in red on the "
+                "charts. Flagged, not removed: every date and verdict here uses all "
+                "readings. A reading is suspect when it jumps more than 0.10 away from "
+                "both neighbours within 20 days (in winter, from a steady run on one "
+                "side) -- what missed snow, thin cloud or shadow look like. Never "
+                "flagged: open water (NDVI below 0.05) and anything in a hay year's "
+                "cutting season, where a sharp dip is a cut.")
+            if len(sus):
+                with st.expander("Suspect readings"):
+                    st.dataframe(_fmt_dates(sus[["date", "mean", "suspect_reason",
+                                                 "valid_frac", "scene_id"]]),
+                                 hide_index=True, use_container_width=True)
+
         st.subheader("Season markers, all years")
         lead = ["year", "crop", "cdl_flag_kind", "cdl_flag", "season_type", "planting_date", "planting_est", "planting_shift_d",
                 "planting_weather_note", "harvest_date", "harvest_est", "harvest_shift_d",
