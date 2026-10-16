@@ -1068,7 +1068,10 @@ reading is flagged as suspect when either:
 This is the same test as the HLS spike filter (§16).
 
 **Never flagged:**
-- **Open water:** any reading below NDVI 0.05.
+- **Open water:** a reading below NDVI 0.05 that is either negative (water
+  absorbs NIR, while snow and cloud sit around zero) or next to another reading
+  below 0.05 within 20 days, as in a flooded run. A single near-zero dip between
+  normal readings is still flagged.
 - **Hay cutting season:** anything between 1 April and 15 November in a year
   read as hay (§18). A dip there is a cut, and a peak is the stand regrowing
   between cuts.

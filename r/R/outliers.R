@@ -10,7 +10,8 @@
 # direction, within SPIKE_DAYS; or, November-March only, off a steady run of at
 # least two readings on the one side that has neighbours.
 #
-# Never flagged: open water (below CC_WATER_NDVI), and anything inside the
+# Never flagged: open water (below CC_WATER_NDVI and either negative or next
+# to another water reading within SPIKE_DAYS), and anything inside the
 # cutting season (CUT_SEASON) of a year read as hay -- a dip there is a cut and
 # a peak is the regrown stand between cuts.
 # ==============================================================================
@@ -46,7 +47,11 @@ flag_outliers <- function(ts, phen = NULL, index = "ndvi") {
       }
     }
     if (is.na(reason)) next
-    if (v[k] < CC_WATER_NDVI) next                       # open water is real
+    # Open water is real when negative (water absorbs NIR; snow and cloud sit
+    # around zero) or part of a flooded run -- a neighbour within SPIKE_DAYS
+    # also below CC_WATER_NDVI. A lone near-zero dip is not water.
+    if (v[k] < CC_WATER_NDVI &&
+        (v[k] < 0 || any(v[-k][abs(t[-k] - t[k]) <= days] < CC_WATER_NDVI))) next
     if (yr[k] %in% hay && md[k] >= CUT_SEASON[1] && md[k] <= CUT_SEASON[2]) next
     ts$suspect[sel[k]] <- TRUE
     ts$suspect_reason[sel[k]] <- reason

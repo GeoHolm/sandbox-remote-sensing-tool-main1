@@ -621,8 +621,10 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
                Patch(color="#5ab4ac", alpha=0.25, label="off-season")]
     if "suspect" in d and d["suspect"].any():
         handles.append(SUSPECT_HANDLE)
-    axes[-1, 0].legend(handles=handles, loc="lower right", ncol=len(handles),
-                       fontsize=8, frameon=False)
+    # Below the panels, not inside them: a legend in the plot area sits over the
+    # data, and its red ring read as a flagged reading where there was none.
+    axes[-1, 0].legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.12),
+                       ncol=len(handles), fontsize=8, frameon=False)
     fig.tight_layout()
     return fig
 

@@ -28,8 +28,12 @@ Same as extract.despike, so the two cannot disagree about what a spike is:
   the other side that agree to SPIKE_NDVI / 2.
 
 PROTECTIONS -- never flagged
-- water: a reading below CC_WATER_NDVI is open water, a real state (flooded
-  rice, a wet fallow), whatever its neighbours read;
+- water: a reading below CC_WATER_NDVI is open water -- a real state (flooded
+  rice, a wet fallow) -- when it is negative (water absorbs NIR; snow and
+  cloud sit around zero) or a neighbour within SPIKE_DAYS is also below
+  CC_WATER_NDVI (part of a flooded run). A single near-zero dip between two
+  normal readings is not water: Iowa, 6 November 2024, 0.031 between 0.195
+  and 0.179, was protected by an earlier rule that looked at the value alone;
 - hay cuts: in a year read as hay (forage.forage_years), nothing inside the
   cutting season (forage.CUT_SEASON) is flagged. A reading below its
   neighbours is a cut trough, and one above them is the regrown stand between
@@ -74,6 +78,13 @@ def _spikes(dates: np.ndarray, v: np.ndarray, months: np.ndarray,
     return out
 
 
+def _water_neighbour(dates: np.ndarray, v: np.ndarray, k: int,
+                     days: int = SPIKE_DAYS) -> bool:
+    gap = np.timedelta64(days, "D")
+    return any(v[j] < CC_WATER_NDVI for j in range(len(v))
+               if j != k and abs(dates[j] - dates[k]) <= gap)
+
+
 def flag_outliers(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
                   index: str = "ndvi") -> pd.DataFrame:
     """``ts`` with ``suspect`` (bool) and ``suspect_reason`` added to the
@@ -91,7 +102,7 @@ def flag_outliers(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
     years = d["date"].dt.year.to_numpy()
     hay = set(forage_years(phen))
     for k, (reason, direction) in _spikes(dates, v, months).items():
-        if v[k] < CC_WATER_NDVI:
+        if v[k] < CC_WATER_NDVI and (v[k] < 0 or _water_neighbour(dates, v, k)):
             continue                                  # open water is real
         if int(years[k]) in hay and CUT_SEASON[0] <= md[k] <= CUT_SEASON[1]:
             continue                                  # a cut, or regrowth between cuts
