@@ -25,8 +25,13 @@ CATALOG_SOURCES <- list(
        res = "30 m", revisit = "~8 days",
        note = "Landsat side of the harmonised pair. Combine the two for a dense series."),
   list(id = "sentinel-1-rtc", label = "Sentinel-1 radar", kind = "Radar",
-       res = "10 m", revisit = "~12 days",
-       note = "Sees through cloud. Independent of the weather that thins optical winter coverage."),
+       res = "10 m pixels (20 \u00d7 22 m)", revisit = "6-12 days",
+       note = paste0("Sees through cloud. Independent of the weather that thins ",
+                     "optical winter coverage. Pixels are 10 m, but the true ground ",
+                     "resolution is about 20 x 22 m (IW high-res GRD, about 4.4 looks) ",
+                     "and each pixel carries speckle -- read field averages, not single ",
+                     "pixels. Each orbit repeats every 12 days; most fields sit under ",
+                     "two, so about one pass every 6 days.")),
   list(id = "modis-13Q1-061", label = "MODIS NDVI 16-day", kind = "Composite",
        res = "250 m", revisit = "16 days",
        note = "Too coarse for one field, but a consistent 2000-present reference."),
@@ -123,7 +128,12 @@ catalog_summary <- function(avail) {
     data.frame(
       Source      = lb,
       Type        = d$kind[1],
-      Resolution  = d$res[1],
+      # From the source list, not the cached rows, so a correction reaches
+      # fields whose catalogue was cached before it.
+      Resolution  = {
+        r <- Filter(function(s) identical(s$label, lb), CATALOG_SOURCES)
+        if (length(r)) r[[1]]$res else d$res[1]
+      },
       Acquisitions = nrow(d),
       `Clear (<20% cloud)` = if (all(is.na(d$cloud))) NA_integer_ else sum(d$cloud < 20, na.rm = TRUE),
       `Median gap (days)` = if (length(gaps)) round(stats::median(gaps), 1) else NA_real_,

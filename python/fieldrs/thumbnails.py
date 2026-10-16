@@ -153,6 +153,71 @@ def _cell_to_rgb(arr: np.ndarray, view: str, gamma: float = 0.8) -> np.ndarray:
     return out
 
 
+# --- legends -------------------------------------------------------------------
+# One per view, drawn into the figure so the PNG download carries it too. The
+# colour bars use the same range and palette as _cell_to_rgb; keep them in step
+# with it and with r/R/thumbnails.R.
+INDEX_LEGEND = {
+    "ndvi": {"range": (-0.2, 1.0), "ticks": (-0.2, 0.0, 0.3, 0.6, 1.0),
+             "label": "NDVI",
+             "zones": ((-0.2, 0.1, "water, snow"), (0.1, 0.3, "bare soil, residue"),
+                       (0.3, 0.6, "sparse or emerging canopy"),
+                       (0.6, 1.0, "dense green canopy"))},
+    "armor": {"range": (0.0, 1.0), "ticks": (0.0, 0.25, 0.5, 0.75, 1.0),
+              "label": "Soil armor = 1 - bare soil",
+              "zones": ((0.0, 0.4, "mostly bare"), (0.4, 0.75, "partly covered"),
+                        (0.75, 1.0, "well covered (living or residue)"))},
+}
+RGB_LEGEND = {
+    "rgb": ("Red, green, blue bands as red, green, blue; reflectance 0-0.30, fixed "
+            "for every scene",
+            (("#5b7f3b", "green crop or grass"), ("#b59b77", "bare soil, residue"),
+             ("#efe3c8", "bright soil, haze"), ("#2b3a4a", "water, shadow"))),
+    "fc": ("Near-infrared, red, green bands as red, green, blue; reflectance 0-0.45, "
+           "fixed for every scene",
+           (("#d2232a", "dense green vegetation"), ("#c98b8b", "sparse vegetation"),
+            ("#8fa3a8", "bare soil, residue"), ("#1d2b4a", "water, wet soil"))),
+}
+MASKED_LABEL = "masked: cloud, shadow or snow"
+
+
+def _draw_legend(ax, view: str) -> None:
+    """The legend strip under a contact sheet."""
+    ax.axis("off")
+    if view in INDEX_LEGEND:
+        spec = INDEX_LEGEND[view]
+        lo, hi = spec["range"]
+        bar = ax.inset_axes([0.08, 0.55, 0.62, 0.22])
+        bar.imshow(np.linspace(0, 1, 256)[None, :], aspect="auto", cmap=VEG_PALETTE,
+                   extent=(lo, hi, 0, 1))
+        bar.set_yticks([])
+        bar.set_xticks(spec["ticks"])
+        bar.tick_params(labelsize=7, length=2)
+        bar.set_title(spec["label"], fontsize=8, loc="left", pad=2)
+        for z0, z1, text in spec["zones"]:
+            bar.annotate(text, ((z0 + z1) / 2, -1.45), xycoords=("data", "axes fraction"),
+                         ha="center", va="top", fontsize=6.5, color="#404040",
+                         annotation_clip=False)
+            if z0 > lo:
+                bar.axvline(z0, color="white", lw=0.8)
+        swatches = [((0.93, 0.93, 0.93), MASKED_LABEL)]
+        x0 = 0.74
+    else:
+        title, items = RGB_LEGEND[view]
+        ax.text(0.08, 0.86, title, fontsize=7.5, va="top", transform=ax.transAxes)
+        swatches = list(items) + [((0.92, 0.92, 0.92), MASKED_LABEL)]
+        x0 = 0.08
+    # Swatches in a row (RGB views) or a single one beside the bar (index views).
+    step = 0.17 if view not in INDEX_LEGEND else 0
+    for k, (colour, text) in enumerate(swatches):
+        x = x0 + k * step
+        y = 0.38 if view not in INDEX_LEGEND else 0.55
+        ax.add_patch(plt.Rectangle((x, y), 0.018, 0.2, transform=ax.transAxes,
+                                   facecolor=colour, edgecolor="#bdbdbd", lw=0.6))
+        ax.text(x + 0.024, y + 0.1, text, fontsize=6.5, va="center",
+                transform=ax.transAxes)
+
+
 def plot_scene_grid(grid: list[GridCell], view: str = "rgb", ncol: int | None = None,
                     title: str | None = None):
     """Draw a contact sheet from build_scene_grid()'s output."""
@@ -165,8 +230,12 @@ def plot_scene_grid(grid: list[GridCell], view: str = "rgb", ncol: int | None = 
     n = len(grid)
     nc = ncol or min(6, int(np.ceil(np.sqrt(n) * 1.3)))
     nr = int(np.ceil(n / nc))
-    fig, axes = plt.subplots(nr, nc, figsize=(2.2 * nc, 2.5 * nr))
-    axes = np.atleast_2d(axes)
+    # A legend row under the sheet, about 1.1 inch whatever the sheet's size.
+    width = max(2.2 * nc, 8.8)
+    fig = plt.figure(figsize=(width, 2.5 * nr + 1.1))
+    gs = fig.add_gridspec(nr + 1, nc, height_ratios=[2.5] * nr + [1.1])
+    axes = np.array([[fig.add_subplot(gs[r, c]) for c in range(nc)] for r in range(nr)])
+    _draw_legend(fig.add_subplot(gs[nr, :]), view)
 
     for i, cell in enumerate(grid):
         ax = axes[i // nc][i % nc]

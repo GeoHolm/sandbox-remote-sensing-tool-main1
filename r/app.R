@@ -1398,7 +1398,7 @@ server <- function(input, output, session) {
     res <- grid_r()
     nc  <- min(6, max(1, ceiling(sqrt(length(res$g)) * 1.3)))
     nr  <- ceiling(length(res$g) / nc)
-    plotOutput("plot_grid", height = min(1600, 90 + nr * 210))
+    plotOutput("plot_grid", height = min(1700, 180 + nr * 210))   # + legend row
   })
 
   output$plot_grid <- renderPlot({

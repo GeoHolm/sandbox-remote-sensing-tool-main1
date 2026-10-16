@@ -41,8 +41,9 @@ CATALOG_SOURCES: list[Source] = [
           "NASA harmonised product; Sentinel-2 resampled to the Landsat grid."),
     Source("hls2-l30", "HLS Landsat", "Optical", "30 m", "~8 days",
           "Landsat side of the harmonised pair. Combine the two for a dense series."),
-    Source("sentinel-1-rtc", "Sentinel-1 radar", "Radar", "10 m", "~12 days",
-          "Sees through cloud. Independent of the weather that thins optical winter coverage."),
+    Source("sentinel-1-rtc", "Sentinel-1 radar", "Radar", "10 m pixels (20 × 22 m)",
+           "6-12 days",
+           "Sees through cloud. Independent of the weather that thins optical winter coverage. Pixels are 10 m, but the true ground resolution is about 20 x 22 m (IW high-res GRD, about 4.4 looks) and each pixel carries speckle -- read field averages, not single pixels. Each orbit repeats every 12 days; most fields sit under two, so about one pass every 6 days."),
     Source("modis-13Q1-061", "MODIS NDVI 16-day", "Composite", "250 m", "16 days",
           "Too coarse for one field, but a consistent 2000-present reference."),
     Source("naip", "NAIP aerial", "Aerial", "0.6 m", "2-3 years",
@@ -124,6 +125,9 @@ def catalog_availability(
     return out
 
 
+_RES_BY_LABEL = {s.label: s.res for s in CATALOG_SOURCES}
+
+
 def catalog_summary(avail: pd.DataFrame) -> pd.DataFrame:
     """Per-source summary: how many acquisitions, how often, how many usable."""
     if avail is None or not len(avail):
@@ -135,7 +139,10 @@ def catalog_summary(avail: pd.DataFrame) -> pd.DataFrame:
         gaps = d["date"].diff().dt.days.dropna()
         cloud_known = d["cloud"].notna().any()
         rows.append({
-            "Source": label, "Type": d["kind"].iloc[0], "Resolution": d["res"].iloc[0],
+            # Resolution from the source list, not the cached rows, so a
+            # correction reaches fields whose catalogue was cached before it.
+            "Source": label, "Type": d["kind"].iloc[0],
+            "Resolution": _RES_BY_LABEL.get(label, d["res"].iloc[0]),
             "Acquisitions": len(d),
             "Clear (<20% cloud)": int((d["cloud"] < 20).sum()) if cloud_known else None,
             "Median gap (days)": round(float(gaps.median()), 1) if len(gaps) else None,

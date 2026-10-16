@@ -245,6 +245,70 @@ matrix_to_raster <- function(m, range = c(-0.2, 1), pal = veg_palette(100)) {
   grDevices::as.raster(out)
 }
 
+# --- legends -------------------------------------------------------------------
+# One per view, drawn into the plot so the PNG download carries it too. The
+# colour bars use view_scale()'s range and palette; keep them in step with it
+# and with python/fieldrs/thumbnails.py.
+INDEX_LEGEND <- list(
+  ndvi = list(ticks = c(-0.2, 0, 0.3, 0.6, 1), label = "NDVI",
+              zones = list(c(-0.2, 0.1), c(0.1, 0.3), c(0.3, 0.6), c(0.6, 1)),
+              zone_text = c("water, snow", "bare soil, residue",
+                            "sparse or emerging canopy", "dense green canopy")),
+  ndti = list(ticks = c(0, 0.05, 0.1, 0.15, 0.2, 0.25), label = "NDTI",
+              zones = list(c(0, 0.05), c(0.05, 0.09), c(0.09, 0.25)),
+              zone_text = c("less residue", "intermediate", "more residue")),
+  armor = list(ticks = c(0, 0.25, 0.5, 0.75, 1), label = "Soil armor = 1 - bare soil",
+               zones = list(c(0, 0.4), c(0.4, 0.75), c(0.75, 1)),
+               zone_text = c("mostly bare", "partly covered",
+                             "well covered (living or residue)")))
+RGB_LEGEND <- list(
+  rgb = list(title = paste0("Red, green, blue bands as red, green, blue; ",
+                            "reflectance 0-0.30, fixed for every scene"),
+             cols = c("#5b7f3b", "#b59b77", "#efe3c8", "#2b3a4a"),
+             text = c("green crop or grass", "bare soil, residue", "bright soil, haze",
+                      "water, shadow")),
+  fc  = list(title = paste0("Near-infrared, red, green bands as red, green, blue; ",
+                            "reflectance 0-0.45, fixed for every scene"),
+             cols = c("#d2232a", "#c98b8b", "#8fa3a8", "#1d2b4a"),
+             text = c("dense green vegetation", "sparse vegetation", "bare soil, residue",
+                      "water, wet soil")))
+MASKED_LABEL <- "masked: cloud, shadow or snow"
+
+#' The legend strip under a contact sheet (draws into the current panel).
+draw_grid_legend <- function(view) {
+  # layout() with three or more rows shrinks cex to 0.66; the legend should
+  # read at normal size whatever the sheet's shape.
+  graphics::par(mar = c(0.5, 1, 0.5, 1), cex = 1)
+  graphics::plot.new()
+  graphics::plot.window(c(0, 1), c(0, 1))
+  sw <- function(x, y, col, text) {
+    graphics::rect(x, y - 0.09, x + 0.018, y + 0.09, col = col, border = "grey75")
+    graphics::text(x + 0.024, y, text, adj = 0, cex = 0.7)
+  }
+  if (view %in% names(INDEX_LEGEND)) {
+    spec <- INDEX_LEGEND[[view]]; sc <- view_scale(view)
+    x0 <- 0.08; x1 <- 0.70
+    xs <- function(v) x0 + (v - sc$range[1]) / diff(sc$range) * (x1 - x0)
+    graphics::rasterImage(grDevices::as.raster(matrix(sc$pal, nrow = 1)),
+                          x0, 0.55, x1, 0.78, interpolate = TRUE)
+    graphics::rect(x0, 0.55, x1, 0.78, border = "grey60")
+    graphics::text(x0, 0.9, spec$label, adj = 0, cex = 0.8)
+    graphics::segments(xs(spec$ticks), 0.55, xs(spec$ticks), 0.50)
+    graphics::text(xs(spec$ticks), 0.43, format(spec$ticks), cex = 0.7)
+    for (k in seq_along(spec$zones)) {
+      z <- spec$zones[[k]]
+      if (z[1] > sc$range[1]) graphics::segments(xs(z[1]), 0.55, xs(z[1]), 0.78, col = "white")
+      graphics::text(xs(mean(z)), 0.22, spec$zone_text[k], cex = 0.62, col = "grey25")
+    }
+    sw(0.74, 0.665, "#ececec", MASKED_LABEL)
+  } else {
+    spec <- RGB_LEGEND[[view]]
+    graphics::text(0.08, 0.85, spec$title, adj = 0, cex = 0.75)
+    cols <- c(spec$cols, "#ebebeb"); text <- c(spec$text, MASKED_LABEL)
+    for (k in seq_along(cols)) sw(0.08 + (k - 1) * 0.17, 0.42, cols[k], text[k])
+  }
+}
+
 #' Draw a contact sheet.
 #'
 #' @param g    Result of scene_grid().
@@ -264,9 +328,14 @@ plot_scene_grid <- function(g, view = "rgb", ncol = NULL, title = NULL) {
   lim <- if (!is_index) grid_limits(view) else NULL
   sc  <- if (is_index) view_scale(view) else NULL
 
-  op <- graphics::par(mfrow = c(nr, nc), mar = c(1.6, 0.4, 1.8, 0.4),
+  # Panels, then one legend row across the full width.
+  op <- graphics::par(mar = c(1.6, 0.4, 1.8, 0.4),
                       oma = c(0, 0, if (is.null(title)) 0 else 2.4, 0))
   on.exit(graphics::par(op), add = TRUE)
+  graphics::layout(rbind(matrix(seq_len(nr * nc), nr, nc, byrow = TRUE),
+                         rep(nr * nc + 1, nc)),
+                   heights = c(rep(2.5, nr), 1.1))
+  on.exit(graphics::layout(1), add = TRUE)
 
   for (s in g) {
     ras <- if (is_index) matrix_to_raster(s$arr, sc$range, sc$pal)
@@ -280,6 +349,8 @@ plot_scene_grid <- function(g, view = "rgb", ncol = NULL, title = NULL) {
                             s$valid * 100, s$cloud),
                     side = 1, line = 0.4, cex = 0.55, col = "grey35")
   }
+  for (k in seq_len(nr * nc - n)) graphics::plot.new()     # empty cells
+  draw_grid_legend(view)
   if (!is.null(title)) {
     graphics::mtext(title, outer = TRUE, cex = 1.05, font = 2, line = 0.6)
   }
