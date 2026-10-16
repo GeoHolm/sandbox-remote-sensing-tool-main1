@@ -485,6 +485,20 @@ cover crop` (`max ≥ 0.30`) → `no cover crop detected`. Perennial stands and
 persistently flooded windows return "not applicable" and "not detectable"
 respectively — which are different answers from "none".
 
+A winter whose next year is a hay year (§18: CDL forage, or an unlabelled year
+after one that reads as a perennial stand) returns `perennial stand
+establishing -- not a cover crop`, whatever the curve shows and however few
+observations it has: the green-up leading into a hay year is the new stand going
+in, not a cover sown to be terminated. The note quotes the stand seeding date
+from `stand_establishment` when there is one (`cover_crop_all_years` adds it to
+the phenology table if the caller has not), and the winter gets no cover
+seeding or termination dates. A winter *after* an established perennial year
+keeps the `perennial stand -- off-season cover not applicable` verdict. On the
+Washington pivot this changed 2024-25 (was `likely cover crop`, seeded
+15 Sep 2024 — the alfalfa sown about 16 Sep 2024) and 2022-23 (was `green cover
+-- cover crop or small grain`, into the 2023 alfalfa); no other library winter
+changed.
+
 > **These thresholds are measured wrong outside the region they came from.** Against 347
 > Georgia field-winters the shipped detector said "likely cover crop" to 332 of
 > 347 fields: **98.4% sensitivity, 7.1% specificity, 57.5% accuracy** against a
@@ -1002,6 +1016,10 @@ after the potato harvest. 2020, 2021 and 2026 are established stands.
 (green), cover crop seeding and termination (dotted), and crop planting and
 harvest. Cover crop marks are left out for a winter leading into a hay year,
 because that green-up is the stand establishing.
+
+**In the cover crop table.** Such a winter's verdict is `perennial stand
+establishing -- not a cover crop` (§7), with the stand seeding date in the note
+and no cover dates — so the table and the charts tell the same story.
 
 **On the Washington pivot:** 20 hay cuts in five alfalfa years. Radar narrowed 12
 of them, and the median bracket went from 5 days to 4.

@@ -94,6 +94,22 @@ detect_cover_crop <- function(ts, fall_year, phen = NULL, next_crop = NULL,
 
   d <- ts[ts$index == index & ts$date >= win_start & ts$date <= win_end, ]
 
+  # A winter leading into a hay year is that perennial stand establishing (or
+  # regrowing), not a cover crop sown to be terminated: on the Washington pivot
+  # the autumn 2024 green-up after the potato harvest is the 2025 alfalfa going
+  # in. Known from the crop sequence, so it needs no minimum of observations. A
+  # winter after an established perennial year is left to the "perennial stand"
+  # rule below.
+  if (!is.null(phen) && nrow(phen) && (fall_year + 1) %in% forage_years(phen) &&
+      !cc_perennial(phen, fall_year)) {
+    return(cc_row(fall_year, win_start, win_end, nrow(d),
+                  if (nrow(d)) max(d$mean) else NA,
+                  if (nrow(d)) mean(d$mean) else NA,
+                  if (nrow(d)) d$date[which.max(d$mean)] else NA,
+                  NA, "perennial stand establishing -- not a cover crop",
+                  cc_establishing_note(phen, fall_year, next_crop)))
+  }
+
   if (nrow(d) < 4) {
     return(cc_row(fall_year, win_start, win_end, nrow(d), NA, NA, NA, NA,
                   "insufficient data",
@@ -125,18 +141,15 @@ detect_cover_crop <- function(ts, fall_year, phen = NULL, next_crop = NULL,
   # A perennial is green all year, so "off-season cover" is not a meaningful
   # question -- what is green in January is the same stand that was green in
   # July, not a cover crop sown after harvest.
-  if (!is.null(phen)) {
-    h <- phen[phen$year == fall_year, ]
-    if (nrow(h) == 1 && grepl("not an annual row crop", h$confidence[1])) {
-      return(cc_row(fall_year, win_start, win_end, nrow(d), max_ndvi, mean_ndvi,
-                    peak_date, green_days,
-                    "perennial stand -- off-season cover not applicable",
-                    sprintf(paste0("The season analysis found no bare-soil ",
-                                   "period for %d, so this field carries a ",
-                                   "perennial or multi-cut stand. Winter ",
-                                   "greenness is that stand, not a cover crop ",
-                                   "sown after harvest."), fall_year)))
-    }
+  if (!is.null(phen) && cc_perennial(phen, fall_year)) {
+    return(cc_row(fall_year, win_start, win_end, nrow(d), max_ndvi, mean_ndvi,
+                  peak_date, green_days,
+                  "perennial stand -- off-season cover not applicable",
+                  sprintf(paste0("The season analysis found no bare-soil ",
+                                 "period for %d, so this field carries a ",
+                                 "perennial or multi-cut stand. Winter ",
+                                 "greenness is that stand, not a cover crop ",
+                                 "sown after harvest."), fall_year)))
   }
 
   # Standing water: if much of the window is flooded there may be nothing to
@@ -221,6 +234,32 @@ detect_cover_crop <- function(ts, fall_year, phen = NULL, next_crop = NULL,
 
   cc_row(fall_year, win_start, win_end, nrow(d), max_ndvi, mean_ndvi,
          peak_date, green_days, verdict, paste0(notes, water_note))
+}
+
+# The season model found no bare-soil period in `year`.
+cc_perennial <- function(phen, year) {
+  h <- phen[phen$year == year, ]
+  nrow(h) == 1 && grepl("not an annual row crop", h$confidence[1], fixed = TRUE)
+}
+
+cc_establishing_note <- function(phen, fall_year, next_crop) {
+  y <- fall_year + 1
+  crop <- if (!is.null(next_crop) && !is.na(next_crop) &&
+              next_crop %in% FORAGE_CROPS) next_crop else NA
+  what <- if (!is.na(crop)) sprintf("CDL records %s for %d", crop, y)
+    else sprintf(paste0("%d reads as a hay year (CDL not published yet, %d was ",
+                        "forage and %d shows no bare-soil period)"), y, fall_year, y)
+  seed <- .phen_value(phen, y, "establishment_est")
+  when <- if (!is.na(seed))
+    sprintf(paste0("The curve dates the stand's seeding to about %s, so the ",
+                   "green-up after the %d harvest is that stand establishing"),
+            format(seed, "%d %b %Y"), fall_year)
+  else sprintf(paste0("No stand seeding date could be read from the curve, but ",
+                      "green leading into %d is that stand establishing or ",
+                      "regrowing"), y)
+  paste0(what, ", a perennial or multi-cut forage. ", when, ", not a cover crop ",
+         "sown to be terminated before a cash crop. No cover seeding or ",
+         "termination dates are given.")
 }
 
 cc_row <- function(year, ws, we, n_obs, mx, mn, pk, gd, verdict, notes) {
@@ -408,6 +447,10 @@ cover_crop_dates <- function(ts, cc, phen = NULL, index = "ndvi") {
 #' Each winter also gets seeding / termination estimates -- see
 #' cover_crop_dates().
 cover_crop_all_years <- function(ts, phen = NULL, crops = NULL, index = "ndvi") {
+  # Stand seeding dates, quoted in the note for a winter leading into a hay
+  # year -- unless the caller has added them already.
+  if (!is.null(phen) && nrow(phen) && !"establishment_est" %in% names(phen))
+    phen <- stand_establishment(ts, phen, index)
   years <- sort(unique(as.integer(format(ts$date, "%Y"))))
   years <- utils::head(years, -1)   # last year has no following spring yet
   rows <- lapply(years, function(y) {
@@ -492,6 +535,8 @@ short_verdict <- function(v) {
   else if (grepl("small grain", v)) "cover crop or small grain"
   else if (grepl("^possible", v)) "possible"
   else if (grepl("winter cash", v)) "winter cash crop"
+  else if (grepl("establishing", v)) "stand establishing"
+  else if (grepl("^perennial", v)) "perennial stand"
   else if (grepl("insufficient", v)) "insufficient data"
   else "none detected"
 }

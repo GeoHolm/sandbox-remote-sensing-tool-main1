@@ -97,7 +97,7 @@
 "tifton-georgia","2025-26",21,0.691,147,"likely cover crop",2025-11-04,2026-03-25
 "washington-pivot","2020-21",13,0.934,168,"perennial stand -- off-season cover not applicable",NA,NA
 "washington-pivot","2021-22",9,0.947,137,"perennial stand -- off-season cover not applicable",NA,NA
-"washington-pivot","2022-23",27,0.946,226,"green cover -- cover crop or small grain",2022-09-28,2023-06-11
+"washington-pivot","2022-23",27,0.946,NA,"perennial stand establishing -- not a cover crop",NA,NA
 "washington-pivot","2023-24",10,0.212,0,"no cover crop detected",NA,NA
-"washington-pivot","2024-25",18,0.951,217,"likely cover crop",2024-09-15,2024-11-16
+"washington-pivot","2024-25",18,0.951,NA,"perennial stand establishing -- not a cover crop",NA,NA
 "washington-pivot","2025-26",17,0.956,193,"perennial stand -- off-season cover not applicable",NA,NA

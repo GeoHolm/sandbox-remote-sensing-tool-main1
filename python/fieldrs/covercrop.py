@@ -27,6 +27,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 
+from .forage import FORAGE_CROPS, forage_years, stand_establishment
 from .phenology import daily_series
 
 CC_RESIDUE_MAX = 0.25       # NDVI ceiling for crop residue
@@ -101,6 +102,21 @@ def detect_cover_crop(ts: pd.DataFrame, fall_year: int,
 
     d = ts[(ts["index"] == index) & (ts["date"] >= win_start) & (ts["date"] <= win_end)]
 
+    # A winter leading into a hay year is that perennial stand establishing (or
+    # regrowing), not a cover crop sown to be terminated: on the Washington
+    # pivot the autumn 2024 green-up after the potato harvest is the 2025
+    # alfalfa going in. Known from the crop sequence, so it needs no minimum of
+    # observations. A winter after an established perennial year is left to the
+    # "perennial stand" rule below.
+    if (phen is not None and len(phen) and fall_year + 1 in forage_years(phen)
+            and not _perennial(phen, fall_year)):
+        return _row(winter, fall_year, win_start, win_end, len(d),
+                    float(d["mean"].max()) if len(d) else None,
+                    float(d["mean"].mean()) if len(d) else None,
+                    d.loc[d["mean"].idxmax(), "date"] if len(d) else None,
+                    None, "perennial stand establishing -- not a cover crop",
+                    _establishing_note(phen, fall_year, next_crop))
+
     if len(d) < 4:
         return _row(winter, fall_year, win_start, win_end, len(d), None, None,
                     None, None, "insufficient data",
@@ -130,16 +146,14 @@ def detect_cover_crop(ts: pd.DataFrame, fall_year: int,
     # A perennial is green all year, so "off-season cover" is not a meaningful
     # question -- what is green in January is the same stand that was green in
     # July, not a cover crop planted after harvest.
-    if phen is not None and len(phen):
-        h = phen[phen["year"] == fall_year]
-        if len(h) == 1 and "not an annual row crop" in str(h["confidence"].iloc[0]):
-            return _row(winter, fall_year, win_start, win_end, len(d), max_ndvi,
-                        mean_ndvi, peak_date, green_days,
-                        "perennial stand -- off-season cover not applicable",
-                        "The season analysis found no bare-soil period for "
-                        f"{fall_year}, so this field carries a perennial or "
-                        "multi-cut stand. Winter greenness is that stand, not a "
-                        "cover crop sown after harvest.")
+    if phen is not None and len(phen) and _perennial(phen, fall_year):
+        return _row(winter, fall_year, win_start, win_end, len(d), max_ndvi,
+                    mean_ndvi, peak_date, green_days,
+                    "perennial stand -- off-season cover not applicable",
+                    "The season analysis found no bare-soil period for "
+                    f"{fall_year}, so this field carries a perennial or "
+                    "multi-cut stand. Winter greenness is that stand, not a "
+                    "cover crop sown after harvest.")
 
     # Standing water: if much of the window is flooded there may be nothing to
     # see, which is a different answer from "bare ground". But only call it
@@ -213,6 +227,32 @@ def detect_cover_crop(ts: pd.DataFrame, fall_year: int,
                   "peak and summer harvest show -- check again then.")
     return _row(winter, fall_year, win_start, win_end, len(d), max_ndvi,
                 mean_ndvi, peak_date, green_days, verdict, notes + water_note)
+
+
+def _perennial(phen: pd.DataFrame, year: int) -> bool:
+    """The season model found no bare-soil period in ``year``."""
+    h = phen[phen["year"] == year]
+    return len(h) == 1 and "not an annual row crop" in str(h["confidence"].iloc[0])
+
+
+def _establishing_note(phen: pd.DataFrame, fall_year: int,
+                       next_crop: str | None) -> str:
+    y = fall_year + 1
+    crop = next_crop if next_crop in FORAGE_CROPS else None
+    what = (f"CDL records {crop} for {y}" if crop else
+            f"{y} reads as a hay year (CDL not published yet, {fall_year} was "
+            f"forage and {y} shows no bare-soil period)")
+    seed = _phen_value(phen, y, "establishment_est")
+    if seed is not None:
+        when = (f"The curve dates the stand's seeding to about {seed:%d %b %Y}, so "
+                f"the green-up after the {fall_year} harvest is that stand "
+                "establishing")
+    else:
+        when = ("No stand seeding date could be read from the curve, but green "
+                f"leading into {y} is that stand establishing or regrowing")
+    return (f"{what}, a perennial or multi-cut forage. {when}, not a cover crop "
+            "sown to be terminated before a cash crop. No cover seeding or "
+            "termination dates are given.")
 
 
 def _row(winter, fall_year, ws, we, n_obs, mx, mn, pk, gd, verdict, notes) -> dict:
@@ -423,6 +463,10 @@ def cover_crop_all_years(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
     :func:`cover_crop_dates`.
     """
     crops = crops or {}
+    # Stand seeding dates, quoted in the note for a winter leading into a hay
+    # year -- unless the caller has added them already.
+    if phen is not None and len(phen) and "establishment_est" not in phen:
+        phen = stand_establishment(ts, phen, index)
     years = sorted(ts["date"].dt.year.unique())[:-1]   # last year has no spring yet
     rows = []
     for y in years:
