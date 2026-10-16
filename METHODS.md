@@ -1004,6 +1004,54 @@ inputs fed to both sides:
 - **Winter, fallow and cover crop dates:** these differ only where a smoothed
   curve sits on a threshold.
 
+## 20. Does the curve contradict CDL?
+
+`r/R/cdl_check.R` and `python/fieldrs/cdl_check.py`. This is a flag, not a
+correction.
+
+**Why it can't correct CDL.** Crops can't be told apart by how green they get.
+On the library's seasons where the CDL label covers at least 90% of the field,
+peak NDVI overlaps almost completely:
+
+| Crop | Peak NDVI |
+|---|---|
+| Corn | 0.76–0.94 |
+| Soybeans | 0.86–0.93 |
+| Rice | 0.84–0.93 |
+| Peanuts | 0.88–0.92 |
+| Cotton | 0.65–0.89 |
+
+Cotton and peanuts also peak within days of each other, with the same season
+length. So the curve can't say which crop a season was. It can only say when
+the label can't be right.
+
+**Rules giving `cdl_flag_kind = "contradicts"`** (the first that applies wins):
+1. A winter grain label (Winter Wheat, Rye, Triticale), but no spring canopy.
+2. A fallow label, but a summer canopy.
+3. A summer row-crop label (Corn, Soybeans, Cotton, Peanuts, Rice, Sorghum,
+   Sunflower, Dry Beans), but no summer canopy.
+4. An annual crop label, but the field is green all year (the perennial test
+   in §5).
+5. A hay or alfalfa label, but a single annual season with a bare-soil period.
+6. A summer row-crop label, but planted before 1 March or harvested before
+   1 July: a winter or spring grain's calendar.
+
+**Mixed.** `"mixed"` marks a season whose CDL dominant crop covers less than 75%
+of the field. The curve then blends whatever grows in the boundary and can't
+confirm the label either way.
+
+**On the library** (17 fields, 2020–2026), four seasons contradict their label:
+- Mitchell Co. conventional 2022, "Cotton" harvested 25 June;
+- Washington pivot 2022 and 2023, "Alfalfa" around the stand being removed and
+  reseeded;
+- Lubbock 2025, "Fallow" with a summer canopy.
+
+Twenty seasons are mixed. Both implementations flag the same seasons.
+
+**Parity.** "mixed" isn't compared, because it rests on the dominant-crop share,
+and each side may have cached a different copy of CDL. None of this is checked
+against grower records yet.
+
 ## References
 
 ### Spectral indices

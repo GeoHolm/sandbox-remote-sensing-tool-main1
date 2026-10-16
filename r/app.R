@@ -439,6 +439,20 @@ ui <- page_navbar(
         DTOutput("tbl_cdl_year"))
     ),
     card(
+      card_header("Does the NDVI curve agree with CDL?"),
+      card_body(fillable = FALSE,
+        uiOutput("cdl_check_ui"),
+        div(class = "text-muted small mt-2",
+            "A flag, not a correction. Crops cannot be told apart by how green they ",
+            "get -- corn, soybeans, rice and peanuts all peak at NDVI 0.85-0.93 -- so ",
+            "the curve cannot say which crop it was. It can say when the label cannot ",
+            "be right: no canopy under a crop label, a summer crop on a winter grain's ",
+            "calendar, a hay label over a single annual season, a fallow label over a ",
+            "crop. CDL stays the label; ground truth decides. ", strong("Mixed"),
+            " means the boundary holds more than one crop, so the curve cannot confirm ",
+            "the label either way."))
+    ),
+    card(
       dl_header("Crop type by year (USDA CDL, 30 m)", "plot_cdl_matrix"),
       card_body(fillable = FALSE,
         uiOutput("cdl_matrix_ui"),
@@ -992,6 +1006,8 @@ server <- function(input, output, session) {
     crops <- if (is.null(hist)) NULL else crop_lookup(hist)
     phen  <- phenology_all_years(ts, crops)
     cc    <- cover_crop_all_years(ts, phen, crops)
+    # Flag seasons whose curve contradicts their CDL label -- see R/cdl_check.R.
+    phen  <- cdl_check(phen, hist)
     adv   <- if (is.null(cdlst)) NULL else
                tryCatch(cdl_split_advice(cdlst), error = function(e) NULL)
 
@@ -1229,6 +1245,32 @@ server <- function(input, output, session) {
       rownames = FALSE, options = list(dom = "t", pageLength = 12))
   })
 
+  output$cdl_check_ui <- renderUI({
+    need_run(rv$phen, "season analysis the CDL check reads")
+    p <- rv$phen
+    if (!"cdl_flag_kind" %in% names(p)) return(NULL)
+    f <- p[!is.na(p$cdl_flag_kind), ]
+    n_c <- sum(f$cdl_flag_kind == "contradicts"); n_m <- sum(f$cdl_flag_kind == "mixed")
+    tagList(
+      layout_columns(col_widths = c(6, 6),
+        value_box(title = "Curve contradicts the label",
+                  value = sprintf("%d of %d seasons", n_c, nrow(p))),
+        value_box(title = "Mixed boundary (dominant crop < 75%)",
+                  value = sprintf("%d of %d seasons", n_m, nrow(p)))),
+      if (nrow(f)) DTOutput("tbl_cdl_check")
+      else div(class = "alert alert-success",
+               "Every season's curve is consistent with its CDL label."))
+  })
+
+  output$tbl_cdl_check <- renderDT({
+    p <- rv$phen; req(p, "cdl_flag_kind" %in% names(p))
+    f <- p[!is.na(p$cdl_flag_kind), ]
+    dt_dl(data.frame(Year = f$year, Crop = f$crop, Flag = f$cdl_flag_kind,
+                     Why = f$cdl_flag, check.names = FALSE),
+          rownames = FALSE, filename = dl_name("cdl-check"),
+          options = list(dom = "t", pageLength = 20))
+  })
+
   output$cdl_matrix_ui <- renderUI({
     n  <- if (is.null(rv$cdlst)) 6 else terra::nlyr(rv$cdlst)
     nr <- ceiling(n / 3)
@@ -1450,7 +1492,9 @@ server <- function(input, output, session) {
     need_run(rv$phen, "season markers")
     p <- rv$phen
     out <- data.frame(
-      Year = p$year, Crop = p$crop, `Season type` = p$season_type,
+      Year = p$year, Crop = p$crop,
+      `CDL check` = if ("cdl_flag_kind" %in% names(p)) p$cdl_flag_kind else NA,
+      `Season type` = p$season_type,
       Planting = fmt_win(p$planting_est, p$planting_lo, p$planting_hi),
       `Peak NDVI` = ifelse(is.na(p$peak_ndvi), NA,
                            sprintf("%.2f (%s)", p$peak_ndvi, format(p$peak_date, "%d %b"))),
@@ -1669,6 +1713,7 @@ server <- function(input, output, session) {
       `Following winter` = vapply(p$year, winter_for, character(1), col = "verdict"),
       `Cover seeding`     = vapply(p$year, winter_for, character(1), col = seed_col),
       `Cover termination` = vapply(p$year, winter_for, character(1), col = term_col),
+      `CDL check`       = if ("cdl_flag" %in% names(p)) p$cdl_flag else NA_character_,
       # Deliberately labelled "before planting": the window that produced this
       # runs from the PREVIOUS crop's harvest to this season's planting, so the
       # residue measured is last year's crop, not this one's. Dropping the

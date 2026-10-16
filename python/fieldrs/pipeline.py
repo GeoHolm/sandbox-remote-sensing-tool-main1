@@ -22,6 +22,7 @@ from .cache import analysis_window
 from .climate import (DRY_PR_MM, FORECAST_DAYS, HEAVY_RAIN_MM, HEAVY_RAIN_WET_DAYS,
                       gridmet_daily, weather_free_events,
                       weather_free_phenology)
+from .cdl_check import cdl_check
 from .cdl_split import SplitAdvice, cdl_split_advice
 from .covercrop import cover_crop_all_years
 from .cropland import CdlStack, cdl_history_from_stack, cdl_stack, crop_lookup
@@ -109,6 +110,7 @@ class FieldResult:
             "cover_seeding": pd.to_datetime([winter_for(int(y), seed_col) for y in p["year"]]),
             "cover_termination": pd.to_datetime([winter_for(int(y), term_col)
                                                  for y in p["year"]]),
+            "cdl_check": p.get("cdl_flag"),
             "confidence": p["confidence"],
         })
 
@@ -268,6 +270,8 @@ def analyze_field(
     crops = crop_lookup(history) if history is not None else {}
     phen = phenology_all_years(series, crops)
     cc = cover_crop_all_years(series, phen, crops)
+    # Flag seasons whose curve contradicts their CDL label -- see cdl_check.py.
+    phen = cdl_check(phen, history)
     advice = cdl_split_advice(stack) if stack is not None else None
 
     res_ts = res = None

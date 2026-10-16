@@ -40,7 +40,7 @@ for (p in files) {
   hist  <- irrigation_add_to_history(hist, tryCatch(irrigation_history(aoi),
                                                     error = function(e) NULL))
   crops <- crop_lookup(hist)
-  phen  <- phenology_all_years(ts, crops)
+  phen  <- cdl_check(phenology_all_years(ts, crops), hist)
   cc    <- cover_crop_all_years(ts, phen, crops)
   adv   <- cdl_split_advice(st)
 
@@ -49,7 +49,7 @@ for (p in files) {
     phen_all[[nm]] <- cbind(field = nm, n_obs_total = nrow(ts),
       pick(phen, c("year","crop","season_type","planting_est","harvest_est",
                    "greenup_date","season_days","peak_ndvi","fallow_days",
-                   "fallow_green_days","confidence")))
+                   "fallow_green_days","cdl_flag_kind","confidence")))
   }
   if (!is.null(cc)) {
     cc_all[[nm]] <- cbind(field = nm,

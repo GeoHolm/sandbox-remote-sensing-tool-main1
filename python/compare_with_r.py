@@ -179,6 +179,16 @@ def main() -> int:
                 for _, o in m[st].iterrows():
                     issues.append(f"{name} {int(o.year)}: season type "
                                   f"'{o.season_type_r}' (R) vs '{o.season_type_py}' (Py)")
+            # A curve that contradicts its CDL label is a decision: exact match.
+            # "mixed" is not compared -- it rests on the dominant-crop share,
+            # which depends on which CDL copy each side cached (R's may come
+            # from the CropScape API, Python's from the local rasters).
+            if "cdl_flag_kind_r" in m and "cdl_flag_kind_py" in m:
+                cr = m["cdl_flag_kind_r"].fillna("") == "contradicts"
+                cp = m["cdl_flag_kind_py"].fillna("") == "contradicts"
+                for _, o in m[cr != cp].iterrows():
+                    issues.append(f"{name} {int(o.year)}: CDL contradiction flagged in "
+                                  f"{'R' if o.cdl_flag_kind_r == 'contradicts' else 'Py'} only")
             if "fallow_days_r" in m and "fallow_days_py" in m:
                 a = pd.to_numeric(m["fallow_days_r"], errors="coerce")
                 b = pd.to_numeric(m["fallow_days_py"], errors="coerce")

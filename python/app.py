@@ -480,6 +480,32 @@ with tab_cdl:
     else:
         st.caption("No CDL for these years.")
 
+    st.subheader("Does the NDVI curve agree with CDL?")
+    phen_ = result.phenology
+    if phen_ is None or "cdl_flag_kind" not in phen_:
+        st.caption("Run the season analysis to check the labels against the curve.")
+    else:
+        flagged = phen_[phen_["cdl_flag_kind"].notna()]
+        n_c = int((flagged["cdl_flag_kind"] == "contradicts").sum())
+        n_m = int((flagged["cdl_flag_kind"] == "mixed").sum())
+        m1, m2 = st.columns(2)
+        m1.metric("Curve contradicts the label", f"{n_c} of {len(phen_)} seasons")
+        m2.metric("Mixed boundary (dominant crop < 75%)", f"{n_m} of {len(phen_)} seasons")
+        if len(flagged):
+            st.dataframe(flagged[["year", "crop", "cdl_flag_kind", "cdl_flag"]]
+                         .rename(columns={"cdl_flag_kind": "flag", "cdl_flag": "why"}),
+                         hide_index=True, use_container_width=True)
+        else:
+            st.success("Every season's curve is consistent with its CDL label.")
+        st.caption("A flag, not a correction. Crops cannot be told apart by how green "
+                   "they get -- corn, soybeans, rice and peanuts all peak at NDVI "
+                   "0.85-0.93 -- so the curve cannot say which crop it was. It can say "
+                   "when the label cannot be right: no canopy under a crop label, a "
+                   "summer crop on a winter grain's calendar, a hay label over a single "
+                   "annual season, a fallow label over a crop. CDL stays the label; "
+                   "ground truth decides. **Mixed** means the boundary holds more than "
+                   "one crop, so the curve cannot confirm the label either way.")
+
     st.subheader("Crop type by year (USDA CDL, 30 m)")
     if result.cdl is not None:
         _show(viz.plot_cdl_matrix(result.cdl), "cdl-maps-by-year")
@@ -622,7 +648,7 @@ with tab_season:
                        f"First error: {next(iter(bad.values()))}")
 
         st.subheader("Season markers, all years")
-        lead = ["year", "crop", "season_type", "planting_date", "planting_est", "planting_shift_d",
+        lead = ["year", "crop", "cdl_flag_kind", "cdl_flag", "season_type", "planting_date", "planting_est", "planting_shift_d",
                 "planting_weather_note", "harvest_date", "harvest_est", "harvest_shift_d",
                 "harvest_weather_note", "season_days_final", "season_days",
                 "fallow_start", "fallow_end", "fallow_days", "fallow_green_days"]
