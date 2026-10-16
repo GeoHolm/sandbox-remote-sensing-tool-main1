@@ -403,7 +403,11 @@ ui <- page_navbar(
     "Field",
     layout_columns(
       col_widths = c(7, 5),
-      card(card_header("Boundary"), leafletOutput("map", height = 460)),
+      card(card_header(class = "d-flex justify-content-between align-items-center",
+                       "Boundary",
+                       actionButton("zoom_field", "Zoom to field", icon = icon("expand"),
+                                    class = "btn-sm btn-outline-secondary")),
+           leafletOutput("map", height = 460)),
       card(card_header("Crop rotation (USDA CDL)"),
            card_body(fillable = FALSE,
              DTOutput("tbl_rotation"),
@@ -1082,6 +1086,17 @@ server <- function(input, output, session) {
   })
 
   # ---- 1. field ------------------------------------------------------------
+
+  # Fit the map to the loaded field again, however far it has been panned or
+  # zoomed. Without a field there is nothing to fit to.
+  observeEvent(input$zoom_field, {
+    if (is.null(rv$field)) {
+      showNotification("No field loaded yet.", type = "message")
+      return()
+    }
+    bb <- as.numeric(sf::st_bbox(sf::st_transform(rv$field, 4326)))
+    leafletProxy("map") |> leaflet::fitBounds(bb[1], bb[2], bb[3], bb[4])
+  })
 
   output$map <- renderLeaflet({
     # Renders with no field too, so the draw tool is usable the moment the app

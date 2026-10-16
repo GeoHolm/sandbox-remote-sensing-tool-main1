@@ -428,7 +428,18 @@ with tab_field:
 
     col_map, col_rot = st.columns([7, 5])
     with col_map:
-        st.subheader("Boundary")
+        h1, h2 = st.columns([3, 1])
+        h1.subheader("Boundary")
+        # streamlit-folium keeps the map's own pan and zoom between reruns, so
+        # fit_bounds alone does not bring it back. A new widget key remounts the
+        # map, which then opens fitted to the field.
+        if "map_fit" not in st.session_state:
+            st.session_state.map_fit = 0
+        with h2:
+            st.write("")
+            if st.button("Zoom to field", use_container_width=True,
+                         help="Fit the map to the field boundary again."):
+                st.session_state.map_fit += 1
         minx, miny, maxx, maxy = field_bounds(aoi, buffer_m=0)
         m = folium.Map(location=[(miny + maxy) / 2, (minx + maxx) / 2], zoom_start=15,
                        tiles="Esri.WorldImagery")
@@ -436,7 +447,8 @@ with tab_field:
                       style_function=lambda _: {"color": "#ffd60a", "weight": 3, "fillOpacity": 0.05}
                       ).add_to(m)
         m.fit_bounds([[miny, minx], [maxy, maxx]])
-        st_folium(m, height=460, use_container_width=True, returned_objects=[])
+        st_folium(m, height=460, use_container_width=True, returned_objects=[],
+                  key=f"field_map_{st.session_state.map_fit}")
     with col_rot:
         st.subheader("Crop rotation (USDA CDL)")
         if result.history is not None:
