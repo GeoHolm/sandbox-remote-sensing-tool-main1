@@ -641,12 +641,12 @@ with tab_season:
         if phen_view == "one":
             yr = st.selectbox("Season", sorted(result.phenology["year"].unique(), reverse=True))
             row = result.phenology[result.phenology["year"] == yr].iloc[0]
-            _show(viz.plot_phenology(result.series, int(yr), row, crop=row.get("crop"),
+            _show(viz.plot_phenology(result.series, int(yr), row, crop=row.get("crop"), cover=result.covercrop,
                                      weather=result.weather, wind_max_kmh=wind_max),
                   "season-markers")
         else:
             row = {}
-            _show(viz.plot_phenology_timeline(result.series, result.phenology,
+            _show(viz.plot_phenology_timeline(result.series, result.phenology, cover=result.covercrop,
                                               panels=2 if phen_view == "split" else 1),
                   "season-markers")
         cap = ("Dashed lines are the NDVI-estimated planting (blue) and harvest (orange) "
@@ -1008,7 +1008,8 @@ with tab_moisture:
                              "scene, and the span left after radar and weather.")
 
         _show(viz.plot_s1(s1_res["ctx"], s1_res["weather"], s1_res["ndvi"],
-                          result.phenology, ev, ref, cuts=cuts),
+                          result.phenology, ev, ref, cuts=cuts,
+                          cover=result.covercrop),
               "sentinel1-radar-by-year")
 
         if has_cuts:

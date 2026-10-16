@@ -984,6 +984,25 @@ excluded, because grazing looks like a slow cut.
 the bracket when the strongest drop inside it reaches z ≥ 2, with z scored on
 growing-season intervals. Rain days are then struck out.
 
+**Stand establishment.** An established perennial has no planting date, but a
+new stand was seeded, and the curve shows it. For a hay year with no planting
+date (`stand_establishment` in `forage.py` and `forage.R`):
+- the search runs from 1 August of the year before to 30 June;
+- it takes the last bare-soil trough (NDVI below 0.30) followed by a rise of at
+  least 0.20;
+- seeding is the 20% point of that rise minus 14 days, with a window of
+  ±max(14 days, the observation gap);
+- without such a trough the year is labelled `established` (seeded before that
+  span).
+
+On the Washington pivot the 2025 alfalfa was seeded about 16 September 2024,
+after the potato harvest. 2020, 2021 and 2026 are established stands.
+
+**In the charts.** Every season chart and the radar chart draw stand seeding
+(green), cover crop seeding and termination (dotted), and crop planting and
+harvest. Cover crop marks are left out for a winter leading into a hay year,
+because that green-up is the stand establishing.
+
 **On the Washington pivot:** 20 hay cuts in five alfalfa years. Radar narrowed 12
 of them, and the median bracket went from 5 days to 4.
 

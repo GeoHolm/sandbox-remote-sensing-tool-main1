@@ -481,12 +481,15 @@ phenology_all_years <- function(ts, crops = NULL, index = "ndvi") {
 }
 
 plot_phenology <- function(ts, year, phen = NULL, crop = NULL, index = "ndvi",
-                           weather = NULL, wind_max_kmh = NULL) {
+                           weather = NULL, wind_max_kmh = NULL, cover = NULL) {
   # A winter crop's season starts in the autumn before its harvest year.
   winter <- !is.null(phen) && nrow(phen) && "season_type" %in% names(phen) &&
     startsWith(phen$season_type[1], "winter")
   lo <- if (winter) as.Date(sprintf("%d-08-01", year - 1)) else as.Date(sprintf("%d-01-01", year))
   hi <- if (winter) as.Date(sprintf("%d-10-31", year)) else as.Date(sprintf("%d-12-31", year))
+  # A new perennial stand seeded the autumn before: start the axis there.
+  if (!is.null(phen) && nrow(phen) && "establishment_lo" %in% names(phen) &&
+      !is.na(phen$establishment_lo[1])) lo <- min(lo, phen$establishment_lo[1] - 14)
   d <- ts[ts$index == index & ts$date >= lo & ts$date <= hi, ]
   if (nrow(d) < 5) { graphics::plot.new(); graphics::title("Not enough data"); return(invisible()) }
 
@@ -514,9 +517,18 @@ plot_phenology <- function(ts, year, phen = NULL, crop = NULL, index = "ndvi",
   if (!is.null(curve)) graphics::lines(curve$date, curve$value, col = "#01665e", lwd = 2)
   graphics::points(d$date, d$mean, pch = 19, col = "#01665e", cex = 0.75)
   mark_suspect(d, cex = 1.7)
-  if ("suspect" %in% names(d) && any(d$suspect, na.rm = TRUE))
-    graphics::legend("topleft", legend = "suspect reading (flagged, kept)", pch = 1,
-                     col = "#d7301f", pt.cex = 1.5, pt.lwd = 1.5, bty = "n", cex = 0.8)
+  drawn <- draw_seeding(if (is.null(phen)) NULL else phen[1, , drop = FALSE], cover, lo, hi)
+  if (!is.null(phen) && "stand" %in% names(phen) && identical(phen$stand[1], "established"))
+    graphics::mtext("established stand -- seeded before this record", side = 3,
+                    adj = 1, line = -1.2, cex = 0.7, col = "grey30")
+  leg <- SEEDING_LEGEND[drawn]
+  sus <- "suspect" %in% names(d) && any(d$suspect, na.rm = TRUE)
+  if (length(leg) || sus)
+    graphics::legend("topleft", bty = "n", cex = 0.8,
+      legend = c(vapply(leg, `[[`, "", "label"), if (sus) "suspect reading (flagged, kept)"),
+      col = c(vapply(leg, `[[`, "", "col"), if (sus) "#d7301f"),
+      lty = c(vapply(leg, `[[`, 0, "lty"), if (sus) NA),
+      pch = c(rep(NA, length(leg)), if (sus) 1), pt.cex = 1.5, lwd = 1.6)
 
   # Daily rain hanging from the top on its own axis; with a wind limit, grey
   # ticks along the bottom on days at or over it.
@@ -568,7 +580,8 @@ plot_phenology <- function(ts, year, phen = NULL, crop = NULL, index = "ndvi",
 #' @param panels Number of stacked panels. 1 puts everything on one axis;
 #'               2 gives roughly three-year chunks over a 2020-present record.
 plot_phenology_timeline <- function(ts, phen = NULL, index = "ndvi", panels = 2,
-                                    shade_offseason = TRUE) {
+                                    shade_offseason = TRUE, cover = NULL) {
+  seeding_drawn <- character(0)
 
   d <- ts[ts$index == index, ]
   if (nrow(d) < 10) {
@@ -646,12 +659,17 @@ plot_phenology_timeline <- function(ts, phen = NULL, index = "ndvi", panels = 2,
     }
     graphics::points(dd$date, dd$mean, pch = 19, col = "#01665e", cex = 0.42)
     mark_suspect(dd, cex = 1.1)
+    seeding_drawn <- union(seeding_drawn, draw_seeding(phen, cover, from, to, windows = FALSE))
   }
 
+  leg <- SEEDING_LEGEND[seeding_drawn]
   graphics::legend("bottomright", bty = "n", horiz = TRUE, cex = 0.72,
-                   lty = c(2, 2, NA), lwd = c(1.6, 1.6, 8), pch = c(NA, NA, NA),
-                   col = c("#2c7fb8", "#d95f0e", grDevices::adjustcolor("#5ab4ac", 0.10)),
-                   legend = c("planting", "harvest", "off-season"))
+                   lty = c(2, 2, NA, vapply(leg, `[[`, 0, "lty")),
+                   lwd = c(1.6, 1.6, 8, rep(1.6, length(leg))),
+                   col = c("#2c7fb8", "#d95f0e", grDevices::adjustcolor("#5ab4ac", 0.10),
+                           vapply(leg, `[[`, "", "col")),
+                   legend = c("planting", "harvest", "off-season",
+                              vapply(leg, `[[`, "", "label")))
   invisible(groups)
 }
 
@@ -760,6 +778,57 @@ residue_windows <- function(phen, years = NULL, season = c("spring", "full")) {
 
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
+
+# --- seeding and planting of every crop ----------------------------------------
+# Port of viz._draw_seeding(). Crop planting and harvest are drawn by each chart
+# already; this adds a perennial's stand seeding (stand_establishment(), green,
+# dashed) and cover crop seeding / termination (purple / magenta, dotted). A
+# winter leading into a hay year is that stand establishing, not a cover crop,
+# so its cover marks are left out.
+STAND_COLOUR <- "#1a9850"; COVER_SEED_COLOUR <- "#7b3294"; COVER_TERM_COLOUR <- "#c51b7d"
+SEEDING_LEGEND <- list(
+  stand      = list(label = "stand seeding (perennial)", col = STAND_COLOUR, lty = 2),
+  cover_seed = list(label = "cover crop seeding", col = COVER_SEED_COLOUR, lty = 3),
+  cover_term = list(label = "cover crop termination", col = COVER_TERM_COLOUR, lty = 3))
+
+#' Draw stand and cover crop seeding inside [lo, hi] on the current plot;
+#' return which kinds were drawn (names of SEEDING_LEGEND).
+draw_seeding <- function(phen, cover, lo, hi, windows = TRUE) {
+  drawn <- character(0)
+  inside <- function(d) !is.na(d) & d >= lo & d <= hi
+  if (!is.null(phen) && "establishment_est" %in% names(phen)) {
+    for (i in which(!is.na(phen$establishment_est))) {
+      if (windows) {
+        a <- max(phen$establishment_lo[i], lo); b <- min(phen$establishment_hi[i], hi)
+        if (a < b) graphics::rect(a, -10, b, 10, border = NA,
+                                  col = grDevices::adjustcolor(STAND_COLOUR, 0.12))
+      }
+      if (inside(phen$establishment_est[i])) {
+        graphics::abline(v = phen$establishment_est[i], col = STAND_COLOUR, lty = 2, lwd = 1.6)
+        drawn <- c(drawn, "stand")
+      }
+    }
+  }
+  if (!is.null(cover) && nrow(cover) && "seeding_est" %in% names(cover)) {
+    hay <- if (is.null(phen)) integer(0) else forage_years(phen)
+    for (i in seq_len(nrow(cover))) {
+      if ((cover$fall_year[i] + 1) %in% hay) next
+      seed <- if ("seeding_date" %in% names(cover) && !is.na(cover$seeding_date[i]))
+        cover$seeding_date[i] else cover$seeding_est[i]
+      term <- if ("termination_date" %in% names(cover) && !is.na(cover$termination_date[i]))
+        cover$termination_date[i] else cover$termination_est[i]
+      if (inside(seed)) {
+        graphics::abline(v = seed, col = COVER_SEED_COLOUR, lty = 3, lwd = 1.8)
+        drawn <- c(drawn, "cover_seed")
+      }
+      if (inside(term)) {
+        graphics::abline(v = term, col = COVER_TERM_COLOUR, lty = 3, lwd = 1.8)
+        drawn <- c(drawn, "cover_term")
+      }
+    }
+  }
+  unique(drawn)
+}
 
 #' Ring suspect readings (flag_outliers()) in red on the current plot.
 mark_suspect <- function(d, cex = 1.4) {

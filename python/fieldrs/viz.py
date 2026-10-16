@@ -256,7 +256,8 @@ def plot_catalog_timeline(avail: pd.DataFrame, title: str | None = None):
 def plot_phenology(ts: pd.DataFrame, year: int, phen: pd.Series | dict | None = None,
                    crop: str | None = None, index: str = "ndvi",
                    weather: pd.DataFrame | None = None,
-                   wind_max_kmh: float | None = None):
+                   wind_max_kmh: float | None = None,
+                   cover: pd.DataFrame | None = None):
     """One season's NDVI curve with planting/harvest markers and windows.
 
     With ``weather`` (gridMET daily, ``pr_mm``), daily rain is drawn as bars on
@@ -279,6 +280,10 @@ def plot_phenology(ts: pd.DataFrame, year: int, phen: pd.Series | dict | None = 
     winter = str(_get("season_type") or "").startswith("winter")
     lo = pd.Timestamp(f"{year - 1}-08-01") if winter else pd.Timestamp(f"{year}-01-01")
     hi = pd.Timestamp(f"{year}-10-31") if winter else pd.Timestamp(f"{year}-12-31")
+    # A new perennial stand seeded the autumn before: start the axis there.
+    est_lo = _get("establishment_lo")
+    if est_lo is not None and pd.notna(est_lo):
+        lo = min(lo, pd.Timestamp(est_lo) - pd.Timedelta(days=14))
     d = ts[(ts["index"] == index) & (ts["date"] >= lo) & (ts["date"] <= hi)]
     fig, ax = plt.subplots(figsize=(7, 4))
     if len(d) < 5:
@@ -313,8 +318,17 @@ def plot_phenology(ts: pd.DataFrame, year: int, phen: pd.Series | dict | None = 
         ax.plot(curve["date"], curve["value"], color="#01665e", lw=2)
     ax.scatter(d["date"], d["mean"], color="#01665e", s=18, zorder=5)
     _mark_suspect(ax, d, s=70)
+    one = (pd.DataFrame([dict(phen)]) if isinstance(phen, dict) else
+           phen.to_frame().T if isinstance(phen, pd.Series) else None)
+    drawn = _draw_seeding(ax, one, cover, lo, hi, windows=True)
+    handles = [SEEDING_HANDLES[k] for k in ("stand", "cover_seed", "cover_term") if k in drawn]
+    if _get("stand") == "established":
+        ax.text(0.99, 0.97, "established stand -- seeded before this record",
+                transform=ax.transAxes, ha="right", va="top", fontsize=8, color="#404040")
     if "suspect" in d and d["suspect"].fillna(False).astype(bool).any():
-        ax.legend(handles=[SUSPECT_HANDLE], loc="upper left", fontsize=8, frameon=False)
+        handles.append(SUSPECT_HANDLE)
+    if handles:
+        ax.legend(handles=handles, loc="upper left", fontsize=8, frameon=False)
 
     if weather is not None and "pr_mm" in weather and len(weather):
         w = weather[(weather["date"] >= lo) & (weather["date"] <= hi)]
@@ -531,7 +545,8 @@ def plot_armor(ts: pd.DataFrame, res: pd.DataFrame, ncol: int = 4):
 
 def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
                             index: str = "ndvi", panels: int = 2,
-                            shade_offseason: bool = True):
+                            shade_offseason: bool = True,
+                            cover: pd.DataFrame | None = None):
     """The whole record, optionally split across stacked panels.
 
     Port of R ``plot_phenology_timeline()``. A season at a time hides what the
@@ -570,6 +585,7 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
         v = r.get(k) if r is not None else None
         return None if v is None or pd.isna(v) else pd.Timestamp(v)
 
+    seeding_drawn: set[str] = set()
     for ax, grp in zip(axes[:, 0], groups):
         lo, hi = pd.Timestamp(f"{min(grp)}-01-01"), pd.Timestamp(f"{max(grp)}-12-31")
         dd = d[(d["date"] >= lo) & (d["date"] <= hi)]
@@ -621,6 +637,7 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
                     ax.axvline(est, color=colour, lw=1.6, ls="--")
                 if final is not None and lo <= final <= hi:
                     ax.axvline(final, color=colour, lw=2.2)
+        seeding_drawn |= _draw_seeding(ax, phen, cover, lo, hi, windows=False)
         ax.scatter(dd["date"], dd["mean"], s=5, color="#01665e", zorder=5)
         _mark_suspect(ax, dd, s=34)
         ax.xaxis.set_major_locator(mdates.MonthLocator(bymonth=(1, 4, 7, 10)))
@@ -630,14 +647,71 @@ def plot_phenology_timeline(ts: pd.DataFrame, phen: pd.DataFrame | None = None,
     handles = [Line2D([], [], color="#2c7fb8", ls="--", lw=1.6, label="planting"),
                Line2D([], [], color="#d95f0e", ls="--", lw=1.6, label="harvest"),
                Patch(color="#5ab4ac", alpha=0.25, label="off-season")]
+    handles += [SEEDING_HANDLES[k] for k in ("stand", "cover_seed", "cover_term")
+                if k in seeding_drawn]
     if "suspect" in d and d["suspect"].any():
         handles.append(SUSPECT_HANDLE)
     # Below the panels, not inside them: a legend in the plot area sits over the
     # data, and its red ring read as a flagged reading where there was none.
     axes[-1, 0].legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, -0.12),
-                       ncol=len(handles), fontsize=8, frameon=False)
+                       ncol=min(len(handles), 5), fontsize=8, frameon=False)
     fig.tight_layout()
     return fig
+
+
+# --- seeding and planting of every crop ----------------------------------------
+# Crop planting and harvest come from the phenology table and every chart draws
+# them already. Two more kinds of seeding are drawn by this helper so that every
+# chart shows them the same way:
+#   stand seeding   a perennial's establishment (forage.stand_establishment),
+#                   green -- the established-stand years have none to draw
+#   cover crop      seeding (purple) and termination (magenta), dotted, from
+#                   the cover crop table (covercrop.cover_crop_dates)
+STAND_COLOUR, COVER_SEED_COLOUR, COVER_TERM_COLOUR = "#1a9850", "#7b3294", "#c51b7d"
+SEEDING_HANDLES = {
+    "stand": Line2D([], [], color=STAND_COLOUR, ls="--", lw=1.6, label="stand seeding (perennial)"),
+    "cover_seed": Line2D([], [], color=COVER_SEED_COLOUR, ls=":", lw=1.8, label="cover crop seeding"),
+    "cover_term": Line2D([], [], color=COVER_TERM_COLOUR, ls=":", lw=1.8, label="cover crop termination"),
+}
+
+
+def _draw_seeding(ax, phen: pd.DataFrame | None, cover: pd.DataFrame | None,
+                  lo: pd.Timestamp, hi: pd.Timestamp, windows: bool = True) -> set[str]:
+    """Draw stand and cover crop seeding inside [lo, hi]; return which kinds were
+    drawn (keys of SEEDING_HANDLES), for the caller's legend."""
+    drawn = set()
+
+    def _line(d, colour, ls, key, lw=1.6):
+        if d is not None and pd.notna(d) and lo <= pd.Timestamp(d) <= hi:
+            ax.axvline(pd.Timestamp(d), color=colour, ls=ls, lw=lw)
+            drawn.add(key)
+
+    def _span(a, b, colour):
+        if windows and pd.notna(a) and pd.notna(b):
+            a, b = max(pd.Timestamp(a), lo), min(pd.Timestamp(b), hi)
+            if a < b:
+                ax.axvspan(a, b, color=colour, alpha=0.12, lw=0)
+
+    if phen is not None and "establishment_est" in phen:
+        for p in phen[phen["establishment_est"].notna()].itertuples():
+            _span(p.establishment_lo, p.establishment_hi, STAND_COLOUR)
+            _line(p.establishment_est, STAND_COLOUR, "--", "stand")
+    if cover is not None and len(cover) and "seeding_est" in cover:
+        # A winter leading into a hay year is that stand establishing, not a
+        # cover crop (Washington pivot: green-up after the 2024 potato harvest
+        # is the 2025 alfalfa) -- its stand seeding is drawn instead.
+        from .forage import forage_years
+        hay = set(forage_years(phen)) if phen is not None else set()
+        for c in cover.itertuples():
+            if int(c.fall_year) + 1 in hay:
+                continue
+            seed = getattr(c, "seeding_date", None)
+            seed = seed if seed is not None and pd.notna(seed) else c.seeding_est
+            term = getattr(c, "termination_date", None)
+            term = term if term is not None and pd.notna(term) else c.termination_est
+            _line(seed, COVER_SEED_COLOUR, ":", "cover_seed", 1.8)
+            _line(term, COVER_TERM_COLOUR, ":", "cover_term", 1.8)
+    return drawn
 
 
 # Suspect readings (outliers.flag_outliers): hollow red rings around the point.
@@ -659,7 +733,8 @@ def _mark_suspect(ax, d: pd.DataFrame, s: float = 50) -> None:
 
 def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
             phen: pd.DataFrame, events: pd.DataFrame, refined: pd.DataFrame,
-            title: str | None = None, cuts: pd.DataFrame | None = None):
+            title: str | None = None, cuts: pd.DataFrame | None = None,
+            cover: pd.DataFrame | None = None):
     """Sentinel-1 backscatter against NDVI phenology, one panel per year.
 
     ``ctx``, ``events`` and ``refined`` come from fieldrs.sar (s1_context,
@@ -703,6 +778,16 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
                 if int(p.year) == y:
                     crop = p.crop if isinstance(p.crop, str) else "crop not yet in CDL"
                     ax.set_title(f"{y} · {crop}", loc="left", fontsize=10)
+        y0, y1 = pd.Timestamp(f"{y}-01-01"), pd.Timestamp(f"{y}-12-31")
+        for key in _draw_seeding(ax, phen, cover, y0, y1, windows=True):
+            h = SEEDING_HANDLES[key]
+            ax.plot([], [], color=h.get_color(), ls=h.get_linestyle(), lw=h.get_linewidth(),
+                    label=h.get_label())
+        if phen is not None and "stand" in phen:
+            st_ = phen.loc[phen["year"] == y, "stand"]
+            if len(st_) and st_.iloc[0] == "established":
+                ax.set_title(f"{ax.get_title(loc='left')} · established stand", loc="left",
+                             fontsize=10)
         if events is not None and len(events):
             for e in events[events["s1_from"].notna()].itertuples():
                 c = "darkorange" if e.event == "planting" else "saddlebrown"

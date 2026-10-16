@@ -259,3 +259,73 @@ def forage_cuts(ndvi: pd.Series | None, phen: pd.DataFrame | None,
                        candidate_days=len(days), note=note)
             rows.append(row)
     return pd.DataFrame(rows, columns=cols)
+
+
+# --- stand establishment ---------------------------------------------------------
+# An established perennial has no planting in the season model -- it is green all
+# year, so there is no bare-soil period to date one from (phenology.applicability).
+# But a NEW stand was seeded, and the curve shows it: bare soil after the crop
+# before it, then a green-up into the stand. On the Washington pivot the 2025
+# alfalfa went in after the 2024 potato harvest -- NDVI 0.12 in September 2024,
+# 0.77 by late October -- and no chart showed it.
+#
+# For a hay year with no planting date, look from 1 August of the year before to
+# 30 June for the LAST bare-soil trough followed by a rise into a stand. Seeding
+# is the 20% point of that rise minus STAND_SEED_LAG -- the rule cover crop
+# seeding and winter-wheat sowing use. Without such a trough the stand was seeded
+# before that span: "established stand".
+STAND_SEARCH = ("08-01", "06-30")   # previous year .. this year
+STAND_BARE_NDVI = 0.30              # a trough below this is bare soil
+STAND_MIN_RISE = 0.20               # ...and the stand rises at least this far
+STAND_SEED_LAG = 14                 # days: seeding to the 20% point of the rise
+
+
+def stand_establishment(ts: pd.DataFrame, phen: pd.DataFrame | None,
+                        index: str = "ndvi") -> pd.DataFrame | None:
+    """``phen`` with ``stand`` ("seeded" / "established" for hay years with no
+    planting date, None otherwise) and ``establishment_est`` / ``_lo`` / ``_hi``
+    (the seeding date and its window) added."""
+    from .phenology import _nearest_gap, daily_series
+
+    if phen is None or not len(phen):
+        return phen
+    out = phen.copy()
+    for c in ("establishment_est", "establishment_lo", "establishment_hi"):
+        out[c] = pd.NaT
+    out["stand"] = None
+    hay = set(forage_years(phen))
+    d_all = ts[ts["index"] == index].sort_values("date")
+    for i, p in out.iterrows():
+        y = int(p["year"])
+        if y not in hay or pd.notna(p.get("planting_est")):
+            continue
+        lo = pd.Timestamp(f"{y - 1}-{STAND_SEARCH[0]}")
+        hi = pd.Timestamp(f"{y}-{STAND_SEARCH[1]}")
+        d = d_all[(d_all["date"] >= lo - pd.Timedelta(days=45)) &
+                  (d_all["date"] <= hi + pd.Timedelta(days=45))]
+        seed = None
+        try:
+            curve = daily_series(d, index).dropna(subset=["value"])
+            curve = curve[(curve["date"] >= lo) & (curve["date"] <= hi)]
+        except ValueError:
+            curve = pd.DataFrame()
+        if len(curve):
+            bare = curve[curve["value"] < STAND_BARE_NDVI]
+            if len(bare):
+                # The last bare spell: its lowest point, then the rise after it.
+                last_bare = bare["date"].iloc[-1]
+                spell = bare[bare["date"] >= last_bare - pd.Timedelta(days=60)]
+                t = spell.loc[spell["value"].idxmin()]
+                rise = curve[curve["date"] >= t["date"]]
+                gain = float(rise["value"].max() - t["value"]) if len(rise) else 0.0
+                if gain >= STAND_MIN_RISE:
+                    cross = rise[rise["value"] >= t["value"] + 0.20 * gain]["date"].iloc[0]
+                    seed = cross - pd.Timedelta(days=STAND_SEED_LAG)
+                    w = max(14, int(np.ceil(_nearest_gap(d["date"], cross))))
+                    out.at[i, "establishment_est"] = seed
+                    out.at[i, "establishment_lo"] = seed - pd.Timedelta(days=w)
+                    out.at[i, "establishment_hi"] = seed + pd.Timedelta(days=w)
+        out.at[i, "stand"] = "seeded" if seed is not None else "established"
+    for c in ("establishment_est", "establishment_lo", "establishment_hi"):
+        out[c] = pd.to_datetime(out[c])
+    return out

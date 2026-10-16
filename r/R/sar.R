@@ -404,7 +404,7 @@ s1_analysis <- function(aoi, start, end, ts, phen, only_cached = FALSE, workers 
 #' windows; hay cut brackets (purple) and drops to bare soil (grey). Bars along
 #' the top: the radar interval found searching beyond the NDVI window. Bars
 #' along the bottom: windows and cuts narrowed by radar and weather.
-plot_s1 <- function(res, phen = NULL, title = NULL) {
+plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
   ctx <- res$ctx; w <- res$weather; nd <- res$ndvi
   ev <- res$events; ref <- res$refined; cuts <- res$cuts
   years <- sort(unique(as.integer(format(ctx$date, "%Y"))))
@@ -466,6 +466,9 @@ plot_s1 <- function(res, phen = NULL, title = NULL) {
       n <- nd[as.integer(format(nd$date, "%Y")) == y, ]
       graphics::lines(n$date, n$mean * 10 - 6, col = "darkgreen", lwd = 1.6)
     }
+    draw_seeding(phen, cover, from, to, windows = TRUE)
+    if (!is.null(p) && nrow(p) && "stand" %in% names(p) && identical(p$stand[1], "established"))
+      lab <- paste(lab, "\u00b7 established stand")
     graphics::mtext(lab, side = 3, adj = 0, line = 0.3, cex = 0.75)
     if (!is.null(w) && "pr_mm" %in% names(w)) {
       wy <- w[as.integer(format(w$date, "%Y")) == y, ]
@@ -483,11 +486,15 @@ plot_s1 <- function(res, phen = NULL, title = NULL) {
   graphics::legend("top", inset = c(0, inset), ncol = 4, bty = "n", cex = 0.75,
     legend = c("VV, moisture-adjusted (dB)", "VH, orbit-centred (dB)", "NDVI × 10 − 6",
                "frozen (dropped)", "NDVI planting window", "NDVI harvest window",
-               "radar interval (top)", "narrowed: radar + weather (bottom)", "hay cut (purple)"),
+               "radar interval (top)", "narrowed: radar + weather (bottom)", "hay cut (purple)",
+               "stand seeding (green)", "cover crop seeding / termination (dotted)"),
     col = c("#1f77b4", "forestgreen", "darkgreen", "grey50", grDevices::adjustcolor("orange", 0.4),
-            grDevices::adjustcolor("saddlebrown", 0.3), "saddlebrown", "black", "purple"),
-    lwd = c(1, 1, 1.6, NA, NA, NA, NA, NA, NA), pch = c(16, NA, NA, 4, 15, 15, 15, 15, 15),
-    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, 1.4, 1.4, 1.4))
+            grDevices::adjustcolor("saddlebrown", 0.3), "saddlebrown", "black", "purple",
+            STAND_COLOUR, COVER_SEED_COLOUR),
+    lwd = c(1, 1, 1.6, NA, NA, NA, NA, NA, NA, 1.6, 1.8),
+    lty = c(1, 1, 1, NA, NA, NA, NA, NA, NA, 2, 3),
+    pch = c(16, NA, NA, 4, 15, 15, 15, 15, 15, NA, NA),
+    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, 1.4, 1.4, 1.4, NA, NA))
   if (!is.null(title)) graphics::mtext(title, side = 3, line = -1.1, cex = 0.9, font = 2)
   invisible()
 }

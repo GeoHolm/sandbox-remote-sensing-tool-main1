@@ -1011,6 +1011,8 @@ server <- function(input, output, session) {
     crops <- if (is.null(hist)) NULL else crop_lookup(hist)
     phen  <- phenology_all_years(ts, crops)
     cc    <- cover_crop_all_years(ts, phen, crops)
+    # When a perennial stand was seeded, where the curve shows it -- R/forage.R.
+    phen  <- stand_establishment(ts, phen)
     # Flag seasons whose curve contradicts their CDL label -- see R/cdl_check.R.
     phen  <- cdl_check(phen, hist)
     # Mark suspect readings (missed snow, thin cloud, shadow). Flagged only:
@@ -1492,14 +1494,14 @@ server <- function(input, output, session) {
     need_run(rv$phen, "season analysis")
     req(rv$ts)
     switch(input$phen_view %||% "split",
-      split = plot_phenology_timeline(rv$ts, rv$phen, panels = 2),
-      all   = plot_phenology_timeline(rv$ts, rv$phen, panels = 1),
+      split = plot_phenology_timeline(rv$ts, rv$phen, panels = 2, cover = rv$cc),
+      all   = plot_phenology_timeline(rv$ts, rv$phen, panels = 1, cover = rv$cc),
       {
         req(input$phen_year)
         y   <- as.integer(input$phen_year)
         row <- rv$phen[rv$phen$year == y, ]
         wind <- isTRUE(input$rain_check) && identical(input$wx_mode, "Rain and wind")
-        plot_phenology(rv$ts, y, phen = row,
+        plot_phenology(rv$ts, y, phen = row, cover = rv$cc,
                        crop = if (nrow(row)) row$crop else NULL,
                        weather = rv$weather,
                        wind_max_kmh = if (wind) input$wind_kmh else NULL)
@@ -1899,7 +1901,7 @@ server <- function(input, output, session) {
 
   output$plot_s1 <- renderPlot({
     res <- s1_res(); req(res)
-    plot_s1(res, rv$phen)
+    plot_s1(res, rv$phen, cover = rv$cc)
   })
 
   output$s1_tables <- renderUI({
@@ -2020,9 +2022,11 @@ server <- function(input, output, session) {
     "season-markers" = list(
       fn = function() {
         switch(input$phen_view %||% "split",
-               split = plot_phenology_timeline(rv$ts, rv$phen, panels = 2),
-               all   = plot_phenology_timeline(rv$ts, rv$phen, panels = 1),
-               plot_phenology(rv$ts, as.integer(input$phen_year), rv$phen))
+               split = plot_phenology_timeline(rv$ts, rv$phen, panels = 2, cover = rv$cc),
+               all   = plot_phenology_timeline(rv$ts, rv$phen, panels = 1, cover = rv$cc),
+               plot_phenology(rv$ts, as.integer(input$phen_year),
+                              rv$phen[rv$phen$year == as.integer(input$phen_year), ],
+                              cover = rv$cc))
       }, w = 13, h = 8, id = "plot_phen",
       cap = "NDVI through each season with estimated planting and harvest marked. The green-up and senescence curve."),
     "cover-crop-winters" = list(

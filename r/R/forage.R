@@ -171,3 +171,56 @@ forage_cuts <- function(ndvi, phen, ctx = NULL, weather = NULL) {
   if (!length(rows)) return(empty)
   do.call(rbind, rows)[, cols]
 }
+
+# --- stand establishment ---------------------------------------------------------
+# Port of forage.stand_establishment(); see the comment there. A NEW perennial
+# stand was seeded, and the curve shows it -- bare soil after the crop before,
+# then a green-up into the stand (Washington pivot: 2025 alfalfa sown after the
+# 2024 potato harvest). For a hay year with no planting date: the last bare-soil
+# trough between 1 August of the year before and 30 June, and the rise after it;
+# seeding is the 20% point of that rise minus STAND_SEED_LAG. Without one the
+# stand was seeded before that span: "established".
+STAND_SEARCH    <- c("08-01", "06-30")
+STAND_BARE_NDVI <- 0.30
+STAND_MIN_RISE  <- 0.20
+STAND_SEED_LAG  <- 14
+
+#' `phen` with stand ("seeded" / "established" for hay years with no planting
+#' date) and establishment_est / _lo / _hi added.
+stand_establishment <- function(ts, phen, index = "ndvi") {
+  if (is.null(phen) || !nrow(phen)) return(phen)
+  phen$establishment_est <- as.Date(NA); phen$establishment_lo <- as.Date(NA)
+  phen$establishment_hi <- as.Date(NA); phen$stand <- NA_character_
+  hay <- forage_years(phen)
+  d_all <- ts[ts$index == index, ]; d_all <- d_all[order(d_all$date), ]
+  for (i in seq_len(nrow(phen))) {
+    y <- phen$year[i]
+    if (!y %in% hay || !is.na(phen$planting_est[i])) next
+    lo <- as.Date(sprintf("%d-%s", y - 1, STAND_SEARCH[1]))
+    hi <- as.Date(sprintf("%d-%s", y, STAND_SEARCH[2]))
+    d <- d_all[d_all$date >= lo - 45 & d_all$date <= hi + 45, ]
+    curve <- tryCatch(daily_series(d, index), error = function(e) NULL)
+    seeded <- FALSE
+    if (!is.null(curve)) {
+      curve <- curve[!is.na(curve$value) & curve$date >= lo & curve$date <= hi, ]
+      bare <- curve[curve$value < STAND_BARE_NDVI, ]
+      if (nrow(bare)) {
+        last_bare <- bare$date[nrow(bare)]
+        spell <- bare[bare$date >= last_bare - 60, ]
+        ti <- which.min(spell$value); t_val <- spell$value[ti]; t_date <- spell$date[ti]
+        rise <- curve[curve$date >= t_date, ]
+        gain <- if (nrow(rise)) max(rise$value) - t_val else 0
+        if (gain >= STAND_MIN_RISE) {
+          cross <- rise$date[which(rise$value >= t_val + 0.20 * gain)[1]]
+          seed <- cross - STAND_SEED_LAG
+          w <- max(14, ceiling(nearest_gap(d$date, cross)))
+          phen$establishment_est[i] <- seed
+          phen$establishment_lo[i] <- seed - w; phen$establishment_hi[i] <- seed + w
+          seeded <- TRUE
+        }
+      }
+    }
+    phen$stand[i] <- if (seeded) "seeded" else "established"
+  }
+  phen
+}

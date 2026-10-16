@@ -24,6 +24,7 @@ from .climate import (DRY_PR_MM, FORECAST_DAYS, HEAVY_RAIN_MM, HEAVY_RAIN_WET_DA
                       weather_free_phenology)
 from .cdl_check import cdl_check
 from .outliers import flag_outliers
+from .forage import stand_establishment
 from .cdl_split import SplitAdvice, cdl_split_advice
 from .covercrop import cover_crop_all_years
 from .cropland import CdlStack, cdl_history_from_stack, cdl_stack, crop_lookup
@@ -271,6 +272,8 @@ def analyze_field(
     crops = crop_lookup(history) if history is not None else {}
     phen = phenology_all_years(series, crops)
     cc = cover_crop_all_years(series, phen, crops)
+    # When a perennial stand was seeded, where the curve shows it -- forage.py.
+    phen = stand_establishment(series, phen)
     # Flag seasons whose curve contradicts their CDL label -- see cdl_check.py.
     phen = cdl_check(phen, history)
     # Mark suspect readings (missed snow, thin cloud, shadow). Flagged only:
