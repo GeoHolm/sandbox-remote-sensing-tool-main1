@@ -261,14 +261,25 @@ s1_events <- function(ctx, phen) {
 
 #' Per local day: could equipment have been in the field? The same rules as
 #' the rain check in climate.R, plus not frozen. Named logical, by date.
-workable_days <- function(weather) {
+#'
+#' @param rules The rain check's settings as a list (dry_mm, wind_max_kmh,
+#'   heavy_mm, wet_days), as apply_rain_check() takes them. Anything left out is
+#'   the climate.R default; wind is only checked when given.
+workable_days <- function(weather, rules = NULL) {
+  r <- utils::modifyList(list(dry_mm = DRY_PR_MM, wind_max_kmh = NULL,
+                              heavy_mm = HEAVY_RAIN_MM, wet_days = HEAVY_RAIN_WET_DAYS),
+                         rules %||% list())
   days <- seq(min(weather$date), max(weather$date), by = 1)
   w <- weather[match(days, weather$date), ]
   pr <- w$pr_mm
-  ok <- ifelse(is.na(pr), 0, pr) <= DRY_PR_MM
-  for (k in seq_len(HEAVY_RAIN_WET_DAYS)) {
-    prev <- c(rep(NA, k), utils::head(pr, -k))
-    ok <- ok & !(!is.na(prev) & prev >= HEAVY_RAIN_MM)
+  ok <- ifelse(is.na(pr), 0, pr) <= r$dry_mm
+  if (!is.null(r$wind_max_kmh) && "wind_kmh" %in% names(w))
+    ok <- ok & !(!is.na(w$wind_kmh) & w$wind_kmh >= r$wind_max_kmh)
+  if (!is.null(r$heavy_mm)) {
+    for (k in seq_len(r$wet_days)) {
+      prev <- c(rep(NA, k), utils::head(pr, -k))
+      ok <- ok & !(!is.na(prev) & prev >= r$heavy_mm)
+    }
   }
   if (all(c("tmmx_degc", "tmmn_degc") %in% names(w))) {
     tm <- (w$tmmx_degc + w$tmmn_degc) / 2
@@ -293,10 +304,13 @@ workable_days <- function(weather) {
 #' days in that interval ("radar + weather"); otherwise rain days are struck out
 #' ("weather only"). conflict: a step more than SAR_CONFLICT_DZ stronger sits in
 #' the wider search span outside the window. Read span_days, not
-#' candidate_days, as how far the date is pinned down.
-s1_refine <- function(ctx, phen, weather) {
+#' candidate_days, as how far the date is pinned down. `rules` are the weather
+#' settings of the rain check (see workable_days()). When `phen` carries the
+#' rain check's final dates, weather_date reports them and
+#' weather_date_in_window whether they fall in the narrowed window.
+s1_refine <- function(ctx, phen, weather, rules = NULL) {
   iv <- s1_intervals(ctx)
-  work <- workable_days(weather)
+  work <- workable_days(weather, rules)
   sd <- list(d_vv_adj = .robust_sd(iv$d_vv_adj[iv$bare_both]), d_vh = .robust_sd(iv$d_vh))
   rows <- list()
   for (i in seq_len(nrow(phen))) {
@@ -350,6 +364,11 @@ s1_refine <- function(ctx, phen, weather) {
         if (is.na(row$note)) row$note <- "no workable day in window"
       }
       row$span_days <- as.integer(row$refined_hi - row$refined_lo) + 1L
+      wd <- if (paste0(event, "_date") %in% names(p)) as.Date(p[[paste0(event, "_date")]])
+            else as.Date(NA)
+      row$weather_date <- wd
+      row$weather_date_in_window <- if (is.na(wd)) NA
+                                    else wd >= row$refined_lo && wd <= row$refined_hi
       if (length(wide_i) && ok_sd) {
         out_z <- -min(pool[[col]][wide_i]) / sd[[col]]
         if (out_z >= SAR_SUPPORT_Z && (is.na(best_z) || out_z - best_z > SAR_CONFLICT_DZ)) {
@@ -378,7 +397,8 @@ s1_refine <- function(ctx, phen, weather) {
 #' @return list(s1, ctx, weather, ndvi, events, refined, cuts, orbits), or NULL
 #'   when only_cached and nothing is cached, or no acquisitions cover the field.
 #'   Weather comes from gridMET, so a field outside CONUS stops with an error.
-s1_analysis <- function(aoi, start, end, ts, phen, only_cached = FALSE, workers = 8) {
+s1_analysis <- function(aoi, start, end, ts, phen, only_cached = FALSE, workers = 8,
+                        rules = NULL) {
   s1 <- s1_series(aoi, start, end, workers = workers, only_cached = only_cached)
   if (is.null(s1) || !nrow(s1)) return(NULL)
   ndvi <- if (is.null(ts)) NULL else {
@@ -388,20 +408,24 @@ s1_analysis <- function(aoi, start, end, ts, phen, only_cached = FALSE, workers 
   ctx <- s1_context(s1, weather, ndvi)
   has_phen <- !is.null(phen) && nrow(phen)
   events  <- if (has_phen) s1_events(ctx, phen) else data.frame()
-  refined <- if (has_phen) s1_refine(ctx, phen, weather) else data.frame()
-  cuts <- forage_cuts(ndvi, phen, ctx, weather)
+  refined <- if (has_phen) s1_refine(ctx, phen, weather, rules) else data.frame()
+  cuts <- forage_cuts(ndvi, phen, ctx, weather, rules)
   list(s1 = s1, ctx = ctx, weather = weather, ndvi = ndvi, events = events,
        refined = refined, cuts = cuts, orbits = sort(unique(s1$orbit)))
 }
 
 # ------------------------------------------------------------------ plot ---
 
+S1_EVENT_COLOUR <- c(planting = "#2c7fb8", harvest = "#d95f0e")   # as plot_phenology()
+
 #' Sentinel-1 backscatter against NDVI phenology, one panel per year.
 #'
 #' Port of python/fieldrs/viz.py plot_s1(). Moisture-adjusted VV and
 #' orbit-centred VH (dB) on the left axis with NDVI scaled onto it (x 10 - 6),
-#' daily rain on the right. Shading: NDVI planting (orange) and harvest (brown)
-#' windows; hay cut brackets (purple) and drops to bare soil (grey). Bars along
+#' daily rain on the right. Shading: NDVI planting (blue) and harvest (orange)
+#' windows in plot_phenology()'s colours, with its dashed NDVI estimate and
+#' solid weather-checked date; hay cut brackets (purple) and drops to bare soil
+#' (grey). Bars along
 #' the top: the radar interval found searching beyond the NDVI window. Bars
 #' along the bottom: windows and cuts narrowed by radar and weather.
 plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
@@ -425,12 +449,22 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
     # Every season's windows and intervals in every panel, clipped by the plot
     # region: a winter crop's sowing (autumn before its harvest year) belongs to
     # next year's season but falls in this year's panel.
+    # Same windows, colours and date lines as plot_phenology(), so the two tabs
+    # read alike: dashed is the NDVI estimate, solid the weather-checked date
+    # when the rain check is on.
     if (!is.null(phen) && nrow(phen)) {
       for (i in seq_len(nrow(phen))) {
-        if (!is.na(phen$planting_lo[i]))
-          span(phen$planting_lo[i], phen$planting_hi[i], grDevices::adjustcolor("orange", 0.18))
-        if (!is.na(phen$harvest_lo[i]))
-          span(phen$harvest_lo[i], phen$harvest_hi[i], grDevices::adjustcolor("saddlebrown", 0.15))
+        for (what in c("planting", "harvest")) {
+          lo <- phen[[paste0(what, "_lo")]][i]
+          if (is.na(lo)) next
+          colour <- S1_EVENT_COLOUR[[what]]
+          span(lo, phen[[paste0(what, "_hi")]][i], grDevices::adjustcolor(colour, 0.13))
+          est <- phen[[paste0(what, "_est")]][i]
+          fin <- if (paste0(what, "_date") %in% names(phen)) phen[[paste0(what, "_date")]][i] else NA
+          if (!is.na(est))
+            graphics::abline(v = est, col = colour, lty = 2, lwd = if (is.na(fin)) 1.6 else 1.2)
+          if (!is.na(fin)) graphics::abline(v = fin, col = colour, lwd = 2.2)
+        }
       }
     }
     if (!is.null(cuts) && nrow(cuts)) {
@@ -449,7 +483,7 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
       ey <- ev[!is.na(ev$s1_from), ]                 # all seasons; plot clips
       for (i in seq_len(nrow(ey)))
         span(ey$s1_from[i], ey$s1_to[i],
-             if (ey$event[i] == "planting") "darkorange" else "saddlebrown", 6.1, 7)
+             S1_EVENT_COLOUR[[ey$event[i]]], 6.1, 7)
     }
     if (!is.null(ref) && nrow(ref)) {
       ry <- ref[ref$basis == "radar + weather", ]    # all seasons; plot clips
@@ -486,15 +520,18 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
   graphics::legend("top", inset = c(0, inset), ncol = 4, bty = "n", cex = 0.75,
     legend = c("VV, moisture-adjusted (dB)", "VH, orbit-centred (dB)", "NDVI × 10 − 6",
                "frozen (dropped)", "NDVI planting window", "NDVI harvest window",
+               "NDVI estimate (dashed)", "weather-checked date (solid)",
                "radar interval (top)", "narrowed: radar + weather (bottom)", "hay cut (purple)",
                "stand seeding (green)", "cover crop seeding / termination (dotted)"),
-    col = c("#1f77b4", "forestgreen", "darkgreen", "grey50", grDevices::adjustcolor("orange", 0.4),
-            grDevices::adjustcolor("saddlebrown", 0.3), "saddlebrown", "black", "purple",
+    col = c("#1f77b4", "forestgreen", "darkgreen", "grey50",
+            grDevices::adjustcolor(S1_EVENT_COLOUR[["planting"]], 0.3),
+            grDevices::adjustcolor(S1_EVENT_COLOUR[["harvest"]], 0.3), "grey30", "grey30",
+            S1_EVENT_COLOUR[["harvest"]], "black", "purple",
             STAND_COLOUR, COVER_SEED_COLOUR),
-    lwd = c(1, 1, 1.6, NA, NA, NA, NA, NA, NA, 1.6, 1.8),
-    lty = c(1, 1, 1, NA, NA, NA, NA, NA, NA, 2, 3),
-    pch = c(16, NA, NA, 4, 15, 15, 15, 15, 15, NA, NA),
-    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, 1.4, 1.4, 1.4, NA, NA))
+    lwd = c(1, 1, 1.6, NA, NA, NA, 1.2, 2.2, NA, NA, NA, 1.6, 1.8),
+    lty = c(1, 1, 1, NA, NA, NA, 2, 1, NA, NA, NA, 2, 3),
+    pch = c(16, NA, NA, 4, 15, 15, NA, NA, 15, 15, 15, NA, NA),
+    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, NA, NA, 1.4, 1.4, 1.4, NA, NA))
   if (!is.null(title)) graphics::mtext(title, side = 3, line = -1.1, cex = 0.9, font = 2)
   invisible()
 }

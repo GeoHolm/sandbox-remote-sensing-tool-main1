@@ -712,12 +712,16 @@ ui <- page_navbar(
                  " by regressing it on an antecedent precipitation index from gridMET, ",
                  "fitted per orbit on bare, unfrozen dates. Frozen dates are dropped."),
              div(class = "text-muted small",
+                 "Planting is ", tags$strong("blue"), " and harvest ", tags$strong("orange"),
+                 ", as on the Season analysis tab: shaded NDVI windows, a dashed line at ",
+                 "the NDVI estimate and a solid one at the weather-checked date. ",
                  tags$strong("Bars along the top of each panel"),
-                 " mark the interval holding the largest VV drop in spring (orange) and ",
-                 "the largest VH drop near the harvest window (brown). ",
+                 " mark the interval holding the largest VV drop in spring (seedbed or ",
+                 "planter smoothing the surface) and the largest VH drop near the harvest ",
+                 "window (canopy removed). ",
                  tags$strong("Black bars along the bottom"), " are NDVI windows narrowed ",
-                 "by radar and weather together. In hay years, ", tags$strong("purple"),
-                 " marks each cutting. Blue bars are daily rain."),
+                 "by radar and the sidebar's weather settings together. In hay years, ",
+                 tags$strong("purple"), " marks each cutting. Light-blue bars are daily rain."),
              actionButton("run_s1", "Run radar analysis", class = "btn-primary w-100")),
            uiOutput("s1_status"),
            uiOutput("s1_metrics"),
@@ -1794,11 +1798,24 @@ server <- function(input, output, session) {
 
   # ---- soil moisture (radar) ----------------------------------------------
 
-  # One result per field, year range and imagery source. A field whose radar
-  # series is already cached opens without a press.
+  # The radar narrows windows to workable days by the same weather settings as
+  # the sidebar's rain check (NULL, the defaults, when it is off), as the
+  # Python app does. Changing them only re-reads the cached radar series.
+  s1_rules <- reactive({
+    if (!isTRUE(input$rain_check)) return(NULL)
+    wind <- identical(input$wx_mode, "Rain and wind")
+    list(dry_mm = input$dry_mm %||% DRY_PR_MM,
+         wind_max_kmh = if (wind) input$wind_kmh %||% WIND_MAX_KMH else NULL,
+         heavy_mm = input$heavy_mm %||% HEAVY_RAIN_MM,
+         wet_days = input$wet_days %||% HEAVY_RAIN_WET_DAYS)
+  })
+
+  # One result per field, year range, imagery source and weather settings. A
+  # field whose radar series is already cached opens without a press.
   s1_key <- reactive({
     req(rv$field)
-    paste(cache_key(rv$field, "s1_app"), yrs()[1], yrs()[2], input$source %||% "sentinel2")
+    paste(cache_key(rv$field, "s1_app"), yrs()[1], yrs()[2], input$source %||% "sentinel2",
+          paste(names(s1_rules()), unlist(s1_rules()), collapse = ","))
   })
   s1_store <- reactiveVal(list())
 
@@ -1808,7 +1825,8 @@ server <- function(input, output, session) {
     hit <- s1_store()[[k]]
     if (!is.null(hit)) return(hit)
     win <- analysis_window(yrs()[1], yrs()[2])
-    tryCatch(s1_analysis(rv$field, win$start, win$end, rv$ts, rv$phen, only_cached = TRUE),
+    tryCatch(s1_analysis(rv$field, win$start, win$end, rv$ts, rv$phen, only_cached = TRUE,
+                         rules = s1_rules()),
              error = function(e) NULL)
   })
 
@@ -1816,7 +1834,8 @@ server <- function(input, output, session) {
     req(rv$field, rv$ts, rv$phen)
     win <- analysis_window(yrs()[1], yrs()[2])
     res <- withProgress(message = "Reading Sentinel-1 radar over the field", value = 0.2, {
-      tryCatch(s1_analysis(rv$field, win$start, win$end, rv$ts, rv$phen),
+      tryCatch(s1_analysis(rv$field, win$start, win$end, rv$ts, rv$phen,
+                           rules = s1_rules()),
                error = function(e) e)
     })
     if (inherits(res, "error")) {
@@ -1920,7 +1939,11 @@ server <- function(input, output, session) {
         card_header("Narrowed windows"),
         div(class = "text-muted small mb-2",
             "Agreement with NDVI is built in here, so it is not a result. Read span_days, ",
-            "not candidate_days, as how far the date is pinned down."),
+            "not candidate_days, as how far the date is pinned down. Workable days follow ",
+            "the sidebar's weather settings when the check is on (defaults otherwise), ",
+            "plus no frozen days; weather_date is the Season analysis tab's ",
+            "weather-checked date, and weather_date_in_window says whether the radar ",
+            "agrees with it."),
         DTOutput("tbl_s1_refined")),
       if (nrow(res$events)) tags$details(class = "mt-2",
         tags$summary("Radar searched beyond the NDVI windows"), DTOutput("tbl_s1_events")))

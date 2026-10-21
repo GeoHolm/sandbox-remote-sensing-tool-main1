@@ -96,7 +96,7 @@ ndvi_cuts <- function(ndvi, year) {
 #' @param ndvi    Data frame with date and mean.
 #' @param ctx     s1_context() output, or NULL.
 #' @param weather Daily gridMET, or NULL.
-forage_cuts <- function(ndvi, phen, ctx = NULL, weather = NULL) {
+forage_cuts <- function(ndvi, phen, ctx = NULL, weather = NULL, rules = NULL) {
   cols <- c("year", "crop", "cut", "kind", "ndvi_from", "ndvi_to", "ndvi_days",
             "ndvi_stand", "ndvi_trough", "regrowth", "s1_from", "s1_to",
             "step_db", "z", "basis", "refined_lo", "refined_hi", "span_days",
@@ -119,7 +119,7 @@ forage_cuts <- function(ndvi, phen, ctx = NULL, weather = NULL) {
       sd <- .robust_sd(iv$d_vh[md >= CUT_SEASON[1] & md <= CUT_SEASON[2]])
     }
   }
-  work <- if (!is.null(weather) && nrow(weather)) workable_days(weather) else NULL
+  work <- if (!is.null(weather) && nrow(weather)) workable_days(weather, rules) else NULL
 
   rows <- list()
   for (y in years) {
