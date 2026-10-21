@@ -516,6 +516,13 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
        are used instead (``"radar + weather"`` / ``"weather only"``), and
        where none of those exist either, the NDVI window (``"NDVI only"``).
 
+    Every window is given a radar interval (``radar_source``): the step above,
+    else for planting the strongest VV drop on soil that was not bare, else
+    the interval holding the NDVI estimate. ``radar_confidence`` is "high"
+    only for a first-choice drop with z >= SAR_SUPPORT_Z. A "low" interval
+    still narrows the window when it holds dry-enough days (``"radar (low) +
+    moisture"``), and the label says the dates rest on a weak radar change.
+
     ``candidate_days`` counts the days left; ``span_days`` is first to last of
     them. They differ a lot without the radar, where days are struck out of
     the window but its ends barely move -- read the span, not the count, as
@@ -566,6 +573,7 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                    "ndvi_lo": lo, "ndvi_hi": hi, "ndvi_days": len(win_days),
                    "workable_days": len(win_work), "moist_days": len(win_moist),
                    "s1_from": pd.NaT, "s1_to": pd.NaT, "step_db": None, "z": None,
+                   "radar_source": None, "radar_confidence": None,
                    "basis": None, "refined_lo": pd.NaT, "refined_hi": pd.NaT,
                    "span_days": None, "candidate_days": None,
                    "conflict": False, "conflict_from": pd.NaT, "conflict_to": pd.NaT,
@@ -578,24 +586,57 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                            candidate_days=len(days))
                 picked[:] = days
 
-            best_z = None
-            if len(inside) and sd[col] and np.isfinite(sd[col]):
+            # Every window gets a radar interval. First choice is the strongest
+            # drop of the right kind (bare-soil VV for planting, VH for
+            # harvest); failing that, for planting, the strongest VV drop
+            # where the soil was not bare; failing that, the interval holding
+            # the NDVI estimate. Only a first-choice drop with z >=
+            # SAR_SUPPORT_Z is "high" confidence; everything else is "low".
+            ok_sd = bool(sd[col]) and np.isfinite(sd[col])
+            e, source = None, None
+            if len(inside):
                 e = inside.loc[inside[col].idxmin()]
-                best_z = float(-e[col] / sd[col])
+                source = "bare-soil VV drop" if event == "planting" else "VH drop"
+            else:
+                f_all, l_all = iv["date_a"], iv["date"] - D(days=1)
+                ov = iv[(l_all >= lo) & (f_all <= hi)]
+                drops = ov[ov[col] < 0]
+                if event == "planting" and len(drops):
+                    e, source = drops.loc[drops[col].idxmin()], "VV drop, soil not bare"
+                elif len(ov):
+                    est0 = getattr(p, f"{event}_est", pd.NaT)
+                    ref_day = est0 if pd.notna(est0) else lo + (hi - lo) / 2
+                    hold = ov[(ov["date_a"] <= ref_day) & (ov["date"] - D(days=1) >= ref_day)]
+                    mid = ov["date_a"] + (ov["date"] - ov["date_a"]) / 2
+                    e = hold.iloc[0] if len(hold) else ov.loc[(mid - ref_day).abs().idxmin()]
+                    source = "no radar drop: interval around the NDVI estimate"
+
+            best_z = None
+            if e is not None:
+                is_drop = pd.notna(e[col]) and e[col] < 0
+                z = float(-e[col] / sd[col]) if ok_sd and is_drop else None
+                if source in ("bare-soil VV drop", "VH drop"):
+                    best_z = z
+                strong = best_z is not None and best_z >= SAR_SUPPORT_Z
                 row.update(s1_from=e["date_a"], s1_to=e["date"],
-                           step_db=round(float(e[col]), 2), z=round(best_z, 2))
-                if best_z >= SAR_SUPPORT_Z:
-                    step = pd.date_range(max(lo, e["date_a"]), min(hi, e["date"] - D(days=1)))
-                    days_m = [d for d in step if mok.get(d, False)]
-                    days_w = [d for d in step if work.get(d, False)]
-                    if days_m:
-                        _take(days_m, "radar + moisture")
-                    elif days_w:
-                        _take(days_w, "radar + weather")
-                        row["note"] = "no dry-enough day in the radar interval"
-                    else:
-                        row["note"] = ("radar step stands out but its interval has "
-                                       "no workable day inside the window")
+                           step_db=None if pd.isna(e[col]) else round(float(e[col]), 2),
+                           z=None if z is None else round(z, 2), radar_source=source,
+                           radar_confidence="high" if strong else "low")
+                step = pd.date_range(max(lo, e["date_a"]), min(hi, e["date"] - D(days=1)))
+                days_m = [d for d in step if mok.get(d, False)]
+                days_w = [d for d in step if work.get(d, False)]
+                if strong and days_m:
+                    _take(days_m, "radar + moisture")
+                elif strong and days_w:
+                    _take(days_w, "radar + weather")
+                    row["note"] = "no dry-enough day in the radar interval"
+                elif strong:
+                    row["note"] = ("radar step stands out but its interval has "
+                                   "no workable day inside the window")
+                elif days_m:
+                    # A weak step still narrows, but says so: its dates rest
+                    # on a radar change that does not stand out from noise.
+                    _take(days_m, "radar (low) + moisture")
             if row["basis"] is None and win_moist:
                 _take(win_moist, "moisture")
             elif row["basis"] is None and win_work:
@@ -657,6 +698,20 @@ def moisture_summary(refined: pd.DataFrame | None) -> pd.DataFrame:
     return pd.concat(parts, axis=1).rename_axis("year").reset_index()[cols]
 
 
+def eligible_days(refined: pd.DataFrame | None, wet: pd.DataFrame,
+                  rules: dict | None = None) -> pd.DataFrame:
+    """The days inside each NDVI window that passed the moisture test for its
+    event (dry-enough soil, then that event's weather rule): ``year``,
+    ``event``, ``date``. What the chart's tan strip draws."""
+    cols = ["year", "event", "date"]
+    if refined is None or not len(refined):
+        return pd.DataFrame(columns=cols)
+    ok = {e: moisture_days(wet, e, rules) for e in ("planting", "harvest")}
+    rows = [(r.year, r.event, d) for r in refined.itertuples()
+            for d in pd.date_range(r.ndvi_lo, r.ndvi_hi) if ok[r.event].get(d, False)]
+    return pd.DataFrame(rows, columns=cols)
+
+
 # --------------------------------------------------------------- one call ---
 
 def s1_analysis(aoi: gpd.GeoDataFrame, result, *, only_cached: bool = False,
@@ -691,7 +746,8 @@ def s1_analysis(aoi: gpd.GeoDataFrame, result, *, only_cached: bool = False,
         events = s1_events(ctx, phen)
         refined = s1_refine(ctx, phen, weather, rules)
     cuts = forage_cuts(ndvi, phen, ctx, weather, rules)
+    wet = soil_wetness(ctx, weather)
     return {"s1": s1, "ctx": ctx, "weather": weather, "ndvi": ndvi,
-            "wetness": soil_wetness(ctx, weather),
+            "wetness": wet, "eligible": eligible_days(refined, wet, rules),
             "events": events, "refined": refined, "cuts": cuts,
             "orbits": sorted(int(o) for o in s1["orbit"].unique())}

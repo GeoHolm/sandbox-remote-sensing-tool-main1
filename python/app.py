@@ -930,16 +930,19 @@ with tab_moisture:
                "fitted per orbit on bare, unfrozen dates. Frozen dates are dropped.")
     c2.caption("Planting is **blue** and harvest **orange**, as on the Season "
                "analysis tab: shaded NDVI windows, a dashed line at the NDVI "
-               "estimate and a solid one at the weather-checked date. **Bars along "
-               "the top of each panel** mark the radar interval that narrowed a "
-               "window -- a VV drop on bare soil for planting (seedbed or planter "
-               "smoothing the surface), a VH drop for harvest (canopy removed) -- "
-               "so they always overlap their NDVI window. A **dashed outline** "
-               "there is a stronger radar step outside the window, a disagreement "
-               "between radar and NDVI worth a look. The "
-               "**tan strip along the bottom** marks days the soil is dry enough "
-               "(radar + rain memory), and **black bars** under it are NDVI windows "
-               "narrowed by a radar step and those dry days together. In hay years, "
+               "estimate and a solid one at the weather-checked date, and a **dotted "
+               "one at the soil-moisture date**. **Bars along the top of each panel** "
+               "mark the radar interval every NDVI window was read against -- a VV "
+               "drop on bare soil for planting (seedbed or planter smoothing the "
+               "surface), a VH drop for harvest (canopy removed). Filled means the "
+               "step stands out from this field's noise; a **dotted outline** means "
+               "low confidence (a weak step, a VV drop on soil that was not bare, "
+               "or no drop at all, just the interval around the NDVI estimate). A "
+               "**dashed outline** is a stronger step outside the window. The **tan "
+               "strip along the bottom** marks the days inside each window that are "
+               "dry enough to work (soil moisture first, then that operation's "
+               "weather rule), and the **bar under it** is the narrowed window: "
+               "black when a confident radar step helped, grey otherwise. In hay years, "
                "**purple** marks each cutting. Light-blue bars are daily rain.")
     with c3:
         st.write("")
@@ -1002,7 +1005,7 @@ with tab_moisture:
                                 "accuracy.")
             for col, name in zip(m[2:], ("harvest", "planting")):
                 e = ref[ref["event"] == name]
-                rw = e[e["basis"].str.startswith("radar")]
+                rw = e[e["basis"].str.startswith("radar +")]
                 val = (f"{len(rw)} of {len(e)} · {int(rw['ndvi_days'].median())}→"
                        f"{int(rw['span_days'].median())} d" if len(rw)
                        else f"0 of {len(e)}")
@@ -1034,7 +1037,7 @@ with tab_moisture:
 
         _show(viz.plot_s1(s1_res["ctx"], s1_res["weather"], s1_res["ndvi"],
                           result.phenology, ev, ref, cuts=cuts,
-                          cover=result.covercrop, wetness=s1_res.get("wetness")),
+                          cover=result.covercrop, eligible=s1_res.get("eligible")),
               "sentinel1-radar-by-year")
 
         if has_cuts:
@@ -1063,7 +1066,10 @@ with tab_moisture:
                        "only heavy rain (the sidebar's heavy-rain value), **harvest** "
                        "needs a rain-free day, and wind counts when the wind check is "
                        "on. A radar drop that stands out from this field's noise "
-                       "narrows further to its interval. Where no day is dry enough "
+                       "narrows further to its interval; a weak one still narrows but is "
+                       "labelled \"radar (low) + moisture\", and radar_confidence / "
+                       "radar_source say how each window's interval was found. "
+                       "Where no day is dry enough "
                        "the old weather-only rule is used, and the basis column says "
                        "which. moist_days is how many window days passed the moisture "
                        "test. Agreement with NDVI is built in here, so it is not a "

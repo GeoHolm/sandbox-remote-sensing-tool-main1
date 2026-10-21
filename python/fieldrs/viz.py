@@ -734,7 +734,8 @@ def _mark_suspect(ax, d: pd.DataFrame, s: float = 50) -> None:
 def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
             phen: pd.DataFrame, events: pd.DataFrame, refined: pd.DataFrame,
             title: str | None = None, cuts: pd.DataFrame | None = None,
-            cover: pd.DataFrame | None = None, wetness: pd.DataFrame | None = None):
+            cover: pd.DataFrame | None = None, wetness: pd.DataFrame | None = None,
+            eligible: pd.DataFrame | None = None):
     """Sentinel-1 backscatter against NDVI phenology, one panel per year.
 
     ``ctx``, ``events`` and ``refined`` come from fieldrs.sar (s1_context,
@@ -800,34 +801,50 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
             if len(st_) and st_.iloc[0] == "established":
                 ax.set_title(f"{ax.get_title(loc='left')} · established stand", loc="left",
                              fontsize=10)
-        # Top band: only the radar interval that actually narrowed a window, so
-        # it always overlaps its NDVI window. A stronger step outside the window
-        # (refined.conflict) is drawn hollow; the wider search in ``events``
-        # feeds the agreement metrics, not the chart.
+        # Top band: the radar interval of every NDVI window (sar.s1_refine
+        # gives each one) -- filled when its step stands out ("high"), a
+        # dotted outline when it is weak or a fallback ("low"). A stronger
+        # step outside the window (refined.conflict) is a dashed outline.
         if refined is not None and len(refined):
-            for e in refined[refined["basis"].str.startswith("radar")].itertuples():
+            r_ = refined[refined["s1_from"].notna()]
+            for e in r_.itertuples():
                 c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
-                ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0, color=c,
-                           label=f"radar {e.event} interval (used)")
+                if getattr(e, "radar_confidence", "high") == "high":
+                    ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0, color=c,
+                               label=f"radar {e.event} interval")
+                else:
+                    ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0,
+                               facecolor="none", edgecolor=c, lw=1.4, ls=":",
+                               label="radar interval, low confidence")
             for e in refined[refined["conflict"].astype(bool)].itertuples():
                 c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
                 ax.axvspan(e.conflict_from, e.conflict_to, ymin=0.9, ymax=1.0,
                            facecolor="none", edgecolor=c, lw=1.2, ls="--",
                            label="stronger radar step outside window")
-        if wetness is not None and len(wetness):
-            # Runs of dry-enough days (sar.soil_wetness) as a tan strip just
-            # above the narrowed-window bars.
-            wy = wetness[wetness["date"].dt.year == y]
-            run = (wy["dry"] != wy["dry"].shift()).cumsum()
-            for _, g in wy[wy["dry"]].groupby(run[wy["dry"]]):
+        # Tan strip: inside each NDVI window, the days that passed the moisture
+        # test for its event (sar.eligible_days) -- what the dates come from.
+        if eligible is not None and len(eligible):
+            ey = eligible.sort_values("date")
+            ey = ey[ey["date"].dt.year == y]
+            run = (ey["date"].diff() != pd.Timedelta(days=1)).cumsum()
+            for _, g in ey.groupby(run):
                 ax.axvspan(g["date"].iloc[0], g["date"].iloc[-1] + pd.Timedelta(days=1),
                            ymin=0.08, ymax=0.12, color="#c9a66b",
-                           label="soil dry enough (radar + rain)")
+                           label="dry enough to work (in window)")
+        # Bottom bars: every narrowed window -- black when a high-confidence
+        # radar step helped, grey otherwise -- and a dotted line at the
+        # moisture date picked from it.
         if refined is not None and len(refined):
-            for e in refined[refined["basis"].str.startswith("radar")].itertuples():
+            for e in refined[refined["basis"] != "NDVI only"].itertuples():
+                hi_conf = e.basis.startswith("radar +")
                 ax.axvspan(e.refined_lo, e.refined_hi + pd.Timedelta(days=1),
-                           ymin=0.0, ymax=0.08, color="black",
-                           label="narrowed by radar + moisture")
+                           ymin=0.0, ymax=0.08, color="black" if hi_conf else "0.55",
+                           label="narrowed: radar + moisture" if hi_conf
+                           else "narrowed: moisture (radar weak or none)")
+            for e in refined[refined["moist_date"].notna()].itertuples():
+                c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
+                ax.axvline(e.moist_date, color=c, ls=":", lw=2.0,
+                           label=f"{e.event}, soil-moisture date")
         if cuts is not None and len(cuts):
             for c in cuts[cuts["year"] == y].itertuples():
                 bare = c.kind == "to bare soil"

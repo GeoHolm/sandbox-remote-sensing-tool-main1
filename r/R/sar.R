@@ -381,6 +381,11 @@ moisture_days <- function(wet, event, rules = NULL) {
 #' ("moisture"). Where no day is dry enough the rain check's workable days are
 #' used ("radar + weather" / "weather only"), then the window ("NDVI only").
 #' moist_days counts window days that passed the moisture test.
+#' Every window gets a radar interval (radar_source): that step, else for
+#' planting the strongest VV drop on soil that was not bare, else the interval
+#' holding the NDVI estimate. radar_confidence is "high" only for a first-choice
+#' drop with z >= SAR_SUPPORT_Z; a "low" one still narrows when it holds
+#' dry-enough days ("radar (low) + moisture").
 #' conflict: a step more than SAR_CONFLICT_DZ stronger sits in
 #' the wider search span outside the window. Read span_days, not
 #' candidate_days, as how far the date is pinned down. `rules` are the weather
@@ -418,7 +423,9 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
                   ndvi_days = length(win_days), workable_days = length(win_work),
                   moist_days = length(win_moist),
                   s1_from = as.Date(NA), s1_to = as.Date(NA), step_db = NA_real_,
-                  z = NA_real_, basis = NA_character_, refined_lo = as.Date(NA),
+                  z = NA_real_, radar_source = NA_character_,
+                  radar_confidence = NA_character_,
+                  basis = NA_character_, refined_lo = as.Date(NA),
                   refined_hi = as.Date(NA), span_days = NA_integer_,
                   candidate_days = NA_integer_, conflict = FALSE,
                   conflict_from = as.Date(NA), conflict_to = as.Date(NA),
@@ -427,24 +434,51 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
         row$basis <- basis; row$refined_lo <- min(d); row$refined_hi <- max(d)
         row$candidate_days <- length(d); row
       }
+      # Every window gets a radar interval (same order as sar.py): the
+      # strongest drop of the right kind; else, for planting, the strongest VV
+      # drop on soil that was not bare; else the interval holding the NDVI
+      # estimate. Only a first-choice drop with z >= SAR_SUPPORT_Z is "high".
       best_z <- NA_real_; picked <- as.Date(character(0))
       ok_sd <- !is.na(sd[[col]]) && sd[[col]] > 0
-      if (length(in_i) && ok_sd) {
+      e <- NULL; source <- NA_character_
+      if (length(in_i)) {
         e <- pool[in_i[which.min(pool[[col]][in_i])], ]
-        best_z <- -e[[col]] / sd[[col]]
+        source <- if (event == "planting") "bare-soil VV drop" else "VH drop"
+      } else {
+        ov <- iv[iv$date - 1 >= lo & iv$date_a <= hi, ]
+        drops <- ov[!is.na(ov[[col]]) & ov[[col]] < 0, ]
+        if (event == "planting" && nrow(drops)) {
+          e <- drops[which.min(drops[[col]]), ]; source <- "VV drop, soil not bare"
+        } else if (nrow(ov)) {
+          est0 <- as.Date(p[[paste0(event, "_est")]])
+          ref_day <- if (!is.na(est0)) est0 else lo + as.numeric(hi - lo) / 2
+          hold <- which(ov$date_a <= ref_day & ov$date - 1 >= ref_day)
+          mid <- as.numeric(ov$date_a) + as.numeric(ov$date - ov$date_a) / 2
+          e <- ov[if (length(hold)) hold[1] else which.min(abs(mid - as.numeric(ref_day))), ]
+          source <- "no radar drop: interval around the NDVI estimate"
+        }
+      }
+      if (!is.null(e)) {
+        is_drop <- !is.na(e[[col]]) && e[[col]] < 0
+        z <- if (ok_sd && is_drop) -e[[col]] / sd[[col]] else NA_real_
+        if (source %in% c("bare-soil VV drop", "VH drop")) best_z <- z
+        strong <- !is.na(best_z) && best_z >= SAR_SUPPORT_Z
         row$s1_from <- e$date_a; row$s1_to <- e$date
-        row$step_db <- round(e[[col]], 2); row$z <- round(best_z, 2)
-        if (best_z >= SAR_SUPPORT_Z) {
-          step <- seq(max(lo, e$date_a), min(hi, e$date - 1), by = 1)
-          d_m <- step[.work_on(mok, step)]; d_w <- step[.work_on(work, step)]
-          if (length(d_m)) {
-            row <- take(row, d_m, "radar + moisture"); picked <- d_m
-          } else if (length(d_w)) {
-            row <- take(row, d_w, "radar + weather"); picked <- d_w
-            row$note <- "no dry-enough day in the radar interval"
-          } else {
-            row$note <- "radar step stands out but its interval has no workable day inside the window"
-          }
+        row$step_db <- round(e[[col]], 2); row$z <- round(z, 2)
+        row$radar_source <- source
+        row$radar_confidence <- if (strong) "high" else "low"
+        step <- seq(max(lo, e$date_a), min(hi, e$date - 1), by = 1)
+        d_m <- step[.work_on(mok, step)]; d_w <- step[.work_on(work, step)]
+        if (strong && length(d_m)) {
+          row <- take(row, d_m, "radar + moisture"); picked <- d_m
+        } else if (strong && length(d_w)) {
+          row <- take(row, d_w, "radar + weather"); picked <- d_w
+          row$note <- "no dry-enough day in the radar interval"
+        } else if (strong) {
+          row$note <- "radar step stands out but its interval has no workable day inside the window"
+        } else if (length(d_m)) {
+          # A weak step still narrows, but says so.
+          row <- take(row, d_m, "radar (low) + moisture"); picked <- d_m
         }
       }
       if (is.na(row$basis) && length(win_moist)) {
@@ -493,6 +527,23 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
   out
 }
 
+#' The days inside each NDVI window that passed the moisture test for its event
+#' (dry-enough soil, then that event's weather rule): year, event, date. What
+#' the chart's tan strip draws. Port of sar.py eligible_days().
+eligible_days <- function(refined, wet, rules = NULL) {
+  empty <- data.frame(year = integer(0), event = character(0), date = as.Date(character(0)))
+  if (is.null(refined) || !nrow(refined)) return(empty)
+  ok <- list(planting = moisture_days(wet, "planting", rules),
+             harvest = moisture_days(wet, "harvest", rules))
+  rows <- lapply(seq_len(nrow(refined)), function(i) {
+    d <- seq(refined$ndvi_lo[i], refined$ndvi_hi[i], by = 1)
+    d <- d[.work_on(ok[[refined$event[i]]], d)]
+    if (length(d)) data.frame(year = refined$year[i], event = refined$event[i], date = d)
+  })
+  out <- do.call(rbind, rows)
+  if (is.null(out)) empty else out
+}
+
 # --------------------------------------------------------------- one call ---
 
 #' Everything the radar view needs for one field.
@@ -516,8 +567,9 @@ s1_analysis <- function(aoi, start, end, ts, phen, only_cached = FALSE, workers 
   events  <- if (has_phen) s1_events(ctx, phen) else data.frame()
   refined <- if (has_phen) s1_refine(ctx, phen, weather, rules) else data.frame()
   cuts <- forage_cuts(ndvi, phen, ctx, weather, rules)
+  wet <- soil_wetness(ctx, weather)
   list(s1 = s1, ctx = ctx, weather = weather, ndvi = ndvi,
-       wetness = soil_wetness(ctx, weather), events = events,
+       wetness = wet, eligible = eligible_days(refined, wet, rules), events = events,
        refined = refined, cuts = cuts, orbits = sort(unique(s1$orbit)))
 }
 
@@ -586,31 +638,47 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
       n_cut <- sum(cy$kind == "cut")
       if (n_cut) lab <- sprintf("%s · %d cut%s", lab, n_cut, if (n_cut != 1) "s" else "")
     }
-    # Top band: only the radar interval that actually narrowed a window, so it
-    # always overlaps its NDVI window; a stronger step outside the window
-    # (refined$conflict) is drawn hollow. The wider search in res$events feeds
-    # the agreement metrics, not the chart.
+    # Top band: the radar interval of every NDVI window -- filled when its
+    # step stands out ("high"), a dotted outline when weak or a fallback
+    # ("low"); a stronger step outside the window (refined$conflict) is a
+    # dashed outline. Same as sar.py plot_s1().
     if (!is.null(ref) && nrow(ref)) {
-      ru <- ref[startsWith(ref$basis, "radar"), ]    # all seasons; plot clips
-      for (i in seq_len(nrow(ru)))
-        span(ru$s1_from[i], ru$s1_to[i], S1_EVENT_COLOUR[[ru$event[i]]], 6.1, 7)
+      ru <- ref[!is.na(ref$s1_from), ]                # all seasons; plot clips
+      for (i in seq_len(nrow(ru))) {
+        colour <- S1_EVENT_COLOUR[[ru$event[i]]]
+        if (identical(ru$radar_confidence[i], "low"))
+          graphics::rect(ru$s1_from[i], 6.1, ru$s1_to[i], 7, col = NA, border = colour,
+                         lty = 3, lwd = 1.5)
+        else span(ru$s1_from[i], ru$s1_to[i], colour, 6.1, 7)
+      }
       rc <- ref[ref$conflict, ]
       for (i in seq_len(nrow(rc)))
         graphics::rect(rc$conflict_from[i], 6.1, rc$conflict_to[i], 7, col = NA,
                        border = S1_EVENT_COLOUR[[rc$event[i]]], lty = 2, lwd = 1.2)
     }
-    wet <- res$wetness
-    if (!is.null(wet) && nrow(wet)) {
-      # Runs of dry-enough days (soil_wetness()) as a tan strip just above the
-      # narrowed-window bars.
-      wy <- wet[as.integer(format(wet$date, "%Y")) == y, ]
-      rl <- rle(wy$dry); ends <- cumsum(rl$lengths); starts <- ends - rl$lengths + 1
-      for (j in which(rl$values))
-        span(wy$date[starts[j]], wy$date[ends[j]] + 1, "#c9a66b", -6.1, -5.6)
+    # Tan strip: inside each NDVI window, the days that passed the moisture
+    # test for its event (eligible_days()) -- what the dates come from.
+    el <- res$eligible
+    if (!is.null(el) && nrow(el)) {
+      d <- sort(el$date[as.integer(format(el$date, "%Y")) == y])
+      if (length(d)) {
+        brk <- c(TRUE, diff(as.integer(d)) != 1)
+        grp <- cumsum(brk)
+        for (g_ in unique(grp))
+          span(min(d[grp == g_]), max(d[grp == g_]) + 1, "#c9a66b", -6.1, -5.6)
+      }
     }
+    # Bottom bars: every narrowed window -- black when a high-confidence radar
+    # step helped, grey otherwise -- and a dotted line at its moisture date.
     if (!is.null(ref) && nrow(ref)) {
-      ry <- ref[startsWith(ref$basis, "radar"), ]     # all seasons; plot clips
-      for (i in seq_len(nrow(ry))) span(ry$refined_lo[i], ry$refined_hi[i] + 1, "black", -7, -6.1)
+      rn <- ref[ref$basis != "NDVI only", ]           # all seasons; plot clips
+      for (i in seq_len(nrow(rn)))
+        span(rn$refined_lo[i], rn$refined_hi[i] + 1,
+             if (startsWith(rn$basis[i], "radar +")) "black" else "grey55", -7, -6.1)
+      rm_ <- ref[!is.na(ref$moist_date), ]
+      for (i in seq_len(nrow(rm_)))
+        graphics::abline(v = rm_$moist_date[i], col = S1_EVENT_COLOUR[[rm_$event[i]]],
+                         lty = 3, lwd = 2)
     }
     graphics::abline(h = 0, col = "grey70", lwd = 0.5)
     g <- ctx[as.integer(format(ctx$date, "%Y")) == y, ]; g <- g[order(g$date), ]
@@ -644,18 +712,21 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
     legend = c("VV, moisture-adjusted (dB)", "VH, orbit-centred (dB)", "NDVI × 10 − 6",
                "frozen (dropped)", "NDVI planting window", "NDVI harvest window",
                "NDVI estimate (dashed)", "weather-checked date (solid)",
-               "radar interval used (top)", "stronger radar step outside window", "soil dry enough (radar + rain)",
-               "narrowed: radar + moisture (bottom)", "hay cut (purple)",
+               "radar interval (top)", "radar interval, low confidence (dotted)",
+               "stronger radar step outside window (dashed)", "dry enough to work (in window)",
+               "narrowed: radar + moisture", "narrowed: moisture (radar weak or none)",
+               "soil-moisture date (dotted)", "hay cut (purple)",
                "stand seeding (green)", "cover crop seeding / termination (dotted)"),
     col = c("#1f77b4", "forestgreen", "darkgreen", "grey50",
             grDevices::adjustcolor(S1_EVENT_COLOUR[["planting"]], 0.3),
             grDevices::adjustcolor(S1_EVENT_COLOUR[["harvest"]], 0.3), "grey30", "grey30",
-            S1_EVENT_COLOUR[["harvest"]], "grey30", "#c9a66b", "black", "purple",
+            S1_EVENT_COLOUR[["harvest"]], "grey30", "grey30", "#c9a66b", "black", "grey55",
+            "grey30", "purple",
             STAND_COLOUR, COVER_SEED_COLOUR),
-    lwd = c(1, 1, 1.6, NA, NA, NA, 1.2, 2.2, NA, 1.2, NA, NA, NA, 1.6, 1.8),
-    lty = c(1, 1, 1, NA, NA, NA, 2, 1, NA, 2, NA, NA, NA, 2, 3),
-    pch = c(16, NA, NA, 4, 15, 15, NA, NA, 15, NA, 15, 15, 15, NA, NA),
-    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, NA, NA, 1.4, NA, 1.4, 1.4, 1.4, NA, NA))
+    lwd = c(1, 1, 1.6, NA, NA, NA, 1.2, 2.2, NA, 1.5, 1.2, NA, NA, NA, 2, NA, 1.6, 1.8),
+    lty = c(1, 1, 1, NA, NA, NA, 2, 1, NA, 3, 2, NA, NA, NA, 3, NA, 2, 3),
+    pch = c(16, NA, NA, 4, 15, 15, NA, NA, 15, NA, NA, 15, 15, 15, NA, 15, NA, NA),
+    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, NA, NA, 1.4, NA, NA, 1.4, 1.4, 1.4, NA, 1.4, NA, NA))
   if (!is.null(title)) graphics::mtext(title, side = 3, line = -1.1, cex = 0.9, font = 2)
   invisible()
 }
