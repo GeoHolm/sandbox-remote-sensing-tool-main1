@@ -735,7 +735,7 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
             phen: pd.DataFrame, events: pd.DataFrame, refined: pd.DataFrame,
             title: str | None = None, cuts: pd.DataFrame | None = None,
             cover: pd.DataFrame | None = None, wetness: pd.DataFrame | None = None,
-            eligible: pd.DataFrame | None = None, emit: pd.DataFrame | None = None):
+            eligible: pd.DataFrame | None = None):
     """Sentinel-1 backscatter against NDVI phenology, one panel per year.
 
     ``ctx``, ``events`` and ``refined`` come from fieldrs.sar (s1_context,
@@ -845,26 +845,6 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
                 c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
                 ax.axvline(e.moist_date, color=c, ls=":", lw=2.0,
                            label=f"{e.event}, soil-moisture date")
-        # EMIT CAI snapshots (fieldrs.emit.emit_cai): a diamond under the top
-        # band on each usable scene's date, tan where the ground was not green
-        # (a residue reading), hollow green over canopy, with the CAI value.
-        if emit is not None and len(emit):
-            from .emit import CAI_GREEN_NDVI
-            ok = emit[emit["cai_median"].notna() & (emit["date"].dt.year == y)]
-            prev, lift = None, 0
-            for e in ok.sort_values("date").itertuples():
-                green = e.ndvi_median >= CAI_GREEN_NDVI
-                # Scenes days apart would print their labels on top of each
-                # other: step the next one down.
-                lift = (lift + 1) % 2 if prev is not None and (e.date - prev).days < 20 else 0
-                prev = e.date
-                ax.plot(e.date, 5.2, "D", ms=7, color="#1b7837" if green else "#a6761d",
-                        mfc="none" if green else "#c9a66b", mew=1.5,
-                        label="EMIT: green canopy" if green
-                        else "EMIT: not green (CAI reads residue)")
-                ax.annotate(f"CAI {e.cai_median:.1f}", (e.date, 5.2), xytext=(5, -3 - 9 * lift),
-                            textcoords="offset points", fontsize=7,
-                            color="#1b7837" if green else "#7a5513")
         if cuts is not None and len(cuts):
             for c in cuts[cuts["year"] == y].itertuples():
                 bare = c.kind == "to bare soil"
@@ -939,6 +919,69 @@ def plot_emit_cai(df: pd.DataFrame, start=None, end=None):
     ax.set_title("Cellulose Absorption Index from EMIT -- one point per clear scene",
                  loc="left", fontsize=10)
     ax.legend(loc="upper left", fontsize=8, frameon=False)
+    ax.grid(color="#eeeeee")
+    fig.tight_layout()
+    return fig
+
+
+def plot_emit_ndvi(emit: pd.DataFrame, ts: pd.DataFrame, phen: pd.DataFrame | None = None,
+                   start=None, end=None):
+    """EMIT CAI snapshots against the field's NDVI curve.
+
+    NDVI (left axis) is the clear-observation series the season analysis uses,
+    with the 0.30 line below which CAI is read as residue and the NDVI planting
+    and harvest windows shaded. Each usable EMIT scene is a diamond at its CAI
+    (right axis): tan where the ground was not green, hollow green over canopy,
+    joined to the date by a thin vertical line so it can be read against the
+    curve.
+    """
+    import matplotlib.pyplot as plt
+    from .emit import CAI_GREEN_NDVI
+
+    lo = max(pd.Timestamp(start) if start is not None else pd.Timestamp("2022-07-01"),
+             pd.Timestamp("2022-07-01"))
+    hi = (pd.Timestamp(end) if end is not None else pd.Timestamp.today()) + pd.Timedelta(days=30)
+    fig, ax = plt.subplots(figsize=(11, 4))
+    if phen is not None and len(phen):
+        for p in phen.itertuples():
+            for ev, colour in (("planting", "#2c7fb8"), ("harvest", "#d95f0e")):
+                a_, b_ = getattr(p, f"{ev}_lo", pd.NaT), getattr(p, f"{ev}_hi", pd.NaT)
+                if pd.notna(a_):
+                    ax.axvspan(a_, b_, color=colour, alpha=0.12, label=f"NDVI {ev} window")
+    n = ts[ts["index"] == "ndvi"].sort_values("date")
+    n = n[(n["date"] >= lo) & (n["date"] <= hi)]
+    ax.plot(n["date"], n["mean"], "-", color="#01665e", lw=1.2, alpha=0.8)
+    ax.plot(n["date"], n["mean"], "o", color="#01665e", ms=2.5, label="NDVI (Sentinel-2)")
+    ax.axhline(CAI_GREEN_NDVI, color="#01665e", ls=":", lw=1,
+               label=f"NDVI {CAI_GREEN_NDVI:.2f}: below it CAI reads residue")
+    ax.set_ylim(-0.05, 1.0)
+    ax.set_ylabel("NDVI", color="#01665e")
+    ax.set_xlim(lo, hi)
+
+    ax2 = ax.twinx()
+    ok = emit[emit["cai_median"].notna()]
+    for e in ok.itertuples():
+        green = e.ndvi_median >= CAI_GREEN_NDVI
+        ax.axvline(e.date, color="0.75", lw=0.7, zorder=0)
+        ax2.errorbar(e.date, e.cai_median, yerr=[[e.cai_median - e.cai_p10],
+                                                 [e.cai_p90 - e.cai_median]],
+                     fmt="D", ms=8, capsize=3, lw=1, mew=1.5,
+                     color="#1b7837" if green else "#a6761d",
+                     mfc="none" if green else "#c9a66b",
+                     label="EMIT: green canopy" if green
+                     else "EMIT: not green (CAI reads residue)")
+    top = max(3.0, float(ok["cai_p90"].max()) + 0.5) if len(ok) else 3.0
+    ax2.set_ylim(-1.0, top)
+    ax2.set_ylabel("CAI (×100), EMIT", color="#7a5513")
+    h, l = [], []
+    for a in (ax, ax2):
+        for hh, ll in zip(*a.get_legend_handles_labels()):
+            if ll not in l:
+                h.append(hh); l.append(ll)
+    # Below the axes: the NDVI curve fills the plot top to bottom.
+    ax.legend(h, l, loc="upper center", bbox_to_anchor=(0.5, -0.1), fontsize=7.5,
+              ncol=4, frameon=False)
+    ax.set_title("EMIT residue snapshots against the NDVI curve", loc="left", fontsize=10)
     ax.grid(color="#eeeeee")
     fig.tight_layout()
     return fig

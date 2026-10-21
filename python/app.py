@@ -941,6 +941,13 @@ with tab_armor:
         e1.success(f"**{int(usable.sum())} usable snapshot(s)** from {len(emit_res)} "
                    "EMIT scene(s) read; the rest were cloudy or missed the field.")
         _show(viz.plot_emit_cai(emit_res, result.start, emit_end), "emit-cai")
+        if result.series is not None:
+            st.caption("**Against the NDVI curve:** each EMIT snapshot (right axis) on "
+                       "its date, over the field's NDVI (left axis) with the NDVI "
+                       "planting and harvest windows shaded. CAI is a residue reading "
+                       "only where NDVI sits below the dotted 0.30 line.")
+            _show(viz.plot_emit_ndvi(emit_res, result.series, result.phenology,
+                                     result.start, emit_end), "emit-cai-ndvi")
         st.dataframe(_fmt_dates(emit_res), hide_index=True, use_container_width=True)
         st.download_button("Download EMIT CAI CSV", emit_res.to_csv(index=False).encode(),
                            f"{_dl_name('emit-cai')}.csv", "text/csv")
@@ -995,10 +1002,7 @@ with tab_moisture:
                "strip along the bottom** marks the days inside each window that are "
                "dry enough to work (soil moisture first, then that operation's "
                "weather rule), and the **bar under it** is the narrowed window: "
-               "black when a confident radar step helped, grey otherwise. **Diamonds** "
-               "are NASA EMIT snapshots from the Soil armor tab (once read there): tan "
-               "where the ground was not green, so CAI reads dry residue, hollow green "
-               "over a canopy, with the CAI value. In hay years, "
+               "black when a confident radar step helped, grey otherwise. In hay years, "
                "**purple** marks each cutting. Light-blue bars are daily rain.")
     with c3:
         st.write("")
@@ -1093,7 +1097,7 @@ with tab_moisture:
 
         _show(viz.plot_s1(s1_res["ctx"], s1_res["weather"], s1_res["ndvi"],
                           result.phenology, ev, ref, cuts=cuts,
-                          cover=result.covercrop, eligible=s1_res.get("eligible"), emit=emit_res),
+                          cover=result.covercrop, eligible=s1_res.get("eligible")),
               "sentinel1-radar-by-year")
 
         if has_cuts:
