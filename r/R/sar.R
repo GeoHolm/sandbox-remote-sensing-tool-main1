@@ -425,7 +425,7 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
         row$basis <- basis; row$refined_lo <- min(d); row$refined_hi <- max(d)
         row$candidate_days <- length(d); row
       }
-      best_z <- NA_real_
+      best_z <- NA_real_; picked <- as.Date(character(0))
       ok_sd <- !is.na(sd[[col]]) && sd[[col]] > 0
       if (length(in_i) && ok_sd) {
         e <- pool[in_i[which.min(pool[[col]][in_i])], ]
@@ -436,9 +436,9 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
           step <- seq(max(lo, e$date_a), min(hi, e$date - 1), by = 1)
           d_m <- step[.work_on(mok, step)]; d_w <- step[.work_on(work, step)]
           if (length(d_m)) {
-            row <- take(row, d_m, "radar + moisture")
+            row <- take(row, d_m, "radar + moisture"); picked <- d_m
           } else if (length(d_w)) {
-            row <- take(row, d_w, "radar + weather")
+            row <- take(row, d_w, "radar + weather"); picked <- d_w
             row$note <- "no dry-enough day in the radar interval"
           } else {
             row$note <- "radar step stands out but its interval has no workable day inside the window"
@@ -446,9 +446,9 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
         }
       }
       if (is.na(row$basis) && length(win_moist)) {
-        row <- take(row, win_moist, "moisture")
+        row <- take(row, win_moist, "moisture"); picked <- win_moist
       } else if (is.na(row$basis) && length(win_work)) {
-        row <- take(row, win_work, "weather only")
+        row <- take(row, win_work, "weather only"); picked <- win_work
         if (is.na(row$note)) row$note <- "no dry-enough day in window"
       }
       if (is.na(row$basis)) {
@@ -457,6 +457,15 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
         if (is.na(row$note)) row$note <- "no workable day in window"
       }
       row$span_days <- as.integer(row$refined_hi - row$refined_lo) + 1L
+      # One date to set beside the weather-checked one: the candidate day
+      # nearest the NDVI estimate, the earlier on a tie. "NDVI only" keeps the
+      # estimate. Same rule as sar.py.
+      est <- as.Date(p[[paste0(event, "_est")]])
+      row$ndvi_est <- est
+      row$moist_date <- if (length(picked) && !is.na(est))
+        picked[order(abs(as.integer(picked - est)), picked)][1] else est
+      row$moist_shift_d <- if (is.na(row$moist_date) || is.na(est)) NA_integer_
+                           else as.integer(row$moist_date - est)
       wd <- if (paste0(event, "_date") %in% names(p)) as.Date(p[[paste0(event, "_date")]])
             else as.Date(NA)
       row$weather_date <- wd

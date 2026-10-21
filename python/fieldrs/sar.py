@@ -570,9 +570,12 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                    "span_days": None, "candidate_days": None,
                    "conflict": False, "note": None}
 
+            picked = []
+
             def _take(days, basis):
                 row.update(basis=basis, refined_lo=days[0], refined_hi=days[-1],
                            candidate_days=len(days))
+                picked[:] = days
 
             best_z = None
             if len(inside) and sd[col] and np.isfinite(sd[col]):
@@ -601,6 +604,17 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                 row.update(refined_lo=lo, refined_hi=hi, candidate_days=len(win_days),
                            basis="NDVI only", note=row["note"] or "no workable day in window")
             row["span_days"] = (row["refined_hi"] - row["refined_lo"]).days + 1
+            # One date to set beside the weather-checked one: the candidate day
+            # nearest the NDVI estimate, the earlier on a tie (a farmer works
+            # ahead of the weather). "NDVI only" keeps the estimate.
+            est = getattr(p, f"{event}_est", pd.NaT)
+            row["ndvi_est"] = est
+            if picked and pd.notna(est):
+                row["moist_date"] = min(picked, key=lambda d: (abs((d - est).days), d))
+            else:
+                row["moist_date"] = est
+            row["moist_shift_d"] = (None if pd.isna(row["moist_date"]) or pd.isna(est)
+                                    else int((row["moist_date"] - est).days))
             wd = getattr(p, f"{event}_date", pd.NaT)
             row["weather_date"] = wd
             row["weather_date_in_window"] = (
@@ -621,6 +635,24 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
     out.attrs["noise_sd_db"] = {k: round(v, 2) for k, v in sd.items()}
     out.attrs["wet_threshold"] = wet.attrs["wet_threshold"]
     return out
+
+
+def moisture_summary(refined: pd.DataFrame | None) -> pd.DataFrame:
+    """One row per season with the soil moisture + radar dates, for setting
+    beside the summary's weather-checked ones: ``<event>_date_moist``,
+    ``<event>_shift_moist_d`` (days from the NDVI estimate) and
+    ``<event>_basis_moist`` for planting and harvest."""
+    cols = ["year"] + [f"{e}_{c}" for e in ("planting", "harvest")
+                       for c in ("date_moist", "shift_moist_d", "basis_moist")]
+    if refined is None or not len(refined):
+        return pd.DataFrame(columns=cols)
+    parts = []
+    for e in ("planting", "harvest"):
+        r = refined[refined["event"] == e].set_index("year")
+        parts.append(pd.DataFrame({f"{e}_date_moist": pd.to_datetime(r["moist_date"]),
+                                   f"{e}_shift_moist_d": r["moist_shift_d"].astype("Int64"),
+                                   f"{e}_basis_moist": r["basis"]}))
+    return pd.concat(parts, axis=1).rename_axis("year").reset_index()[cols]
 
 
 # --------------------------------------------------------------- one call ---

@@ -43,7 +43,7 @@ from fieldrs import viz
 import study_viewer
 from fieldrs.armor import armor_all_years, armor_band, armor_series
 from fieldrs.climate import GridmetError
-from fieldrs.sar import s1_analysis
+from fieldrs.sar import moisture_summary, s1_analysis
 from fieldrs.phenology import residue_window
 
 # ------------------------------------------------------------- config ---
@@ -1100,7 +1100,29 @@ with tab_summary:
         summ.insert(summ.columns.get_loc("confidence"),
                     "soil_armor_before_planting (provisional)",
                     [_armor_for(int(y)) for y in summ["year"]])
+
+    # Soil moisture + radar dates beside the weather-checked ones, for fields
+    # whose radar series is cached (the Soil moisture tab fills it otherwise).
+    moist = moisture_summary(s1_res["refined"] if s1_res is not None else None)
+    if len(summ) and len(moist):
+        after = ("harvest_shift_d" if "harvest_shift_d" in summ else "harvest_date")
+        summ = summ.merge(moist, on="year", how="left")
+        order = list(summ.columns)
+        for c in reversed(moist.columns[1:]):
+            order.remove(c)
+            order.insert(order.index(after) + 1, c)
+        summ = summ[order]
     st.dataframe(_fmt_dates(summ), hide_index=True, use_container_width=True)
+    if len(moist):
+        st.caption("**\\*_moist columns** come from the Soil moisture (radar) tab: the "
+                   "dry-enough day nearest the NDVI estimate inside the window narrowed "
+                   "by soil moisture, radar and weather (planting allows light rain, "
+                   "harvest needs a rain-free day); the shift is days from the NDVI "
+                   "estimate, and basis says which rule applied. Set beside the "
+                   "weather-checked dates, not replacing them.")
+    else:
+        st.caption("Soil moisture + radar dates appear here once the radar series for "
+                   "this field is read (Soil moisture (radar) tab).")
     st.caption((f"Planting and harvest dates are field-work days: where the NDVI "
                 f"estimate fell on a day of {wx_ahead}, it moved to the last {wx_what} "
                 "before it (gridMET), inside its uncertainty window; the shift columns "
@@ -1120,7 +1142,13 @@ with tab_summary:
         st.caption("The download holds two blocks, one under the other: the dates "
                    "without the weather check first, then the weather-checked dates "
                    "shown above.")
-    csv = result.summary_csv().encode()
+    csv = result.summary_csv()
+    if len(moist):
+        # A third block, like the two the weather check writes.
+        csv += ("\n\"Soil moisture + radar dates (Soil moisture tab: dry-enough day "
+                "nearest the NDVI estimate; shift in days from it)\"\n"
+                + moist.to_csv(index=False, date_format="%Y-%m-%d"))
+    csv = csv.encode()
     st.download_button("Download summary CSV", csv, f"{_dl_name('field-summary')}.csv",
                        "text/csv")
 

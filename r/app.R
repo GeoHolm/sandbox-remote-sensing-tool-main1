@@ -739,7 +739,13 @@ ui <- page_navbar(
            DTOutput("tbl_summary"),
            div(class = "text-muted small mt-2",
                "One row per season. Everything here is derived from free, public ",
-               "imagery with no field visit and no grower input.",
+               "imagery with no field visit and no grower input. ",
+               tags$strong("Planting / Harvest, soil moisture + radar"), " come from the ",
+               "Soil moisture (radar) tab: the dry-enough day nearest the NDVI estimate ",
+               "inside the window narrowed by soil moisture, radar and weather, the shift ",
+               "in days from the NDVI estimate, and which rule applied. They sit beside ",
+               "the weather-checked dates rather than replacing them, and read \"run the ",
+               "radar tab\" until the field's radar series is loaded.",
                tags$br(),
                tags$strong("Soil armor is provisional and uncalibrated"),
                " — the fraction of the surface covered by anything, living or ",
@@ -1751,6 +1757,16 @@ server <- function(input, output, session) {
       sprintf("%s (%d map; irrigated in %s maps)", m$irrigated, m$irrigation_map,
               m$irrigated_maps)
     }
+    # Soil moisture + radar dates beside the weather-checked ones, for fields
+    # whose radar series is cached (the Soil moisture tab fills it otherwise).
+    ref <- tryCatch(s1_res()$refined, error = function(e) NULL)
+    moist_for <- function(event) {
+      if (is.null(ref) || !nrow(ref)) return(rep("run the radar tab", nrow(p)))
+      r <- ref[ref$event == event, ]
+      i <- match(p$year, r$year)
+      ifelse(is.na(i), "--",
+             paste0(fmt_final(r$moist_date[i], r$moist_shift_d[i]), " · ", r$basis[i]))
+    }
     data.frame(
       Year = p$year,
       Crop = p$crop,
@@ -1759,6 +1775,8 @@ server <- function(input, output, session) {
                  else format(p$planting_est, "%d %b %Y"),
       Harvest  = if (rain) fmt_final(p$harvest_date, p$harvest_shift_d)
                  else format(p$harvest_est, "%d %b %Y"),
+      `Planting, soil moisture + radar` = moist_for("planting"),
+      `Harvest, soil moisture + radar`  = moist_for("harvest"),
       `Season (days)`   = p$season_days,
       `Season, final (days)` = p$season_days_final %||% rep(NA_integer_, nrow(p)),
       `Peak NDVI`       = p$peak_ndvi,
