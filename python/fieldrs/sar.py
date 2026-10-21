@@ -375,19 +375,27 @@ SAR_SUPPORT_Z = 2.0
 SAR_CONFLICT_DZ = 1.0
 
 
-def workable_days(weather: pd.DataFrame) -> pd.Series:
+def workable_days(weather: pd.DataFrame, rules: dict | None = None) -> pd.Series:
     """Per local day: could equipment have been in the field?
 
     The same rules as the rain check in climate.py -- rain at or below
-    DRY_PR_MM, and not the day after HEAVY_RAIN_MM or more -- plus not frozen,
-    so the two features cannot disagree about what a workable day is.
+    ``dry_mm``, daily-mean wind below ``wind_max_kmh`` when set, and not within
+    ``wet_days`` after ``heavy_mm`` or more -- plus not frozen, so the two
+    features cannot disagree about what a workable day is. ``rules`` holds the
+    same settings apply_rain_check() takes; anything left out is the climate.py
+    default, and wind is only checked when given.
     """
     from .climate import DRY_PR_MM, HEAVY_RAIN_MM, HEAVY_RAIN_WET_DAYS
 
+    r = {"dry_mm": DRY_PR_MM, "wind_max_kmh": None, "heavy_mm": HEAVY_RAIN_MM,
+         "wet_days": HEAVY_RAIN_WET_DAYS, **(rules or {})}
     w = weather.set_index("date").asfreq("D")
-    ok = w["pr_mm"].fillna(0) <= DRY_PR_MM
-    for k in range(1, HEAVY_RAIN_WET_DAYS + 1):
-        ok &= ~(w["pr_mm"].shift(k) >= HEAVY_RAIN_MM).fillna(False)
+    ok = w["pr_mm"].fillna(0) <= r["dry_mm"]
+    if r["wind_max_kmh"] is not None and "wind_kmh" in w:
+        ok &= ~(w["wind_kmh"] >= r["wind_max_kmh"]).fillna(False)
+    if r["heavy_mm"] is not None:
+        for k in range(1, int(r["wet_days"]) + 1):
+            ok &= ~(w["pr_mm"].shift(k) >= r["heavy_mm"]).fillna(False)
     if {"tmmx_degc", "tmmn_degc"} <= set(w.columns):
         ok &= ((w["tmmx_degc"] + w["tmmn_degc"]) / 2) > SAR_FROZEN_C
     return ok
@@ -399,7 +407,7 @@ def _robust_sd(x: pd.Series) -> float:
 
 
 def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
-              weather: pd.DataFrame) -> pd.DataFrame:
+              weather: pd.DataFrame, rules: dict | None = None) -> pd.DataFrame:
     """Narrow each NDVI planting and harvest window with radar and weather.
 
     Per event and season:
@@ -424,9 +432,13 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
 
     Days are local: an acquisition dated D (UTC, ~00:06) was taken the evening
     of D - 1, so an interval from A to B covers field days A .. B - 1.
+
+    ``rules`` are the weather settings of the rain check (see workable_days).
+    When ``phen`` already carries the rain check's final dates, each row also
+    reports ``weather_date`` and whether it falls in the narrowed window.
     """
     iv = s1_intervals(ctx)
-    work = workable_days(weather)
+    work = workable_days(weather, rules)
     D = pd.Timedelta
     sd = {"d_vv_adj": _robust_sd(iv.loc[iv["bare_both"], "d_vv_adj"]),
           "d_vh": _robust_sd(iv["d_vh"])}
@@ -483,6 +495,11 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                 row.update(refined_lo=lo, refined_hi=hi, candidate_days=len(win_days),
                            basis="NDVI only", note=row["note"] or "no workable day in window")
             row["span_days"] = (row["refined_hi"] - row["refined_lo"]).days + 1
+            wd = getattr(p, f"{event}_date", pd.NaT)
+            row["weather_date"] = wd
+            row["weather_date_in_window"] = (
+                None if pd.isna(wd) else
+                bool(row["refined_lo"] <= wd <= row["refined_hi"]))
 
             if len(wider) and sd[col] and np.isfinite(sd[col]):
                 out_z = float(-wider[col].min() / sd[col])
@@ -502,7 +519,7 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
 # --------------------------------------------------------------- one call ---
 
 def s1_analysis(aoi: gpd.GeoDataFrame, result, *, only_cached: bool = False,
-                workers: int = 8) -> dict | None:
+                workers: int = 8, rules: dict | None = None) -> dict | None:
     """Everything the radar view needs for one field, in one call.
 
     ``result`` is the field's NDVI pipeline result (a FieldResult, or anything
@@ -531,8 +548,8 @@ def s1_analysis(aoi: gpd.GeoDataFrame, result, *, only_cached: bool = False,
         events = refined = pd.DataFrame()
     else:
         events = s1_events(ctx, phen)
-        refined = s1_refine(ctx, phen, weather)
-    cuts = forage_cuts(ndvi, phen, ctx, weather)
+        refined = s1_refine(ctx, phen, weather, rules)
+    cuts = forage_cuts(ndvi, phen, ctx, weather, rules)
     return {"s1": s1, "ctx": ctx, "weather": weather, "ndvi": ndvi,
             "events": events, "refined": refined, "cuts": cuts,
             "orbits": sorted(int(o) for o in s1["orbit"].unique())}

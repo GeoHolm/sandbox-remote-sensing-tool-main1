@@ -900,13 +900,18 @@ with tab_armor:
 
 if "s1" not in st.session_state:
     st.session_state.s1 = {}
-s1_key = (field_key[0], years, source)
+# The radar narrows windows to workable days by the same weather settings as the
+# sidebar's rain check, so those settings are part of its key. Changing them
+# only re-reads the cached radar series.
+s1_rules = (dict(dry_mm=dry_mm, wind_max_kmh=wind_max, heavy_mm=heavy_mm,
+                 wet_days=int(wet_days)) if rain_check else None)
+s1_key = (field_key[0], years, source, rain_key)
 
 
 @st.cache_data(show_spinner=False)
-def _s1_cached(_aoi, _result, key):
+def _s1_cached(_aoi, _result, key, _rules):
     try:
-        return s1_analysis(_aoi, _result, only_cached=True)
+        return s1_analysis(_aoi, _result, only_cached=True, rules=_rules)
     except GridmetError:
         return None
 
@@ -923,18 +928,22 @@ with tab_moisture:
                "moisture. **VV is shown with the rain-driven part removed** by "
                "regressing it on an antecedent precipitation index from gridMET, "
                "fitted per orbit on bare, unfrozen dates. Frozen dates are dropped.")
-    c2.caption("**Bars along the top of each panel** mark the interval holding the "
-               "largest VV drop in spring (orange: seedbed or planter smoothing the "
-               "surface) and the largest VH drop near the harvest window (brown: "
-               "canopy removed). **Black bars along the bottom** are NDVI windows "
-               "narrowed by radar and weather together. In hay years, **purple** "
-               "marks each cutting. Blue bars are daily rain.")
+    c2.caption("Planting is **blue** and harvest **orange**, as on the Season "
+               "analysis tab: shaded NDVI windows, a dashed line at the NDVI "
+               "estimate and a solid one at the weather-checked date. **Bars along "
+               "the top of each panel** mark the interval holding the largest VV "
+               "drop in spring (seedbed or planter smoothing the surface) and the "
+               "largest VH drop near the harvest window (canopy removed). **Black "
+               "bars along the bottom** are NDVI windows narrowed by radar and the "
+               "sidebar's weather settings together. In hay years, **purple** marks "
+               "each cutting. Light-blue bars are daily rain.")
     with c3:
         st.write("")
         run_s1 = st.button("Run radar analysis", type="primary",
                            use_container_width=True)
 
-    s1_res = st.session_state.s1.get(s1_key) or _s1_cached(aoi, result, s1_key)
+    s1_res = (st.session_state.s1.get(s1_key)
+              or _s1_cached(aoi, result, s1_key, s1_rules))
     if s1_res is not None:
         st.success("**Already loaded.** The radar series for this field and year "
                    "range is cached -- it runs instantly.")
@@ -946,7 +955,7 @@ with tab_moisture:
     if run_s1:
         with st.spinner("Reading Sentinel-1 radar over the field..."):
             try:
-                fresh = s1_analysis(aoi, result)
+                fresh = s1_analysis(aoi, result, rules=s1_rules)
             except GridmetError as exc:
                 fresh = exc
         if isinstance(fresh, GridmetError):
@@ -1044,7 +1053,11 @@ with tab_moisture:
                        "workable days in its interval; otherwise only rain days are "
                        "struck out. Agreement with NDVI is built in here, so it is "
                        "not a result. **Read span_days, not candidate_days**, as how "
-                       "far the date is pinned down.")
+                       "far the date is pinned down. Workable days follow the "
+                       "sidebar's weather settings when the check is on (defaults "
+                       "otherwise), plus no frozen days; weather_date is the Season "
+                       "analysis tab's weather-checked date, and "
+                       "weather_date_in_window says whether the radar agrees with it.")
             st.dataframe(_fmt_dates(ref), hide_index=True, use_container_width=True)
         if len(ev):
             with st.expander("Radar searched beyond the NDVI windows"):

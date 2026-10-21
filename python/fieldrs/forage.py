@@ -175,7 +175,8 @@ def ndvi_cuts(ndvi: pd.Series, year: int) -> list[dict]:
 
 def forage_cuts(ndvi: pd.Series | None, phen: pd.DataFrame | None,
                 ctx: pd.DataFrame | None = None,
-                weather: pd.DataFrame | None = None) -> pd.DataFrame:
+                weather: pd.DataFrame | None = None,
+                rules: dict | None = None) -> pd.DataFrame:
     """Every cut in every forage year, with radar and weather narrowing.
 
     ``ndvi`` is the field's clear-observation NDVI series (date index).
@@ -211,7 +212,7 @@ def forage_cuts(ndvi: pd.Series | None, phen: pd.DataFrame | None,
         iv = iv[iv["date"] > iv["date_a"]].reset_index(drop=True)   # no same-day pairs
         season = iv[iv["date"].dt.strftime("%m-%d").between(*CUT_SEASON)]
         sd = _robust_sd(season["d_vh"])
-    work = workable_days(weather) if weather is not None and len(weather) else None
+    work = workable_days(weather, rules) if weather is not None and len(weather) else None
 
     rows = []
     for y in years:

@@ -769,12 +769,24 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
         # year) belongs to next year's season but falls in this year's panel.
         if phen is not None:
             for p in phen.itertuples():
-                if pd.notna(p.planting_lo):
-                    ax.axvspan(p.planting_lo, p.planting_hi, color="orange", alpha=0.18,
-                               label="NDVI planting window")
-                if pd.notna(p.harvest_lo):
-                    ax.axvspan(p.harvest_lo, p.harvest_hi, color="saddlebrown", alpha=0.15,
-                               label="NDVI harvest window")
+                # Same windows, colors and date lines as plot_phenology, so the
+                # two tabs read alike: dashed is the NDVI estimate, solid the
+                # weather-checked date when the rain check is on.
+                for ev, colour in (("planting", "#2c7fb8"), ("harvest", "#d95f0e")):
+                    lo_, hi_ = getattr(p, f"{ev}_lo"), getattr(p, f"{ev}_hi")
+                    if pd.isna(lo_):
+                        continue
+                    ax.axvspan(lo_, hi_, color=colour, alpha=0.13,
+                               label=f"NDVI {ev} window")
+                    est = getattr(p, f"{ev}_est", pd.NaT)
+                    final = getattr(p, f"{ev}_date", pd.NaT)
+                    if pd.notna(est):
+                        ax.axvline(est, color=colour, ls="--",
+                                   lw=1.2 if pd.notna(final) else 1.6,
+                                   label=f"{ev}, NDVI estimate")
+                    if pd.notna(final):
+                        ax.axvline(final, color=colour, lw=2.2,
+                                   label=f"{ev}, weather-checked")
                 if int(p.year) == y:
                     crop = p.crop if isinstance(p.crop, str) else "crop not yet in CDL"
                     ax.set_title(f"{y} · {crop}", loc="left", fontsize=10)
@@ -790,7 +802,7 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
                              fontsize=10)
         if events is not None and len(events):
             for e in events[events["s1_from"].notna()].itertuples():
-                c = "darkorange" if e.event == "planting" else "saddlebrown"
+                c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
                 ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0, color=c,
                            label=f"radar {e.event} interval")
         if refined is not None and len(refined):
