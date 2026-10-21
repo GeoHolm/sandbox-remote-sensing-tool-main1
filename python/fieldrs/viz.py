@@ -741,8 +741,8 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
     s1_events, s1_refine); ``weather`` is daily gridMET with ``pr_mm``.
     Moisture-adjusted VV and orbit-centered VH in dB on the left axis, NDVI
     scaled onto it, daily rain on the right. Bars along the top mark the radar
-    interval found by searching beyond the NDVI window; black bars along the
-    bottom mark windows narrowed by radar and weather together. For hay years,
+    interval used to narrow an NDVI window (hollow: a stronger step outside the
+    window); black bars along the bottom mark the narrowed windows. For hay years,
     ``cuts`` (fieldrs.forage.forage_cuts) adds each cut's NDVI bracket as a
     purple band and its narrowed dates as a purple bar along the bottom.
     """
@@ -800,11 +800,20 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
             if len(st_) and st_.iloc[0] == "established":
                 ax.set_title(f"{ax.get_title(loc='left')} · established stand", loc="left",
                              fontsize=10)
-        if events is not None and len(events):
-            for e in events[events["s1_from"].notna()].itertuples():
+        # Top band: only the radar interval that actually narrowed a window, so
+        # it always overlaps its NDVI window. A stronger step outside the window
+        # (refined.conflict) is drawn hollow; the wider search in ``events``
+        # feeds the agreement metrics, not the chart.
+        if refined is not None and len(refined):
+            for e in refined[refined["basis"].str.startswith("radar")].itertuples():
                 c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
                 ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0, color=c,
-                           label=f"radar {e.event} interval")
+                           label=f"radar {e.event} interval (used)")
+            for e in refined[refined["conflict"].astype(bool)].itertuples():
+                c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
+                ax.axvspan(e.conflict_from, e.conflict_to, ymin=0.9, ymax=1.0,
+                           facecolor="none", edgecolor=c, lw=1.2, ls="--",
+                           label="stronger radar step outside window")
         if wetness is not None and len(wetness):
             # Runs of dry-enough days (sar.soil_wetness) as a tan strip just
             # above the narrowed-window bars.

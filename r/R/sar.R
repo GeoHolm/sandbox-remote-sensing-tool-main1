@@ -420,7 +420,9 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
                   s1_from = as.Date(NA), s1_to = as.Date(NA), step_db = NA_real_,
                   z = NA_real_, basis = NA_character_, refined_lo = as.Date(NA),
                   refined_hi = as.Date(NA), span_days = NA_integer_,
-                  candidate_days = NA_integer_, conflict = FALSE, note = NA_character_)
+                  candidate_days = NA_integer_, conflict = FALSE,
+                  conflict_from = as.Date(NA), conflict_to = as.Date(NA),
+                  note = NA_character_)
       take <- function(row, d, basis) {
         row$basis <- basis; row$refined_lo <- min(d); row$refined_hi <- max(d)
         row$candidate_days <- length(d); row
@@ -476,6 +478,7 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
         if (out_z >= SAR_SUPPORT_Z && (is.na(best_z) || out_z - best_z > SAR_CONFLICT_DZ)) {
           o <- pool[wide_i[which.min(pool[[col]][wide_i])], ]
           row$conflict <- TRUE
+          row$conflict_from <- o$date_a; row$conflict_to <- o$date
           msg <- sprintf("stronger step outside window: %s to %s, z %.1f",
                          format(o$date_a, "%m-%d"), format(o$date, "%m-%d"), out_z)
           row$note <- if (is.na(row$note)) msg else paste0(row$note, "; ", msg)
@@ -530,7 +533,7 @@ S1_EVENT_COLOUR <- c(planting = "#2c7fb8", harvest = "#d95f0e")   # as plot_phen
 #' windows in plot_phenology()'s colours, with its dashed NDVI estimate and
 #' solid weather-checked date; hay cut brackets (purple) and drops to bare soil
 #' (grey). Bars along
-#' the top: the radar interval found searching beyond the NDVI window. Bars
+#' the top: the radar interval used to narrow an NDVI window (hollow: a stronger step outside the window). Bars
 #' along the bottom: windows and cuts narrowed by radar and weather.
 plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
   ctx <- res$ctx; w <- res$weather; nd <- res$ndvi
@@ -583,11 +586,18 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
       n_cut <- sum(cy$kind == "cut")
       if (n_cut) lab <- sprintf("%s · %d cut%s", lab, n_cut, if (n_cut != 1) "s" else "")
     }
-    if (!is.null(ev) && nrow(ev)) {
-      ey <- ev[!is.na(ev$s1_from), ]                 # all seasons; plot clips
-      for (i in seq_len(nrow(ey)))
-        span(ey$s1_from[i], ey$s1_to[i],
-             S1_EVENT_COLOUR[[ey$event[i]]], 6.1, 7)
+    # Top band: only the radar interval that actually narrowed a window, so it
+    # always overlaps its NDVI window; a stronger step outside the window
+    # (refined$conflict) is drawn hollow. The wider search in res$events feeds
+    # the agreement metrics, not the chart.
+    if (!is.null(ref) && nrow(ref)) {
+      ru <- ref[startsWith(ref$basis, "radar"), ]    # all seasons; plot clips
+      for (i in seq_len(nrow(ru)))
+        span(ru$s1_from[i], ru$s1_to[i], S1_EVENT_COLOUR[[ru$event[i]]], 6.1, 7)
+      rc <- ref[ref$conflict, ]
+      for (i in seq_len(nrow(rc)))
+        graphics::rect(rc$conflict_from[i], 6.1, rc$conflict_to[i], 7, col = NA,
+                       border = S1_EVENT_COLOUR[[rc$event[i]]], lty = 2, lwd = 1.2)
     }
     wet <- res$wetness
     if (!is.null(wet) && nrow(wet)) {
@@ -634,18 +644,18 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
     legend = c("VV, moisture-adjusted (dB)", "VH, orbit-centred (dB)", "NDVI × 10 − 6",
                "frozen (dropped)", "NDVI planting window", "NDVI harvest window",
                "NDVI estimate (dashed)", "weather-checked date (solid)",
-               "radar interval (top)", "soil dry enough (radar + rain)",
+               "radar interval used (top)", "stronger radar step outside window", "soil dry enough (radar + rain)",
                "narrowed: radar + moisture (bottom)", "hay cut (purple)",
                "stand seeding (green)", "cover crop seeding / termination (dotted)"),
     col = c("#1f77b4", "forestgreen", "darkgreen", "grey50",
             grDevices::adjustcolor(S1_EVENT_COLOUR[["planting"]], 0.3),
             grDevices::adjustcolor(S1_EVENT_COLOUR[["harvest"]], 0.3), "grey30", "grey30",
-            S1_EVENT_COLOUR[["harvest"]], "#c9a66b", "black", "purple",
+            S1_EVENT_COLOUR[["harvest"]], "grey30", "#c9a66b", "black", "purple",
             STAND_COLOUR, COVER_SEED_COLOUR),
-    lwd = c(1, 1, 1.6, NA, NA, NA, 1.2, 2.2, NA, NA, NA, NA, 1.6, 1.8),
-    lty = c(1, 1, 1, NA, NA, NA, 2, 1, NA, NA, NA, NA, 2, 3),
-    pch = c(16, NA, NA, 4, 15, 15, NA, NA, 15, 15, 15, 15, NA, NA),
-    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, NA, NA, 1.4, 1.4, 1.4, 1.4, NA, NA))
+    lwd = c(1, 1, 1.6, NA, NA, NA, 1.2, 2.2, NA, 1.2, NA, NA, NA, 1.6, 1.8),
+    lty = c(1, 1, 1, NA, NA, NA, 2, 1, NA, 2, NA, NA, NA, 2, 3),
+    pch = c(16, NA, NA, 4, 15, 15, NA, NA, 15, NA, 15, 15, 15, NA, NA),
+    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, NA, NA, 1.4, NA, 1.4, 1.4, 1.4, NA, NA))
   if (!is.null(title)) graphics::mtext(title, side = 3, line = -1.1, cex = 0.9, font = 2)
   invisible()
 }

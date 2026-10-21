@@ -568,7 +568,8 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                    "s1_from": pd.NaT, "s1_to": pd.NaT, "step_db": None, "z": None,
                    "basis": None, "refined_lo": pd.NaT, "refined_hi": pd.NaT,
                    "span_days": None, "candidate_days": None,
-                   "conflict": False, "note": None}
+                   "conflict": False, "conflict_from": pd.NaT, "conflict_to": pd.NaT,
+                   "note": None}
 
             picked = []
 
@@ -627,6 +628,7 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                                                or out_z - best_z > SAR_CONFLICT_DZ):
                     o = wider.loc[wider[col].idxmin()]
                     row["conflict"] = True
+                    row["conflict_from"], row["conflict_to"] = o["date_a"], o["date"]
                     msg = (f"stronger step outside window: {o['date_a']:%m-%d} to "
                            f"{o['date']:%m-%d}, z {out_z:.1f}")
                     row["note"] = msg if row["note"] is None else f"{row['note']}; {msg}"
