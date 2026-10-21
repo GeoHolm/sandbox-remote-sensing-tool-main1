@@ -1,0 +1,5 @@
+year,crop,stratum,focus_armor,peers_n,peer_median,percentile,window_source,n_obs
+2022,Peanuts,summer only,0.112,49,0.262,14.3,partial,16
+2023,Corn,summer only,0.309,43,0.289,55.8,phenology,6
+2024,Cotton,summer only,0.447,43,0.219,72.1,phenology,10
+2025,Peanuts,summer only,0.186,50,0.338,8.0,phenology,12

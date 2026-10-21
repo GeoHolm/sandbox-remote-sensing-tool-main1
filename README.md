@@ -565,6 +565,20 @@ Every pixel is decomposed into three fractions that sum to one — living green
 cover (`f_pv`), crop residue (`f_npv`) and bare soil (`f_bs`) — and **soil armor
 is `1 - f_bs`**: cover from any source.
 
+**Two calendar-year scores sit beside the headline figure, in Python only.**
+The headline `armor` covers the pre-planting window, which on a winter cereal
+contains a living cash crop — so across 101 Kansas fields it separates
+winter-crop from summer-only years by 2.73 SD and correlates 0.91 with
+off-season greenness. It ranks cropping systems, not management.
+`soil_armor.csv` therefore also carries **`annual_residue`** (whole-year mean
+`f_npv`, crop-neutral by construction: crop gap 0.36 SD, correlation with
+greenness 0.23) and **`annual_worst`** (the 10th percentile of armor through
+the year — how bare it got, not how bare on average). Keep the window figure
+for "how covered was the ground at planting"; use these to compare fields.
+`r/R/armor.R` has no equivalent and `compare_with_r.py` does not check them.
+The comparison that chose these two over three other candidates is in
+[`project-level-tests/ANNUAL-ARMOR-OPTIONS.md`](project-level-tests/ANNUAL-ARMOR-OPTIONS.md).
+
 ### Why minimum NDTI had to go
 
 NDTI measures residue. Soil armor is protection, and a living cover crop or a

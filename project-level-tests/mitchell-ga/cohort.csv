@@ -1,0 +1,52 @@
+CALCACRES,acres,compact,fid,crop_years,cdl_2022,pct_2022,cdl_2023,pct_2023,cdl_2024,pct_2024,cdl_2025,pct_2025,dist_m,role,lon,lat
+0.0,159.9,0.959,focus,4,Peanuts,96.1,Corn,63.2,Cotton,91.7,Peanuts,96.5,0.0,focus,-84.439217,31.10958
+0.0,53.2,0.93,f0018,4,Peanuts,93.3,Corn,97.1,Cotton,85.8,Peanuts,88.7,837.0,cohort,-84.447629,31.107376
+0.0,227.2,0.962,f0910,4,Cotton,89.2,Cotton,76.8,Peanuts,89.6,Cotton,78.8,948.0,cohort,-84.439679,31.101065
+0.0,203.4,0.943,f0909,3,Peanuts,96.4,Corn,49.2,Sweet Corn,70.5,Peanuts,96.2,968.0,cohort,-84.429038,31.109744
+0.0,106.9,0.558,f0537,4,Peanuts,89.1,Cotton,91.0,Cotton,87.2,Peanuts,75.5,1177.0,cohort,-84.431566,31.101266
+0.0,102.5,0.952,f0012,4,Cotton,97.2,Peanuts,96.1,Corn,91.8,Peanuts,97.8,1246.0,cohort,-84.452086,31.111673
+0.0,125.2,0.553,f0521,3,Peanuts,92.2,Cotton,93.8,Cotton,47.2,Peanuts,93.8,1262.0,cohort,-84.431456,31.118785
+0.0,173.6,0.69,f0019,4,Peanuts,93.1,Cotton,95.3,Peanuts,90.5,Cotton,94.4,1382.0,cohort,-84.450111,31.101356
+0.0,96.6,0.761,f1341,4,Cotton,90.1,Corn,67.0,Peanuts,64.0,Corn,64.4,1570.0,cohort,-84.426284,31.100807
+0.0,65.0,0.86,f0016,4,Corn,91.5,Corn,94.5,Peanuts,84.0,Corn,87.0,1879.0,cohort,-84.458811,31.107379
+0.0,40.1,0.743,f1120,4,Cotton,88.8,Peanuts,87.2,Cotton,83.8,Cotton,84.9,1925.0,cohort,-84.446613,31.125687
+0.0,83.2,0.656,f0475,4,Peanuts,62.5,Corn,70.7,Peanuts,67.6,Corn,68.1,1996.0,cohort,-84.418256,31.108672
+0.0,69.1,0.607,f0523,4,Cotton,89.7,Peanuts,89.0,Sweet Corn,60.6,Peanuts,88.7,1996.0,cohort,-84.427767,31.094536
+0.0,105.1,0.762,f1223,4,Cotton,98.3,Cotton,96.0,Cotton,93.6,Peanuts,94.0,2064.0,cohort,-84.450292,31.093625
+0.0,209.1,0.979,f1222,3,Corn,49.4,Cotton,96.3,Peanuts,94.9,Cotton,94.2,2122.0,cohort,-84.46081,31.114394
+0.0,54.9,0.823,f1121,4,Corn,93.9,Corn,96.3,Peanuts,82.0,Corn,93.0,2130.0,cohort,-84.45124,31.125742
+0.0,61.0,0.798,f1342,4,Cotton,88.5,Peanuts,82.1,Cotton,77.8,Peanuts,82.1,2143.0,cohort,-84.420803,31.098473
+0.0,47.4,0.782,f0029,3,Cotton,86.6,Peanuts,93.1,Sweet Corn,42.6,Peanuts,85.2,2225.0,cohort,-84.427298,31.126796
+0.0,53.9,0.755,f0017,4,Peanuts,82.4,Cotton,84.1,Peanuts,82.8,Cotton,74.5,2372.0,cohort,-84.464044,31.107513
+0.0,62.0,0.545,f0038,3,Cotton,94.3,Cotton,83.6,Cotton,80.8,Barren,50.9,2396.0,cohort,-84.427126,31.090678
+0.0,43.7,0.708,f1340,4,Cotton,70.9,Peanuts,86.4,Cotton,68.8,Peanuts,83.9,2510.0,cohort,-84.421075,31.093192
+0.0,75.6,0.533,f0455,4,Peanuts,93.9,Corn,65.9,Corn,90.1,Peanuts,93.9,2575.0,cohort,-84.451845,31.130057
+0.0,154.7,0.657,f0517,4,Cotton,94.7,Peanuts,92.1,Cotton,86.2,Peanuts,90.4,2663.0,cohort,-84.450828,31.087797
+0.0,119.3,0.702,f0010,4,Cotton,91.4,Peanuts,89.0,Cotton,88.3,Peanuts,91.1,2746.0,cohort,-84.461119,31.125676
+0.0,49.2,0.936,f1218,3,Peanuts,91.4,Sweet Corn,53.4,Peanuts,91.0,Cotton,86.0,2820.0,cohort,-84.416145,31.093649
+0.0,218.5,0.742,f0538,3,Cotton,91.2,Peanuts,89.9,Cotton,56.5,Sweet Corn,87.9,2857.0,cohort,-84.43967,31.083896
+0.0,65.8,0.789,f0516,4,Peanuts,84.2,Cotton,80.9,Peanuts,84.2,Cotton,80.5,2916.0,cohort,-84.458396,31.089123
+0.0,96.2,0.746,f0058,4,Peanuts,89.4,Cotton,92.2,Cotton,84.1,Sweet Corn,90.6,2927.0,cohort,-84.408446,31.110395
+0.0,55.5,0.816,f0009,4,Peanuts,92.8,Cotton,86.7,Sweet Corn,76.7,Peanuts,92.4,2947.0,cohort,-84.458341,31.130429
+0.0,55.5,0.931,f0533,3,Peanuts,75.4,Cotton,89.9,Peanuts,79.0,Sweet Corn,43.5,3014.0,cohort,-84.409998,31.120079
+0.0,49.3,0.548,f1106,4,Cotton,97.7,Peanuts,93.2,Cotton,72.7,Peanuts,89.5,3036.0,cohort,-84.468973,31.099685
+0.0,128.5,0.958,f0036,3,Soybeans,56.6,Sweet Corn,74.5,Peanuts,90.4,Cotton,89.7,3113.0,cohort,-84.418432,31.087957
+0.0,76.6,0.533,f1001,4,Cotton,82.1,Peanuts,77.7,Cotton,72.5,Peanuts,76.3,3184.0,cohort,-84.447128,31.081765
+0.0,92.9,0.694,f0506,4,Corn,84.9,Peanuts,83.2,Corn,76.7,Peanuts,82.9,3199.0,cohort,-84.47284,31.110571
+0.0,200.2,0.921,f1351,3,Corn,50.2,Cotton,98.6,Peanuts,95.6,Cotton,98.6,3203.0,cohort,-84.43995,31.138371
+0.0,54.4,0.901,f0001,4,Peanuts,93.9,Sweet Corn,62.9,Peanuts,92.2,Cotton,92.7,3281.0,cohort,-84.463842,31.088922
+0.0,54.1,0.762,f0534,3,Cotton,75.7,Peanuts,74.1,Cotton,53.9,Peanuts,66.7,3354.0,cohort,-84.405619,31.118755
+0.0,66.5,0.695,f0008,4,Sweet Corn,60.8,Peanuts,69.1,Peanuts,77.7,Cotton,75.1,3387.0,cohort,-84.465143,31.130465
+0.0,55.1,0.423,f1390,3,Peanuts,91.7,Corn,38.5,Cotton,83.7,Peanuts,86.9,3395.0,cohort,-84.407953,31.124332
+0.0,57.0,0.942,f0507,4,Corn,94.6,Corn,95.0,Peanuts,85.7,Corn,94.6,3415.0,cohort,-84.469768,31.093444
+0.0,101.4,0.676,f0030,4,Soybeans,91.6,Corn,97.1,Peanuts,86.1,Sweet Corn,83.7,3426.0,cohort,-84.421286,31.136301
+0.0,102.9,0.782,f0920,4,Cotton,79.7,Peanuts,85.6,Cotton,81.0,Peanuts,86.4,3493.0,cohort,-84.473736,31.120338
+0.0,42.1,0.366,f0037,4,Peanuts,90.7,Corn,92.7,Corn,78.2,Peanuts,89.1,3510.0,cohort,-84.410756,31.089488
+0.0,126.7,0.655,f0006,4,Dbl Crop WinWht/Cotton,85.7,Peanuts,90.9,Corn,88.4,Peanuts,92.1,3571.0,cohort,-84.460364,31.136116
+0.0,72.5,0.61,f1241,4,Cotton,95.4,Cotton,94.8,Peanuts,77.1,Cotton,81.4,3602.0,cohort,-84.401345,31.108704
+0.0,47.1,0.775,f1081,4,Corn,84.9,Peanuts,83.5,Cotton,92.9,Corn,81.1,3611.0,cohort,-84.405779,31.094189
+0.0,42.1,0.749,f0924,4,Cotton,73.2,Peanuts,74.7,Cotton,62.6,Peanuts,70.5,3638.0,cohort,-84.401568,31.115421
+0.0,65.9,0.724,f1354,4,Peanuts,95.2,Sweet Corn,83.9,Peanuts,98.6,Cotton,61.0,3759.0,cohort,-84.47026,31.088653
+0.0,42.7,0.596,f1082,4,Corn,90.1,Peanuts,93.2,Cotton,85.9,Corn,85.3,3798.0,cohort,-84.405813,31.090856
+0.0,54.5,0.489,f0034,4,Cotton,83.5,Peanuts,64.5,Cotton,67.4,Peanuts,65.7,3817.0,cohort,-84.417045,31.080976
+0.0,63.8,0.868,f0925,4,Peanuts,95.4,Corn,97.2,Corn,92.6,Peanuts,93.7,3885.0,cohort,-84.400227,31.120029

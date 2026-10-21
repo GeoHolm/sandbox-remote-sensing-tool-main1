@@ -16,10 +16,24 @@ so the deck outlives the demonstration app.
 
 ## The cotton deck
 
-16 slides: a 15-slide narrative plus a technical appendix shown only if an
-engineering evaluator is in the room. The live version is a Claude Artifact,
-which is where it is edited and where a `.pptx` or PDF is downloaded from. The
-files here are that deck's source, copied out so it is under version control.
+A narrative plus a technical appendix shown only if an engineering evaluator
+is in the room. The live version is a Claude Artifact, which is where it is
+edited and where a `.pptx` or PDF is downloaded from. The files here are that
+deck's source, copied out so it is under version control.
+
+> **The two are out of step right now.** `build_pptx.py` builds **18
+> slides**. Two were added to demonstrate the hyper-local benchmark work on
+> cotton ground:
+>
+> - slide 8, "Every field around it, read the same way" — the Mitchell
+>   County cohort on aerial imagery, figure
+>   `project-level-tests/mitchell-ga/figures/deck/01_cohort_map.png`;
+> - slide 9, "Benchmark a cotton field against its cotton neighbours" —
+>   figure `cotton_benchmark.png`, built by
+>   `project-level-tests/figure_cotton_benchmark.py`.
+>
+> The artifact, `deck.json` and `slides/` still hold the original **16** and
+> have neither. Add them there before presenting from the artifact.
 
 `deck.json` is the index — slide order, sections and typefaces. Each
 `slides/<id>.html` is one slide; the `<aside>` at the end of each is the

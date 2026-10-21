@@ -1,0 +1,468 @@
+fid,year,crop,planting_est,harvest_est,season_days,peak_ndvi,n_obs,confidence
+focus,2022,Corn,2022-04-30 00:00:00,2022-07-24 00:00:00,64.0,0.735,40,low -- sparse imagery near transitions
+focus,2023,Winter Wheat,NaT,NaT,nan,0.316,32,no summer crop detected
+focus,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.444,48,no summer crop detected
+focus,2025,Cotton,2025-06-22 00:00:00,2025-11-01 00:00:00,108.0,0.865,41,medium
+focus,2026,nan,2026-04-27 00:00:00,2026-08-03 00:00:00,78.0,0.734,35,low -- sparse imagery near transitions
+f1412,2022,Cotton,NaT,NaT,nan,0.437,86,no summer crop detected
+f1412,2023,Soybeans,2023-07-04 00:00:00,2023-10-30 00:00:00,100.0,0.772,72,high
+f1412,2024,Soybeans,2024-06-12 00:00:00,2024-09-28 00:00:00,90.0,0.622,78,high
+f1412,2025,Winter Wheat,NaT,NaT,nan,0.339,75,no summer crop detected
+f1412,2026,nan,NaT,NaT,nan,0.412,58,no summer crop detected
+f1413,2022,Soybeans,NaT,NaT,nan,0.364,85,no summer crop detected
+f1413,2023,Dbl Crop WinWht/Soybeans,2023-07-20 00:00:00,2023-10-19 00:00:00,71.0,0.59,73,high
+f1413,2024,Winter Wheat,2024-03-25 00:00:00,2024-06-19 00:00:00,86.0,0.591,82,medium
+f1413,2025,Dbl Crop WinWht/Soybeans,2025-07-03 00:00:00,2025-10-14 00:00:00,83.0,0.838,73,high
+f1413,2026,nan,2026-06-10 00:00:00,NaT,nan,0.564,58,low -- no clear senescence
+f1431,2022,Winter Wheat,NaT,NaT,nan,0.393,83,no summer crop detected
+f1431,2024,Soybeans,2024-06-04 00:00:00,2024-10-10 00:00:00,110.0,0.742,78,high
+f1431,2025,Sorghum,2025-05-24 00:00:00,2025-10-13 00:00:00,122.0,0.887,75,medium
+f1431,2026,nan,NaT,NaT,nan,0.238,59,no summer crop detected
+f1432,2022,Dbl Crop WinWht/Soybeans,2022-06-19 00:00:00,2022-10-08 00:00:00,91,0.46,87,high
+f1432,2023,Dbl Crop WinWht/Sorghum,2023-07-11 00:00:00,2023-11-07 00:00:00,99,0.743,71,high
+f1432,2024,Corn,2024-05-03 00:00:00,2024-07-26 00:00:00,63,0.683,83,high
+f1432,2025,Dbl Crop WinWht/Soybeans,2025-06-29 00:00:00,2025-10-16 00:00:00,89,0.903,72,high
+f1432,2026,nan,2026-05-08 00:00:00,2026-08-06 00:00:00,70,0.806,59,medium
+f1433,2022,Dbl Crop WinWht/Soybeans,2022-06-19 00:00:00,2022-10-08 00:00:00,91,0.471,86,high
+f1433,2023,Dbl Crop WinWht/Sorghum,2023-07-09 00:00:00,2023-11-06 00:00:00,100,0.785,71,high
+f1433,2024,Corn,2024-05-04 00:00:00,2024-07-27 00:00:00,63,0.672,82,medium
+f1433,2025,Dbl Crop WinWht/Sorghum,2025-07-07 00:00:00,2025-11-10 00:00:00,106,0.786,77,high
+f1433,2026,nan,2026-06-05 00:00:00,2026-09-04 00:00:00,71,0.561,59,high
+f1434,2022,Soybeans,2022-06-17 00:00:00,2022-09-24 00:00:00,81.0,0.551,85,high
+f1434,2023,Dbl Crop WinWht/Soybeans,2023-06-29 00:00:00,2023-10-26 00:00:00,99.0,0.84,72,high
+f1434,2024,Dbl Crop WinWht/Soybeans,2024-06-17 00:00:00,2024-09-19 00:00:00,74.0,0.583,80,high
+f1434,2025,Dbl Crop WinWht/Soybeans,2025-06-27 00:00:00,2025-10-01 00:00:00,76.0,0.822,75,high
+f1434,2026,nan,2026-06-07 00:00:00,NaT,nan,0.698,59,low -- no clear senescence
+f1435,2022,Soybeans,NaT,NaT,nan,0.396,82,no summer crop detected
+f1435,2023,Dbl Crop WinWht/Soybeans,2023-06-29 00:00:00,2023-10-27 00:00:00,100.0,0.678,71,high
+f1435,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.425,78,no summer crop detected
+f1435,2025,Dbl Crop WinWht/Soybeans,2025-06-30 00:00:00,2025-10-05 00:00:00,77.0,0.73,76,high
+f1435,2026,nan,2026-06-04 00:00:00,2026-08-30 00:00:00,67.0,0.526,60,high
+f1436,2022,Winter Wheat,2022-06-17 00:00:00,2022-07-14 00:00:00,27.0,0.458,81,high
+f1436,2023,Winter Wheat,2023-06-26 00:00:00,2023-07-31 00:00:00,35.0,0.644,70,high
+f1436,2024,Winter Wheat,NaT,NaT,nan,0.308,82,no summer crop detected
+f1436,2025,Dbl Crop WinWht/Soybeans,2025-07-16 00:00:00,2025-10-24 00:00:00,80.0,0.834,73,high
+f1436,2026,nan,2026-06-07 00:00:00,2026-09-07 00:00:00,72.0,0.532,60,high
+f1437,2022,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.406,79,no summer crop detected
+f1437,2023,Dbl Crop WinWht/Soybeans,2023-07-17 00:00:00,2023-10-29 00:00:00,84.0,0.618,66,high
+f1437,2024,Corn,2024-04-30 00:00:00,2024-08-04 00:00:00,75.0,0.665,79,high
+f1437,2025,Dbl Crop WinWht/Soybeans,2025-07-06 00:00:00,2025-10-19 00:00:00,85.0,0.794,65,high
+f1437,2026,nan,2026-05-29 00:00:00,2026-09-05 00:00:00,79.0,0.63,59,high
+f1438,2023,Winter Wheat,2023-03-29 00:00:00,2023-09-10 00:00:00,165.0,0.615,62,medium
+f1438,2025,Winter Wheat,NaT,NaT,nan,0.449,61,no summer crop detected
+f1438,2026,nan,NaT,NaT,nan,0.348,53,no summer crop detected
+f1439,2023,Winter Wheat,2023-03-26 00:00:00,2023-09-27 00:00:00,185,0.677,66,medium
+f1450,2022,Cotton,NaT,NaT,nan,0.385,50,no summer crop detected
+f1450,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.401,50,no summer crop detected
+f1450,2025,Soybeans,2025-07-08 00:00:00,2025-10-29 00:00:00,95.0,0.795,44,high
+f1450,2026,nan,2026-05-08 00:00:00,2026-08-06 00:00:00,70.0,0.692,37,low -- sparse imagery near transitions
+f1451,2022,Soybeans,NaT,NaT,nan,0.367,52,no summer crop detected
+f1451,2023,Winter Wheat,2023-06-25 00:00:00,2023-08-04 00:00:00,40.0,0.692,36,low -- sparse imagery near transitions
+f1451,2024,Dbl Crop WinWht/Soybeans,2024-07-14 00:00:00,2024-10-21 00:00:00,79.0,0.523,57,high
+f1451,2025,Soybeans,2025-07-11 00:00:00,2025-10-25 00:00:00,88.0,0.78,45,high
+f1451,2026,nan,2026-05-06 00:00:00,2026-08-07 00:00:00,73.0,0.725,37,low -- sparse imagery near transitions
+f1452,2022,Cotton,NaT,NaT,nan,0.262,46,no summer crop detected
+f1452,2023,Winter Wheat,2023-06-22 00:00:00,2023-08-03 00:00:00,42.0,0.665,37,medium
+f1452,2024,Cotton,2024-07-09 00:00:00,2024-10-19 00:00:00,78.0,0.532,53,high
+f1452,2025,Soybeans,2025-07-11 00:00:00,2025-10-25 00:00:00,88.0,0.776,43,high
+f1452,2026,nan,2026-05-06 00:00:00,2026-08-05 00:00:00,71.0,0.748,35,low -- sparse imagery near transitions
+f1453,2022,Winter Wheat,2022-06-21 00:00:00,2022-07-22 00:00:00,31,0.481,41,high
+f1453,2023,Dbl Crop WinWht/Soybeans,2023-07-15 00:00:00,2023-10-26 00:00:00,83,0.709,38,high
+f1453,2024,Cotton,2024-06-14 00:00:00,2024-10-12 00:00:00,96,0.47,50,high
+f1453,2025,Soybeans,2025-07-05 00:00:00,2025-10-18 00:00:00,87,0.803,43,high
+f1453,2026,nan,2026-04-25 00:00:00,2026-08-04 00:00:00,81,0.706,36,low -- sparse imagery near transitions
+f1454,2022,Soybeans,2022-06-22 00:00:00,2022-10-03 00:00:00,85.0,0.544,39,high
+f1454,2023,Dbl Crop WinWht/Soybeans,2023-07-16 00:00:00,2023-10-27 00:00:00,83.0,0.649,33,high
+f1454,2024,Soybeans,2024-06-27 00:00:00,2024-10-12 00:00:00,89.0,0.543,46,high
+f1454,2025,Winter Wheat,2025-07-01 00:00:00,2025-10-09 00:00:00,100.0,0.577,39,high
+f1454,2026,nan,NaT,NaT,nan,0.375,35,no summer crop detected
+f1455,2022,Soybeans,NaT,NaT,nan,0.444,42,no summer crop detected
+f1455,2023,Dbl Crop WinWht/Soybeans,2023-06-27 00:00:00,2023-10-30 00:00:00,105.0,0.658,37,medium
+f1455,2024,Dbl Crop WinWht/Soybeans,2024-03-06 00:00:00,2024-06-26 00:00:00,92.0,0.517,50,medium
+f1455,2025,Winter Wheat,2025-08-30 00:00:00,2025-12-25 00:00:00,117.0,0.583,46,low -- sparse imagery near transitions
+f1455,2026,nan,2026-05-19 00:00:00,2026-08-26 00:00:00,79.0,0.846,35,"low -- standing water in the off-season (NDVI reaches 0.05); flooded rice or a wet fallow shifts the baseline, so treat the dates as indicative"
+f1456,2023,Dbl Crop WinWht/Soybeans,2023-06-30 00:00:00,2023-10-30 00:00:00,102.0,0.66,34,high
+f1456,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.393,43,no summer crop detected
+f1456,2025,Winter Wheat,2025-08-29 00:00:00,2025-12-25 00:00:00,118.0,0.641,42,low -- sparse imagery near transitions
+f1456,2026,nan,2026-05-12 00:00:00,2026-08-26 00:00:00,86.0,0.822,33,low -- sparse imagery near transitions
+f1457,2023,Dbl Crop WinWht/Soybeans,2023-05-22 00:00:00,2023-10-31 00:00:00,142.0,0.686,32,high
+f1457,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.373,43,no summer crop detected
+f1457,2026,nan,2026-06-16 00:00:00,2026-09-07 00:00:00,63.0,0.518,32,medium
+f1458,2023,Dbl Crop WinWht/Soybeans,2023-05-21 00:00:00,2023-10-29 00:00:00,141.0,0.742,31,high
+f1458,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.341,45,no summer crop detected
+f1458,2025,Winter Wheat,NaT,NaT,nan,0.413,39,no summer crop detected
+f1458,2026,nan,2026-06-18 00:00:00,2026-09-12 00:00:00,66.0,0.586,32,medium
+f1460,2022,Soybeans,2022-06-05 00:00:00,2022-08-31 00:00:00,69,0.598,39,low -- sparse imagery near transitions
+f1460,2023,Sorghum,2023-05-10 00:00:00,2023-07-15 00:00:00,46,0.718,34,low -- sparse imagery near transitions
+f1460,2024,Soybeans,2024-06-27 00:00:00,2024-10-17 00:00:00,94,0.596,45,high
+f1460,2025,Soybeans,2025-06-13 00:00:00,2025-10-21 00:00:00,112,0.901,42,high
+f1460,2026,nan,2026-05-02 00:00:00,2026-08-11 00:00:00,81,0.79,32,low -- sparse imagery near transitions
+f1462,2022,Dbl Crop WinWht/Soybeans,2022-06-21 00:00:00,2022-10-29 00:00:00,110.0,0.548,39,high
+f1462,2023,Cotton,2023-05-29 00:00:00,2023-10-27 00:00:00,127.0,0.802,31,low -- sparse imagery near transitions
+f1462,2024,Soybeans,2024-06-17 00:00:00,2024-10-03 00:00:00,90.0,0.691,45,high
+f1462,2025,Winter Wheat,NaT,NaT,nan,0.369,39,no summer crop detected
+f1462,2026,nan,2026-06-15 00:00:00,2026-09-12 00:00:00,69.0,0.58,30,medium
+f1465,2022,Cotton,2022-06-04 00:00:00,2022-10-14 00:00:00,108.0,0.531,41,high
+f1465,2023,Corn,2023-05-06 00:00:00,2023-08-13 00:00:00,78.0,0.779,34,low -- sparse imagery near transitions
+f1465,2024,Cotton,2024-06-08 00:00:00,2024-10-04 00:00:00,94.0,0.639,47,high
+f1465,2025,Winter Wheat,NaT,NaT,nan,0.401,42,no summer crop detected
+f1465,2026,nan,2026-06-18 00:00:00,NaT,nan,0.451,32,low -- no clear senescence
+f1466,2022,Winter Wheat,NaT,NaT,nan,0.381,40,no summer crop detected
+f1466,2023,Winter Wheat,NaT,NaT,nan,0.442,34,no summer crop detected
+f1466,2024,Winter Wheat,NaT,NaT,nan,0.337,48,no summer crop detected
+f1466,2025,Winter Wheat,2025-06-30 00:00:00,2025-08-07 00:00:00,38.0,0.57,41,high
+f1466,2026,nan,NaT,NaT,nan,0.321,32,no summer crop detected
+f1467,2022,Winter Wheat,NaT,NaT,nan,0.387,39,no summer crop detected
+f1467,2023,Winter Wheat,2023-07-01 00:00:00,2023-08-01 00:00:00,31.0,0.586,35,medium
+f1467,2024,Winter Wheat,NaT,NaT,nan,0.297,48,no summer crop detected
+f1467,2025,Winter Wheat,2025-07-03 00:00:00,2025-08-04 00:00:00,32.0,0.556,42,high
+f1467,2026,nan,NaT,NaT,nan,0.381,33,no summer crop detected
+f1468,2022,Dbl Crop WinWht/Soybeans,2022-07-09 00:00:00,2022-09-21 00:00:00,54.0,0.491,38,high
+f1468,2023,Cotton,2023-06-09 00:00:00,2023-10-29 00:00:00,118.0,0.783,34,high
+f1468,2024,Sorghum,2024-05-29 00:00:00,2024-08-27 00:00:00,70.0,0.683,47,high
+f1468,2026,nan,NaT,NaT,nan,0.398,33,no summer crop detected
+f1469,2022,Winter Wheat,NaT,NaT,nan,0.38,39,no summer crop detected
+f1469,2023,Winter Wheat,2023-07-02 00:00:00,2023-08-01 00:00:00,30.0,0.569,34,medium
+f1469,2024,Winter Wheat,NaT,NaT,nan,0.435,46,no summer crop detected
+f1469,2025,Winter Wheat,2025-07-05 00:00:00,2025-08-07 00:00:00,33.0,0.532,42,high
+f1469,2026,nan,NaT,NaT,nan,0.403,32,no summer crop detected
+f1470,2022,Winter Wheat,2022-06-23 00:00:00,2022-07-23 00:00:00,30,0.525,38,high
+f1470,2023,Dbl Crop WinWht/Soybeans,2023-07-19 00:00:00,2023-11-01 00:00:00,85,0.499,36,high
+f1470,2024,Cotton,2024-06-20 00:00:00,2024-10-10 00:00:00,88,0.527,47,high
+f1470,2025,Corn,2025-05-31 00:00:00,2025-09-14 00:00:00,85,0.712,43,medium
+f1470,2026,nan,2026-05-29 00:00:00,2026-07-23 00:00:00,35,0.492,32,high
+f1471,2022,Soybeans,2022-06-18 00:00:00,2022-10-02 00:00:00,88.0,0.536,37,high
+f1471,2023,Winter Wheat,NaT,NaT,nan,0.352,35,no summer crop detected
+f1471,2025,Corn,2025-05-05 00:00:00,2025-09-19 00:00:00,116.0,0.746,42,medium
+f1471,2026,nan,NaT,NaT,nan,0.311,33,no summer crop detected
+f1472,2022,Winter Wheat,NaT,NaT,nan,0.35,39,no summer crop detected
+f1472,2023,Winter Wheat,2023-07-02 00:00:00,2023-08-01 00:00:00,30.0,0.492,34,medium
+f1472,2024,Winter Wheat,NaT,NaT,nan,0.357,45,no summer crop detected
+f1472,2025,Winter Wheat,2025-07-07 00:00:00,2025-08-08 00:00:00,32.0,0.459,42,high
+f1472,2026,nan,NaT,NaT,nan,0.305,32,no summer crop detected
+f1475,2022,Corn,2022-05-02 00:00:00,2022-07-28 00:00:00,66.0,0.737,37,low -- sparse imagery near transitions
+f1475,2023,Dbl Crop WinWht/Soybeans,2023-07-11 00:00:00,2023-10-30 00:00:00,91.0,0.764,37,high
+f1475,2024,Cotton,2024-06-12 00:00:00,2024-10-16 00:00:00,102.0,0.528,44,high
+f1475,2025,Corn,2025-05-05 00:00:00,2025-08-31 00:00:00,97.0,0.767,40,medium
+f1475,2026,nan,NaT,NaT,nan,0.393,31,no summer crop detected
+f1476,2022,Winter Wheat,NaT,NaT,nan,0.362,39,no summer crop detected
+f1476,2023,Dbl Crop WinWht/Soybeans,2023-07-05 00:00:00,2023-11-01 00:00:00,99.0,0.794,32,high
+f1476,2024,Cotton,2024-06-05 00:00:00,2024-10-25 00:00:00,118.0,0.671,45,high
+f1476,2025,Corn,2025-04-25 00:00:00,2025-08-26 00:00:00,102.0,0.787,38,medium
+f1476,2026,nan,2026-06-19 00:00:00,2026-09-13 00:00:00,66.0,0.553,30,medium
+f1477,2022,Winter Wheat,NaT,NaT,nan,0.391,40,no summer crop detected
+f1477,2023,Soybeans,2023-07-08 00:00:00,2023-11-03 00:00:00,100.0,0.75,35,high
+f1477,2024,Cotton,2024-06-06 00:00:00,2024-10-25 00:00:00,117.0,0.63,46,high
+f1477,2025,Corn,2025-04-26 00:00:00,2025-09-03 00:00:00,109.0,0.774,42,medium
+f1477,2026,nan,2026-06-19 00:00:00,2026-09-10 00:00:00,63.0,0.539,33,medium
+f1478,2022,Winter Wheat,NaT,NaT,nan,0.364,39,no summer crop detected
+f1478,2023,Soybeans,2023-07-04 00:00:00,2023-11-02 00:00:00,103.0,0.768,34,high
+f1478,2024,Cotton,2024-06-07 00:00:00,2024-10-27 00:00:00,118.0,0.64,45,medium
+f1478,2025,Corn,2025-04-26 00:00:00,2025-09-01 00:00:00,107.0,0.779,41,medium
+f1478,2026,nan,2026-06-19 00:00:00,2026-09-10 00:00:00,63.0,0.523,32,medium
+f1479,2022,Winter Wheat,2022-06-19 00:00:00,2022-07-22 00:00:00,33,0.666,40,high
+f1479,2023,Dbl Crop WinWht/Soybeans,2023-05-26 00:00:00,2023-09-05 00:00:00,82,0.843,33,high
+f1479,2025,Winter Wheat,2025-06-21 00:00:00,2025-08-01 00:00:00,41,0.631,41,medium
+f1479,2026,nan,2026-06-17 00:00:00,2026-09-07 00:00:00,62,0.522,33,medium
+f1480,2022,Winter Wheat,NaT,NaT,nan,0.384,40,no summer crop detected
+f1480,2023,Winter Wheat,2023-07-03 00:00:00,2023-07-31 00:00:00,28.0,0.549,36,high
+f1480,2024,Winter Wheat,NaT,NaT,nan,0.366,46,no summer crop detected
+f1480,2025,Winter Wheat,2025-07-10 00:00:00,2025-08-09 00:00:00,30.0,0.523,40,medium
+f1480,2026,nan,NaT,NaT,nan,0.285,31,no summer crop detected
+f1481,2022,Cotton,2022-06-05 00:00:00,2022-09-30 00:00:00,93,0.455,40,high
+f1481,2023,Dbl Crop WinWht/Soybeans,2023-06-15 00:00:00,2023-11-05 00:00:00,123,0.62,36,medium
+f1481,2024,Cotton,2024-06-04 00:00:00,2024-10-21 00:00:00,115,0.6,44,high
+f1481,2025,Cotton,2025-06-09 00:00:00,2025-11-07 00:00:00,127,0.817,40,medium
+f1481,2026,nan,2026-04-26 00:00:00,2026-08-05 00:00:00,81,0.736,32,low -- sparse imagery near transitions
+f1482,2022,Dbl Crop WinWht/Soybeans,2022-07-22 00:00:00,2022-10-31 00:00:00,81.0,0.489,39,high
+f1482,2023,Cotton,2023-06-23 00:00:00,2023-10-26 00:00:00,101.0,0.668,35,medium
+f1482,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.398,44,no summer crop detected
+f1482,2025,Winter Wheat,2025-06-24 00:00:00,2025-07-20 00:00:00,26.0,0.514,40,medium
+f1482,2026,nan,2026-06-03 00:00:00,2026-09-01 00:00:00,70.0,0.674,32,high
+f1942,2022,Winter Wheat,NaT,NaT,nan,0.43,67,no summer crop detected
+f1942,2023,Winter Wheat,2023-04-01 00:00:00,2023-07-31 00:00:00,121.0,0.547,47,low -- sparse imagery near transitions
+f1942,2024,Winter Wheat,NaT,NaT,nan,0.403,65,no summer crop detected
+f1942,2025,Fallow/Idle Cropland,2025-07-16 00:00:00,2025-09-03 00:00:00,29.0,0.659,54,high
+f1942,2026,nan,2026-05-23 00:00:00,2026-07-06 00:00:00,24.0,0.491,45,high
+f1946,2022,Soybeans,NaT,NaT,nan,0.434,49,no summer crop detected
+f1946,2023,Winter Wheat,NaT,NaT,nan,0.335,41,no summer crop detected
+f1946,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.412,58,no summer crop detected
+f1946,2025,Cotton,2025-06-19 00:00:00,2025-10-28 00:00:00,107.0,0.847,42,medium
+f1946,2026,nan,2026-05-11 00:00:00,2026-08-05 00:00:00,66.0,0.656,35,high
+f1947,2022,Dbl Crop WinWht/Soybeans,2022-07-11 00:00:00,2022-10-29 00:00:00,90.0,0.614,40,high
+f1947,2023,Cotton,2023-05-26 00:00:00,2023-10-30 00:00:00,133.0,0.848,34,low -- sparse imagery near transitions
+f1947,2024,Corn,2024-04-23 00:00:00,2024-08-04 00:00:00,82.0,0.755,47,high
+f1947,2025,Dbl Crop WinWht/Soybeans,2025-07-23 00:00:00,2025-11-07 00:00:00,87.0,0.836,41,high
+f1947,2026,nan,2026-06-03 00:00:00,NaT,nan,0.695,30,low -- no clear senescence
+f1948,2023,Winter Wheat,2023-06-10 00:00:00,2023-11-01 00:00:00,144,0.584,64,high
+f1948,2024,Soybeans,2024-04-16 00:00:00,2024-10-17 00:00:00,166,0.461,80,high
+f1948,2025,Sorghum,2025-06-01 00:00:00,2025-11-07 00:00:00,139,0.78,62,high
+f1948,2026,nan,2026-05-21 00:00:00,2026-08-26 00:00:00,77,0.85,60,high
+f1949,2022,Winter Wheat,NaT,NaT,nan,0.427,86,no summer crop detected
+f1949,2023,Winter Wheat,2023-06-10 00:00:00,2023-09-07 00:00:00,89.0,0.583,71,high
+f1949,2024,Grass/Pasture,2024-04-18 00:00:00,2024-10-16 00:00:00,161.0,0.466,81,high
+f1949,2025,Sorghum,2025-06-06 00:00:00,2025-11-06 00:00:00,133.0,0.708,74,high
+f1949,2026,nan,2026-05-24 00:00:00,2026-08-18 00:00:00,66.0,0.767,63,high
+f1950,2022,Soybeans,NaT,NaT,nan,0.345,83,no summer crop detected
+f1950,2023,Winter Wheat,2023-06-24 00:00:00,2023-10-22 00:00:00,120.0,0.664,73,high
+f1950,2024,Soybeans,NaT,NaT,nan,0.421,84,no summer crop detected
+f1950,2025,Sorghum,2025-06-03 00:00:00,2025-10-01 00:00:00,100.0,0.754,72,high
+f1950,2026,nan,2026-05-24 00:00:00,2026-08-17 00:00:00,65.0,0.743,63,high
+f1952,2022,Soybeans,NaT,NaT,nan,0.363,83,no summer crop detected
+f1952,2023,Dbl Crop WinWht/Soybeans,2023-06-28 00:00:00,2023-10-30 00:00:00,104.0,0.657,72,high
+f1952,2024,Corn,2024-04-20 00:00:00,2024-07-28 00:00:00,78.0,0.632,83,high
+f1952,2025,Dbl Crop WinWht/Soybeans,2025-06-28 00:00:00,2025-10-06 00:00:00,80.0,0.656,72,high
+f1952,2026,nan,2026-06-16 00:00:00,2026-09-11 00:00:00,67.0,0.473,61,high
+f1953,2022,Soybeans,2022-05-11 00:00:00,2022-10-16 00:00:00,140.0,0.546,81,high
+f1953,2023,Soybeans,2023-06-23 00:00:00,2023-10-31 00:00:00,112.0,0.835,74,high
+f1953,2024,Winter Wheat,2024-04-07 00:00:00,2024-07-28 00:00:00,112.0,0.591,79,high
+f1953,2025,Winter Wheat,NaT,NaT,nan,0.401,70,no summer crop detected
+f1953,2026,nan,2026-06-07 00:00:00,NaT,nan,0.661,60,low -- no clear senescence
+f1954,2023,Dbl Crop WinWht/Soybeans,2023-07-04 00:00:00,2023-10-28 00:00:00,96.0,0.764,73,high
+f1954,2024,Corn,2024-04-20 00:00:00,2024-07-31 00:00:00,81.0,0.636,81,high
+f1954,2025,Dbl Crop WinWht/Soybeans,2025-07-01 00:00:00,2025-10-05 00:00:00,76.0,0.703,74,high
+f1954,2026,nan,2026-06-09 00:00:00,NaT,nan,0.62,59,low -- no clear senescence
+f1955,2022,Soybeans,NaT,NaT,nan,0.449,77,no summer crop detected
+f1955,2023,Dbl Crop WinWht/Soybeans,2023-06-27 00:00:00,2023-10-31 00:00:00,106.0,0.684,68,high
+f1955,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.444,76,no summer crop detected
+f1955,2025,Dbl Crop WinWht/Soybeans,2025-08-02 00:00:00,2025-10-26 00:00:00,65.0,0.658,62,high
+f1955,2026,nan,NaT,NaT,nan,0.397,58,no summer crop detected
+f1958,2022,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.435,50,no summer crop detected
+f1958,2023,Dbl Crop WinWht/Soybeans,2023-07-11 00:00:00,2023-10-29 00:00:00,90.0,0.745,40,high
+f1958,2024,Dbl Crop WinWht/Soybeans,2024-06-21 00:00:00,2024-10-07 00:00:00,88.0,0.466,63,high
+f1958,2025,Dbl Crop WinWht/Soybeans,2025-08-03 00:00:00,2025-10-19 00:00:00,57.0,0.645,46,high
+f1958,2026,nan,2026-05-22 00:00:00,2026-09-03 00:00:00,84.0,0.762,39,medium
+f1960,2022,Soybeans,2022-06-26 00:00:00,2022-09-15 00:00:00,63.0,0.513,50,high
+f1960,2023,Winter Wheat,NaT,NaT,nan,0.275,39,no summer crop detected
+f1960,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.406,59,no summer crop detected
+f1960,2025,Soybeans,2025-07-01 00:00:00,2025-10-17 00:00:00,90.0,0.924,44,high
+f1960,2026,nan,2026-04-22 00:00:00,2026-08-04 00:00:00,84.0,0.73,37,low -- sparse imagery near transitions
+f1961,2022,Soybeans,NaT,NaT,nan,0.399,74,no summer crop detected
+f1961,2023,Dbl Crop WinWht/Soybeans,2023-06-26 00:00:00,2023-11-01 00:00:00,108.0,0.646,63,high
+f1961,2024,Grass/Pasture,2024-03-08 00:00:00,2024-09-04 00:00:00,160.0,0.624,73,high
+f1961,2025,Dbl Crop WinWht/Soybeans,2025-07-31 00:00:00,2025-10-18 00:00:00,59.0,0.705,59,high
+f1961,2026,nan,2026-05-21 00:00:00,2026-08-22 00:00:00,73.0,0.84,52,high
+f1963,2023,Dbl Crop WinWht/Soybeans,2023-07-16 00:00:00,2023-11-07 00:00:00,94.0,0.552,73,high
+f1963,2024,Soybeans,2024-05-31 00:00:00,2024-09-17 00:00:00,91.0,0.522,82,high
+f1963,2025,Winter Wheat,NaT,NaT,nan,0.416,72,no summer crop detected
+f1963,2026,nan,NaT,NaT,nan,0.285,62,no summer crop detected
+f1967,2022,Dbl Crop WinWht/Soybeans,2022-06-25 00:00:00,2022-10-17 00:00:00,94.0,0.587,83,high
+f1967,2023,Soybeans,2023-05-31 00:00:00,2023-09-21 00:00:00,95.0,0.912,74,high
+f1967,2024,Dbl Crop WinWht/Soybeans,2024-06-27 00:00:00,2024-10-16 00:00:00,91.0,0.524,79,high
+f1967,2025,Corn,2025-05-06 00:00:00,2025-10-03 00:00:00,129.0,0.788,74,high
+f1967,2026,nan,2026-06-14 00:00:00,NaT,nan,0.746,59,low -- no clear senescence
+f1968,2022,Soybeans,NaT,,,0.45,84,no summer crop detected
+f1968,2024,Winter Wheat,NaT,,,0.369,78,no summer crop detected
+f1968,2026,nan,2026-06-18 00:00:00,,,0.475,59,low -- no clear senescence
+f1970,2022,Soybeans,2022-06-10 00:00:00,2022-10-03 00:00:00,97.0,0.509,41,high
+f1970,2023,Winter Wheat,2023-06-16 00:00:00,2023-07-29 00:00:00,43.0,0.736,34,low -- sparse imagery near transitions
+f1970,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.432,48,no summer crop detected
+f1970,2025,Sorghum,2025-06-01 00:00:00,2025-11-04 00:00:00,136.0,0.788,39,medium
+f1970,2026,nan,2026-05-31 00:00:00,2026-09-08 00:00:00,80.0,0.669,31,medium
+f2002,2022,Soybeans,2022-07-20 00:00:00,2022-10-18 00:00:00,72.0,0.472,40,high
+f2002,2023,Winter Wheat,NaT,NaT,nan,0.355,33,no summer crop detected
+f2002,2024,Winter Wheat,NaT,NaT,nan,0.323,43,no summer crop detected
+f2002,2025,Cotton,2025-06-26 00:00:00,2025-11-11 00:00:00,114.0,0.842,39,high
+f2002,2026,nan,2026-07-01 00:00:00,2026-09-13 00:00:00,54.0,0.512,31,medium
+f2003,2022,Soybeans,2022-06-21 00:00:00,2022-08-23 00:00:00,45,0.487,40,medium
+f2003,2023,Winter Wheat,2023-06-17 00:00:00,2023-07-31 00:00:00,44,0.467,35,high
+f2003,2024,Dbl Crop WinWht/Soybeans,2024-06-18 00:00:00,2024-10-10 00:00:00,94,0.46,42,high
+f2003,2025,Cotton,2025-06-16 00:00:00,2025-10-28 00:00:00,110,0.887,38,medium
+f2003,2026,nan,2026-04-21 00:00:00,2026-07-31 00:00:00,81,0.747,31,low -- sparse imagery near transitions
+f2005,2022,Corn,2022-04-29 00:00:00,2022-08-10 00:00:00,82.0,0.819,41,low -- sparse imagery near transitions
+f2005,2023,Winter Wheat,NaT,NaT,nan,0.349,31,no summer crop detected
+f2005,2024,Dbl Crop WinWht/Soybeans,2024-07-18 00:00:00,2024-10-21 00:00:00,75.0,0.502,43,high
+f2005,2025,Cotton,2025-06-10 00:00:00,2025-11-05 00:00:00,124.0,0.816,39,medium
+f2005,2026,nan,2026-04-23 00:00:00,2026-08-10 00:00:00,89.0,0.737,31,low -- sparse imagery near transitions
+f2006,2022,Dbl Crop WinWht/Soybeans,2022-06-24 00:00:00,2022-10-17 00:00:00,95.0,0.509,40,high
+f2006,2023,Soybeans,2023-06-12 00:00:00,2023-09-30 00:00:00,92.0,0.828,36,medium
+f2006,2024,Cotton,2024-06-17 00:00:00,2024-10-08 00:00:00,89.0,0.531,46,high
+f2006,2025,Winter Wheat,NaT,NaT,nan,0.344,40,no summer crop detected
+f2006,2026,nan,2026-06-17 00:00:00,2026-09-12 00:00:00,67.0,0.499,31,medium
+f2007,2022,Winter Wheat,NaT,NaT,nan,0.364,40,no summer crop detected
+f2007,2023,Dbl Crop WinWht/Soybeans,2023-07-15 00:00:00,2023-10-31 00:00:00,88.0,0.774,32,high
+f2007,2024,Cotton,2024-06-08 00:00:00,2024-10-08 00:00:00,98.0,0.596,45,high
+f2007,2025,Corn,2025-05-01 00:00:00,2025-08-27 00:00:00,97.0,0.788,41,medium
+f2007,2026,nan,NaT,NaT,nan,0.368,33,no summer crop detected
+f2008,2022,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.394,40,no summer crop detected
+f2008,2023,Cotton,2023-06-18 00:00:00,2023-10-24 00:00:00,104.0,0.672,34,medium
+f2008,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.366,45,no summer crop detected
+f2008,2025,Winter Wheat,2025-06-19 00:00:00,2025-07-18 00:00:00,29.0,0.55,39,medium
+f2008,2026,nan,2026-06-09 00:00:00,2026-09-02 00:00:00,65.0,0.588,32,high
+f2009,2022,Winter Wheat,2022-06-23 00:00:00,2022-07-18 00:00:00,25,0.451,41,high
+f2009,2023,Dbl Crop WinWht/Soybeans,2023-06-29 00:00:00,2023-10-27 00:00:00,100,0.746,34,high
+f2009,2024,Corn,2024-04-28 00:00:00,2024-07-28 00:00:00,70,0.823,45,high
+f2009,2026,nan,2026-05-26 00:00:00,2026-09-10 00:00:00,87,0.804,31,medium
+f2010,2022,Corn,2022-04-29 00:00:00,2022-08-22 00:00:00,94.0,0.825,41,low -- sparse imagery near transitions
+f2010,2023,Winter Wheat,2023-07-25 00:00:00,2023-10-24 00:00:00,91.0,0.769,34,high
+f2010,2024,Corn,2024-04-25 00:00:00,2024-08-10 00:00:00,86.0,0.816,44,high
+f2010,2025,Corn,2025-05-08 00:00:00,2025-08-17 00:00:00,80.0,0.791,38,medium
+f2010,2026,nan,2026-06-20 00:00:00,NaT,nan,0.788,29,low -- no clear senescence
+f2011,2023,Winter Wheat,2023-06-13 00:00:00,2023-08-12 00:00:00,60,0.633,37,high
+f2011,2026,nan,2026-05-27 00:00:00,2026-08-27 00:00:00,72,0.664,31,high
+f2012,2023,Winter Wheat,2023-06-09 00:00:00,2023-08-13 00:00:00,65,0.625,38,high
+f2012,2026,nan,2026-05-27 00:00:00,2026-07-21 00:00:00,35,0.677,30,high
+f2013,2023,Winter Wheat,2023-06-11 00:00:00,2023-08-10 00:00:00,60.0,0.596,37,high
+f2013,2024,Winter Wheat,NaT,NaT,nan,0.446,43,no summer crop detected
+f2013,2026,nan,2026-05-28 00:00:00,2026-07-21 00:00:00,34.0,0.637,30,high
+f2016,2022,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.42,40,no summer crop detected
+f2016,2023,Cotton,2023-06-17 00:00:00,2023-10-22 00:00:00,103.0,0.746,35,medium
+f2016,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.35,44,no summer crop detected
+f2016,2025,Winter Wheat,2025-06-21 00:00:00,2025-07-19 00:00:00,28.0,0.571,40,medium
+f2016,2026,nan,2026-06-06 00:00:00,2026-09-02 00:00:00,68.0,0.636,31,high
+f3309,2023,Winter Wheat,2023-06-05 00:00:00,2023-08-08 00:00:00,64,0.639,65,high
+f3309,2025,Cotton,2025-06-16 00:00:00,2025-11-08 00:00:00,121,0.804,61,high
+f3309,2026,nan,2026-04-19 00:00:00,2026-07-30 00:00:00,82,0.568,57,high
+f3310,2022,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.404,84,no summer crop detected
+f3310,2023,Soybeans,2023-05-27 00:00:00,2023-09-07 00:00:00,85.0,0.881,70,high
+f3310,2024,Dbl Crop WinWht/Soybeans,2024-06-24 00:00:00,2024-09-30 00:00:00,78.0,0.561,83,high
+f3310,2025,Soybeans,2025-06-18 00:00:00,2025-10-13 00:00:00,99.0,0.88,72,high
+f3310,2026,nan,2026-06-15 00:00:00,2026-09-07 00:00:00,64.0,0.497,60,high
+f3311,2022,Soybeans,NaT,NaT,nan,0.386,87,no summer crop detected
+f3311,2023,Dbl Crop WinWht/Soybeans,2023-07-02 00:00:00,2023-10-26 00:00:00,96.0,0.712,73,high
+f3311,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.439,78,no summer crop detected
+f3311,2025,Dbl Crop WinWht/Soybeans,2025-06-28 00:00:00,2025-10-05 00:00:00,79.0,0.715,75,high
+f3311,2026,nan,2026-06-07 00:00:00,2026-09-01 00:00:00,66.0,0.552,61,high
+f3312,2022,Sorghum,NaT,NaT,nan,0.329,84,no summer crop detected
+f3312,2023,Winter Wheat,2023-07-01 00:00:00,2023-08-21 00:00:00,51.0,0.745,70,high
+f3312,2024,Soybeans,2024-06-27 00:00:00,2024-10-13 00:00:00,90.0,0.504,81,high
+f3312,2025,Winter Wheat,2025-06-20 00:00:00,2025-08-31 00:00:00,72.0,0.664,72,high
+f3312,2026,nan,2026-05-28 00:00:00,2026-07-17 00:00:00,30.0,0.698,60,high
+f3313,2022,Soybeans,2022-06-04 00:00:00,2022-09-26 00:00:00,96.0,0.657,70,high
+f3313,2023,Soybeans,2023-06-15 00:00:00,2023-09-18 00:00:00,77.0,0.802,57,medium
+f3313,2024,Soybeans,2024-06-12 00:00:00,2024-09-18 00:00:00,80.0,0.601,75,high
+f3313,2025,Winter Wheat,NaT,NaT,nan,0.362,59,no summer crop detected
+f3313,2026,nan,NaT,NaT,nan,0.325,51,no summer crop detected
+f3314,2022,Dbl Crop WinWht/Soybeans,2022-07-06 00:00:00,2022-10-31 00:00:00,97,0.666,41,high
+f3314,2023,Cotton,2023-05-26 00:00:00,2023-10-18 00:00:00,121,0.873,36,low -- sparse imagery near transitions
+f3314,2024,Corn,2024-04-25 00:00:00,2024-08-14 00:00:00,90,0.767,49,high
+f3314,2025,Dbl Crop WinWht/Soybeans,2025-07-18 00:00:00,2025-11-04 00:00:00,89,0.88,43,high
+f3314,2026,nan,2026-04-30 00:00:00,2026-08-29 00:00:00,101,0.843,29,low -- sparse imagery near transitions
+f3315,2022,Corn,2022-04-29 00:00:00,2022-08-05 00:00:00,77.0,0.841,41,low -- sparse imagery near transitions
+f3315,2023,Winter Wheat,NaT,NaT,nan,0.396,34,no summer crop detected
+f3315,2024,Dbl Crop WinWht/Soybeans,2024-06-22 00:00:00,2024-10-22 00:00:00,102.0,0.544,46,high
+f3315,2025,Soybeans,2025-05-17 00:00:00,2025-09-14 00:00:00,102.0,0.889,40,medium
+f3315,2026,nan,2026-04-24 00:00:00,2026-08-24 00:00:00,102.0,0.821,29,low -- sparse imagery near transitions
+f3331,2022,Dbl Crop WinWht/Soybeans,2022-06-30 00:00:00,2022-10-15 00:00:00,87.0,0.505,85,high
+f3331,2023,Soybeans,2023-05-31 00:00:00,2023-09-19 00:00:00,93.0,0.883,73,medium
+f3331,2024,Dbl Crop WinWht/Soybeans,2024-06-26 00:00:00,2024-10-15 00:00:00,91.0,0.514,81,high
+f3331,2025,Corn,2025-05-06 00:00:00,2025-09-30 00:00:00,126.0,0.622,75,high
+f3331,2026,nan,2026-06-11 00:00:00,NaT,nan,0.602,59,low -- no clear senescence
+f3357,2022,Winter Wheat,NaT,NaT,nan,0.4,42,no summer crop detected
+f3357,2023,Winter Wheat,2023-06-13 00:00:00,2023-09-05 00:00:00,84.0,0.606,33,high
+f3357,2024,Soybeans,2024-07-18 00:00:00,2024-12-05 00:00:00,122.0,0.541,42,high
+f3357,2025,Corn,2025-05-02 00:00:00,2025-09-06 00:00:00,106.0,0.733,37,medium
+f3357,2026,nan,2026-06-17 00:00:00,2026-09-06 00:00:00,61.0,0.482,30,medium
+f3358,2022,Corn,2022-04-30 00:00:00,2022-07-31 00:00:00,71.0,0.816,41,low -- sparse imagery near transitions
+f3358,2023,Winter Wheat,NaT,NaT,nan,0.427,34,no summer crop detected
+f3358,2024,Dbl Crop WinWht/Soybeans,2024-06-20 00:00:00,2024-10-25 00:00:00,107.0,0.488,46,high
+f3358,2025,Corn,2025-05-05 00:00:00,2025-09-04 00:00:00,101.0,0.835,40,medium
+f3358,2026,nan,2026-05-18 00:00:00,2026-08-17 00:00:00,71.0,0.852,32,low -- sparse imagery near transitions
+f3370,2022,Cotton,2022-06-03 00:00:00,2022-10-15 00:00:00,110.0,0.532,40,medium
+f3370,2023,Dbl Crop WinWht/Soybeans,2023-07-04 00:00:00,2023-11-04 00:00:00,103.0,0.656,36,high
+f3370,2024,Cotton,2024-06-09 00:00:00,2024-10-04 00:00:00,93.0,0.561,44,high
+f3370,2025,Winter Wheat,NaT,NaT,nan,0.418,41,no summer crop detected
+f3371,2022,Soybeans,2022-06-05 00:00:00,2022-09-25 00:00:00,94,0.544,40,high
+f3371,2023,Winter Wheat,2023-07-10 00:00:00,2023-08-12 00:00:00,33,0.597,35,medium
+f3371,2024,Soybeans,2024-06-15 00:00:00,2024-10-12 00:00:00,101,0.57,43,high
+f3371,2025,Sorghum,2025-05-30 00:00:00,2025-10-31 00:00:00,134,0.834,40,medium
+f3371,2026,nan,2026-05-28 00:00:00,2026-09-01 00:00:00,76,0.564,32,high
+f3586,2022,Soybeans,2022-07-16 00:00:00,2022-10-15 00:00:00,73.0,0.527,40,high
+f3586,2023,Winter Wheat,2023-06-11 00:00:00,2023-08-07 00:00:00,57.0,0.614,35,high
+f3586,2024,Winter Wheat,NaT,NaT,nan,0.369,44,no summer crop detected
+f3586,2025,Winter Wheat,2025-06-28 00:00:00,2025-07-30 00:00:00,32.0,0.532,39,high
+f3586,2026,nan,NaT,NaT,nan,0.383,33,no summer crop detected
+f3621,2022,Winter Wheat,NaT,NaT,nan,0.374,40,no summer crop detected
+f3621,2023,Winter Wheat,NaT,NaT,nan,0.406,37,no summer crop detected
+f3621,2024,Winter Wheat,NaT,NaT,nan,0.357,52,no summer crop detected
+f3621,2026,nan,2026-05-23 00:00:00,2026-08-16 00:00:00,65.0,0.564,33,high
+f3711,2022,Soybeans,2022-04-21 00:00:00,2022-06-23 00:00:00,45.0,0.667,41,high
+f3711,2023,Dbl Crop WinWht/Soybeans,2023-07-24 00:00:00,2023-10-29 00:00:00,77.0,0.583,35,high
+f3711,2024,Cotton,2024-06-09 00:00:00,2024-10-17 00:00:00,106.0,0.536,48,high
+f3711,2025,Corn,2025-05-09 00:00:00,2025-08-25 00:00:00,87.0,0.776,42,medium
+f3711,2026,nan,NaT,NaT,nan,0.402,32,no summer crop detected
+f3881,2022,Winter Wheat,NaT,NaT,nan,0.374,39,no summer crop detected
+f3881,2024,Winter Wheat,NaT,NaT,nan,0.361,44,no summer crop detected
+f3881,2025,Winter Wheat,2025-07-06 00:00:00,2025-08-12 00:00:00,37.0,0.501,38,medium
+f3881,2026,nan,NaT,NaT,nan,0.433,34,no summer crop detected
+f3882,2022,Winter Wheat,NaT,NaT,nan,0.356,39,no summer crop detected
+f3882,2024,Winter Wheat,NaT,NaT,nan,0.434,43,no summer crop detected
+f3882,2025,Winter Wheat,2025-07-04 00:00:00,2025-08-12 00:00:00,39.0,0.493,41,medium
+f3882,2026,nan,NaT,NaT,nan,0.424,34,no summer crop detected
+f4078,2022,Winter Wheat,NaT,NaT,nan,0.303,40,no summer crop detected
+f4078,2023,Dbl Crop WinWht/Soybeans,2023-06-29 00:00:00,2023-11-05 00:00:00,109.0,0.679,34,high
+f4078,2024,Cotton,2024-06-07 00:00:00,2024-10-11 00:00:00,102.0,0.647,45,high
+f4078,2025,Corn,2025-04-09 00:00:00,2025-09-14 00:00:00,137.0,0.727,40,medium
+f4078,2026,nan,NaT,NaT,nan,0.395,32,no summer crop detected
+f4093,2022,Winter Wheat,NaT,NaT,nan,0.308,41,no summer crop detected
+f4093,2023,Dbl Crop WinWht/Soybeans,2023-06-30 00:00:00,2023-10-31 00:00:00,103.0,0.687,35,high
+f4093,2024,Cotton,2024-06-06 00:00:00,2024-10-11 00:00:00,103.0,0.675,45,high
+f4093,2025,Corn,2025-05-01 00:00:00,2025-09-17 00:00:00,118.0,0.72,40,medium
+f4093,2026,nan,NaT,NaT,nan,0.313,31,no summer crop detected
+f4131,2022,Corn,2022-05-01 00:00:00,2022-08-02 00:00:00,72.0,0.639,42,low -- sparse imagery near transitions
+f4131,2023,Dbl Crop WinWht/Soybeans,2023-07-17 00:00:00,2023-10-30 00:00:00,85.0,0.609,35,high
+f4131,2024,Cotton,2024-06-13 00:00:00,2024-12-03 00:00:00,149.0,0.454,48,medium
+f4131,2025,Corn,2025-05-04 00:00:00,2025-08-20 00:00:00,87.0,0.707,43,medium
+f4131,2026,nan,NaT,NaT,nan,0.357,33,no summer crop detected
+f4262,2022,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.416,38,no summer crop detected
+f4262,2023,Cotton,2023-06-02 00:00:00,2023-10-31 00:00:00,127.0,0.787,34,medium
+f4262,2024,Sorghum,2024-05-20 00:00:00,2024-08-22 00:00:00,74.0,0.746,49,medium
+f4262,2025,Winter Wheat,2025-07-05 00:00:00,2025-08-18 00:00:00,44.0,0.539,41,high
+f4262,2026,nan,NaT,NaT,nan,0.376,33,no summer crop detected
+f4484,2022,Winter Wheat,2022-06-21 00:00:00,2022-08-18 00:00:00,58,0.607,84,medium
+f4484,2023,Dbl Crop WinWht/Soybeans,2023-05-27 00:00:00,2023-09-11 00:00:00,87,0.857,70,medium
+f4484,2025,Sorghum,2025-05-23 00:00:00,2025-10-03 00:00:00,113,0.817,72,medium
+f4484,2026,nan,2026-05-18 00:00:00,2026-08-03 00:00:00,57,0.657,59,high
+f4513,2022,Dbl Crop WinWht/Sorghum,2022-06-28 00:00:00,2022-09-19 00:00:00,63.0,0.531,82,high
+f4513,2023,Soybeans,2023-05-26 00:00:00,2023-09-11 00:00:00,90.0,0.85,64,medium
+f4513,2024,Dbl Crop WinWht/Soybeans,NaT,NaT,nan,0.429,76,no summer crop detected
+f4513,2025,Corn,2025-05-08 00:00:00,2025-09-28 00:00:00,122.0,0.721,63,medium
+f4513,2026,nan,NaT,NaT,nan,0.44,57,no summer crop detected
+f4569,2022,Corn,2022-05-04 00:00:00,2022-07-29 00:00:00,65.0,0.665,40,low -- sparse imagery near transitions
+f4569,2023,Dbl Crop WinWht/Soybeans,2023-07-13 00:00:00,2023-10-30 00:00:00,89.0,0.598,35,high
+f4569,2024,Cotton,NaT,NaT,nan,0.437,46,no summer crop detected
+f4569,2025,Corn,2025-05-06 00:00:00,2025-08-22 00:00:00,87.0,0.713,42,medium
+f4569,2026,nan,NaT,NaT,nan,0.289,33,no summer crop detected
+f4596,2022,Cotton,NaT,NaT,nan,0.449,39,no summer crop detected
+f4596,2023,Dbl Crop WinWht/Soybeans,2023-06-13 00:00:00,2023-11-04 00:00:00,124.0,0.575,33,high
+f4596,2024,Cotton,2024-06-07 00:00:00,2024-10-22 00:00:00,113.0,0.549,43,high
+f4596,2025,Cotton,2025-06-11 00:00:00,2025-11-09 00:00:00,127.0,0.798,40,medium
+f4596,2026,nan,NaT,NaT,nan,0.436,34,no summer crop detected
+f4597,2022,Winter Wheat,NaT,NaT,nan,0.354,37,no summer crop detected
+f4597,2023,Dbl Crop WinWht/Soybeans,2023-07-19 00:00:00,2023-11-01 00:00:00,85.0,0.671,36,high
+f4597,2024,Soybeans,2024-06-04 00:00:00,2024-10-05 00:00:00,105.0,0.569,45,high
+f4597,2025,Dbl Crop WinWht/Soybeans,2025-06-17 00:00:00,2025-11-07 00:00:00,123.0,0.663,38,high
+f4597,2026,nan,2026-04-23 00:00:00,2026-08-08 00:00:00,87.0,0.792,31,low -- sparse imagery near transitions
+f4622,2022,Winter Wheat,NaT,NaT,nan,0.358,36,no summer crop detected
+f4622,2023,Dbl Crop WinWht/Soybeans,2023-07-05 00:00:00,2023-11-01 00:00:00,99.0,0.729,32,high
+f4622,2024,Soybeans,2024-06-14 00:00:00,2024-10-09 00:00:00,99.0,0.62,46,high
+f4622,2026,nan,2026-06-10 00:00:00,NaT,nan,0.543,33,low -- no clear senescence
+f4693,2022,Cotton,2022-06-01 00:00:00,2022-10-16 00:00:00,113.0,0.508,38,high
+f4693,2023,Corn,2023-05-11 00:00:00,2023-08-16 00:00:00,76.0,0.801,34,medium
+f4693,2024,Cotton,2024-06-08 00:00:00,2024-10-05 00:00:00,95.0,0.609,47,high
+f4693,2025,Winter Wheat,NaT,NaT,nan,0.379,43,no summer crop detected
+f4693,2026,nan,NaT,NaT,nan,0.444,35,no summer crop detected
+f4700,2022,Cotton,2022-06-05 00:00:00,2022-10-18 00:00:00,111.0,0.541,40,high
+f4700,2023,Sorghum,2023-05-29 00:00:00,2023-09-01 00:00:00,75.0,0.793,34,high
+f4700,2024,Winter Wheat,NaT,NaT,nan,0.414,46,no summer crop detected
+f4700,2025,Winter Wheat,2025-07-05 00:00:00,2025-08-17 00:00:00,43.0,0.555,42,high
+f4700,2026,nan,2026-07-17 00:00:00,NaT,nan,0.462,33,low -- no clear senescence
+f4701,2022,Cotton,2022-06-04 00:00:00,2022-10-16 00:00:00,110.0,0.538,40,high
+f4701,2023,Sorghum,2023-05-29 00:00:00,2023-08-29 00:00:00,72.0,0.733,34,high
+f4701,2024,Winter Wheat,NaT,NaT,nan,0.343,46,no summer crop detected
+f4701,2025,Dbl Crop WinWht/Soybeans,2025-07-30 00:00:00,2025-11-01 00:00:00,74.0,0.767,43,high
+f4701,2026,nan,2026-06-21 00:00:00,2026-09-03 00:00:00,54.0,0.496,32,high
+f4702,2023,Cotton,2023-05-10 00:00:00,2023-11-02 00:00:00,152,0.713,45,low -- sparse imagery near transitions
+f4702,2024,Dbl Crop WinWht/Soybeans,2024-06-16 00:00:00,2024-10-14 00:00:00,100,0.542,64,medium
+f4702,2025,Soybeans,2025-07-18 00:00:00,2025-11-01 00:00:00,88,0.797,53,high
+f4702,2026,nan,2026-05-09 00:00:00,2026-08-13 00:00:00,76,0.696,46,high
+f4703,2022,Cotton,2022-05-28 00:00:00,2022-10-13 00:00:00,114,0.524,42,high
+f4703,2023,Corn,2023-05-04 00:00:00,2023-08-09 00:00:00,76,0.731,37,low -- sparse imagery near transitions
+f4703,2024,Dbl Crop WinWht/Soybeans,2024-06-29 00:00:00,2024-10-27 00:00:00,100,0.522,50,medium
+f4703,2025,Soybeans,2025-07-11 00:00:00,2025-10-25 00:00:00,88,0.879,44,high
+f4703,2026,nan,2026-05-04 00:00:00,2026-08-06 00:00:00,74,0.773,35,low -- sparse imagery near transitions
+f4704,2022,Cotton,NaT,NaT,nan,0.404,52,no summer crop detected
+f4704,2023,Cotton,2023-05-23 00:00:00,2023-10-29 00:00:00,135.0,0.657,38,high
+f4704,2024,Dbl Crop WinWht/Soybeans,2024-06-15 00:00:00,2024-10-18 00:00:00,105.0,0.575,56,medium
+f4704,2025,Soybeans,2025-07-12 00:00:00,2025-10-24 00:00:00,86.0,0.859,45,high
+f4704,2026,nan,2026-05-01 00:00:00,2026-08-05 00:00:00,76.0,0.765,40,low -- sparse imagery near transitions

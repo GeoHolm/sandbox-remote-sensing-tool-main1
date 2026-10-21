@@ -1,0 +1,17 @@
+field,year,crop,pct,is_crop,n_classes
+front-field,2022,Cotton,96.7,True,2
+front-field,2023,Cotton,90.0,True,2
+front-field,2024,Cotton,73.3,True,6
+front-field,2025,Soybeans,80.0,True,6
+north-pivot,2022,Cotton,100.0,True,1
+north-pivot,2023,Peanuts,76.6,True,2
+north-pivot,2024,Corn,92.2,True,3
+north-pivot,2025,Cotton,48.4,True,4
+south-pivot,2022,Peanuts,51.9,True,2
+south-pivot,2023,Corn,76.9,True,5
+south-pivot,2024,Cotton,73.1,True,6
+south-pivot,2025,Peanuts,78.8,True,6
+west-field,2022,Cotton,89.3,True,3
+west-field,2023,Cotton,98.7,True,2
+west-field,2024,Cotton,92.0,True,4
+west-field,2025,Soybeans,57.3,True,4

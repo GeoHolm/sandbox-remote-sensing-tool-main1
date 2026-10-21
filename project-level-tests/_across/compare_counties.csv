@@ -1,0 +1,4 @@
+county,fields,radius_km,field_years,winter_crop_pct,preplant_coverage_pct,annual_coverage_pct,preplant_median_obs,cover_askable_pct,cover_positive_pct,fields_any_cover_pct,offseason_median_ndvi,preplant_r_green,preplant_icc,mean_r_green,mean_icc,exposure_r_green,exposure_icc,nongrow_r_green,nongrow_icc,worst_r_green,worst_icc,residue_r_green,residue_icc
+"Champaign County, Illinois",51,2.5,255,0.0,73.7,100.0,3,100.0,6.4,17.6,0.231,0.38,0.35,0.12,0.19,0.03,0.06,0.31,0.33,0.38,0.35,0.25,0.42
+"Sumner County, Kansas",101,4.3,505,57.9,98.2,100.0,11,54.7,61.1,89.1,0.347,0.91,0.24,0.68,0.23,0.66,0.22,0.71,0.31,0.44,0.28,0.23,0.31
+"Mitchell County, Georgia",51,3.9,255,0.5,93.3,100.0,10,100.0,88.2,100.0,0.436,0.7,0.26,0.5,0.39,0.37,0.27,0.41,0.28,0.33,0.4,0.16,0.32

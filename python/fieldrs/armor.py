@@ -316,11 +316,99 @@ def armor_summary(ts: pd.DataFrame, phen: pd.DataFrame | None, year: int,
         note=note)
 
 
+# --- calendar-year scores ---------------------------------------------------
+#
+# The window score above answers "how covered was the ground at planting".
+# It cannot compare fields that grow different crops: on a winter cereal the
+# pre-planting window contains a living cash crop, so the number ranks
+# cropping systems. Measured over 101 Kansas fields and 505 field-years, the
+# gap between winter-crop and summer-only years is 2.73 standard deviations,
+# and the score correlates 0.91 with off-season greenness.
+#
+# These two cover the whole calendar year instead, and are meant to be read
+# alongside the window score rather than in place of it.
+#
+#   annual_residue  time-weighted mean f_npv. Crop-neutral BY CONSTRUCTION:
+#                   f_npv is non-photosynthetic vegetation, so a living crop
+#                   lands in f_pv and is excluded. On the same 505
+#                   field-years the crop gap falls to 0.36 SD and the
+#                   correlation with off-season greenness to 0.23. It
+#                   correlates only 0.42 with the window score, so it is
+#                   saying something the window score does not.
+#   annual_worst    the ANNUAL_WORST_Q quantile of armor through the year.
+#                   Averages hide the weeks that do the damage; this is how
+#                   bare the field got at its worst, robust to one bad scene.
+#
+# See project-level-tests/ANNUAL-ARMOR-OPTIONS.md for the comparison that
+# chose these two over an annual mean, exposure days, and a
+# growing-season-excluded score. Both inherit the ternary unmixing
+# endmembers, which were fitted on eleven fields, so both are provisional in
+# exactly the way the window score is.
+ANNUAL_MIN_OBS = 8        # clear dates a year needs before it is scored
+ANNUAL_WORST_Q = 0.10     # quantile for "worst", a robust minimum
+ANNUAL_FULL_DAYS = 300    # observed span below this is flagged partial
+
+
+def armor_annual(ts: pd.DataFrame, year: int) -> dict:
+    """Crop-neutral soil cover scores over one whole calendar year.
+
+    No window and no phenology: the series already spans ``ARMOR_SPAN``,
+    which is the full year, so this is a second reading of data already in
+    hand rather than a second extraction.
+    """
+    base = {"year": int(year), "annual_n_obs": 0, "annual_span_days": None,
+            "annual_residue": None, "annual_worst": None,
+            "annual_note": None}
+
+    d = ts[ts["date"].dt.year == year]
+    wide = pd.DataFrame()
+    if not d.empty:
+        wide = d.pivot_table(index="date", values="mean", columns="index")
+    need = ["f_npv", "f_bs"]
+    if not all(c in wide for c in need):
+        return {**base, "annual_note": "cover fractions not present in this "
+                                       "series."}
+    wide = wide.dropna(subset=need).sort_index()
+    n_obs = len(wide)
+    if n_obs < ANNUAL_MIN_OBS:
+        return {**base, "annual_n_obs": n_obs,
+                "annual_note": (f"only {n_obs} usable observation(s) in the "
+                                f"year; {ANNUAL_MIN_OBS} needed.")}
+
+    span = int((wide.index.max() - wide.index.min()).days)
+    note = None
+    if span < ANNUAL_FULL_DAYS:
+        # The current year is always partial -- analysis_window floors the end
+        # to the start of this month -- and a part-year average describes a
+        # different stretch of weather than a whole-year one. Scored anyway,
+        # flagged rather than dropped, because the caller may well want it.
+        note = (f"partial year: observations span {span} days, so this is "
+                "not comparable with a full-year score.")
+
+    armor = 1.0 - wide["f_bs"]
+    return {**base,
+            "annual_n_obs": n_obs,
+            "annual_span_days": span,
+            "annual_residue": round(_time_weighted(wide.index, wide["f_npv"]), 3),
+            # a plain quantile, not time-weighted: it is a level the field
+            # reached, not an average over a period
+            "annual_worst": round(float(armor.quantile(ANNUAL_WORST_Q)), 3),
+            "annual_note": note}
+
+
 def armor_all_years(ts: pd.DataFrame, phen: pd.DataFrame | None,
                     season: str = "spring") -> pd.DataFrame | None:
-    """:func:`armor_summary` for every year the series covers."""
+    """:func:`armor_summary` and :func:`armor_annual` for every year covered.
+
+    One row per year. The ``annual_`` columns describe the whole calendar
+    year and owe nothing to the window columns beside them -- the prefix is
+    there so the two cannot be read as the same measurement, which is the
+    confusion this whole pair of scores exists to avoid.
+    """
     if ts is None or not len(ts):
         return None
-    rows = [armor_summary(ts, phen, int(y), season)
-            for y in sorted(ts["date"].dt.year.unique())]
+    rows = []
+    for y in sorted(ts["date"].dt.year.unique()):
+        rows.append({**armor_summary(ts, phen, int(y), season),
+                     **armor_annual(ts, int(y))})
     return pd.DataFrame(rows) if rows else None
