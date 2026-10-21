@@ -297,12 +297,91 @@ workable_days <- function(weather, rules = NULL) {
   v <- work[format(days)]; !is.na(v) & v
 }
 
-#' Narrow each NDVI planting and harvest window with radar and weather.
+# --------------------------------------------------------- soil wetness ---
+#
+# Port of python/fieldrs/sar.py soil_wetness() / moisture_days(). Soil moisture,
+# not the day's rain, decides whether a field can be worked, so planting and
+# harvest days are chosen on a daily wetness estimate first and on the day's
+# weather second. Wetness is log(1 + API), corrected on bare unfrozen
+# acquisitions by r^2 of the VV residual over the fit's slope; the correction
+# fades at the API's daily decay until the next acquisition.
+
+#' A day is dry enough at or below this quantile of the field's own
+#' April-November unfrozen days. A first cut, not fitted.
+SAR_DRY_Q <- 0.5
+SAR_DRY_MONTHS <- 4:11
+
+#' Daily soil wetness for the field, from gridMET rain and Sentinel-1 VV.
+#' Columns date, pr_mm, wind_kmh (when present), api_mm, wet_rain, wet_radar,
+#' wet, anchored, frozen, dry; the threshold in attr(, "wet_threshold").
+soil_wetness <- function(ctx, weather) {
+  days <- seq(min(weather$date), max(weather$date), by = 1)
+  w <- weather[match(days, weather$date), ]
+  pr0 <- w$pr_mm; pr0[is.na(pr0)] <- 0
+  k <- SAR_API_DECAY
+  api <- numeric(length(pr0)); api[1] <- pr0[1]
+  for (t in seq_along(pr0)[-1]) api[t] <- k * api[t - 1] + (1 - k) * pr0[t]
+  api <- api / (1 - k)
+  tm <- (w$tmmx_degc + w$tmmn_degc) / 2
+  tmean3 <- as.numeric(stats::filter(tm, rep(1 / 3, 3), sides = 1))
+  out <- data.frame(date = days, pr_mm = w$pr_mm)
+  if ("wind_kmh" %in% names(w)) out$wind_kmh <- w$wind_kmh
+  out$api_mm <- api
+  out$wet_rain <- log1p(api)
+  out$frozen <- !is.na(tmean3) & tmean3 <= SAR_FROZEN_C
+
+  fits <- attr(ctx, "moisture_fit")
+  gain <- unlist(lapply(fits, function(f) if (f$slope > 0) f$r^2 / f$slope else NULL))
+  a <- ctx[ctx$bare & !ctx$frozen & as.character(ctx$orbit) %in% names(gain) &
+             !is.na(ctx$vv_adj), ]
+  anchor <- if (nrow(a)) tapply(a$vv_adj * gain[as.character(a$orbit)],
+                                format(a$date - 1), mean) else numeric(0)
+  corr <- numeric(length(days)); cc <- 0
+  key <- format(days)
+  for (i in seq_along(days)) {
+    cc <- if (key[i] %in% names(anchor)) anchor[[key[i]]] else cc * k
+    corr[i] <- cc
+  }
+  out$wet_radar <- corr
+  out$wet <- out$wet_rain + out$wet_radar
+  out$anchored <- key %in% names(anchor)
+  season <- out$wet[as.integer(format(days, "%m")) %in% SAR_DRY_MONTHS & !out$frozen]
+  thr <- if (length(season)) unname(stats::quantile(season, SAR_DRY_Q)) else NA_real_
+  out$dry <- !is.na(thr) & out$wet <= thr & !out$frozen
+  attr(out, "wet_threshold") <- round(thr, 3)
+  out
+}
+
+#' Per local day: dry enough soil, then weather fit for `event`. Planting
+#' tolerates light rain (only heavy_mm or more is ruled out); harvest needs a
+#' rain-free day (at most dry_mm). Wind only when wind_max_kmh is given. Named
+#' logical, by date, like workable_days().
+moisture_days <- function(wet, event, rules = NULL) {
+  r <- utils::modifyList(list(dry_mm = DRY_PR_MM, wind_max_kmh = NULL,
+                              heavy_mm = HEAVY_RAIN_MM), rules %||% list())
+  pr <- wet$pr_mm; pr[is.na(pr)] <- 0
+  ok <- wet$dry
+  if (event == "planting") {
+    if (!is.null(r$heavy_mm)) ok <- ok & pr < r$heavy_mm
+  } else {
+    ok <- ok & pr <= r$dry_mm
+  }
+  if (!is.null(r$wind_max_kmh) && "wind_kmh" %in% names(wet))
+    ok <- ok & !(!is.na(wet$wind_kmh) & wet$wind_kmh >= r$wind_max_kmh)
+  stats::setNames(ok, format(wet$date))
+}
+
+#' Narrow each NDVI planting and harvest window with radar, soil moisture and
+#' weather.
 #'
 #' Inside each window the strongest radar drop is scored as z over the field's
-#' robust interval-to-interval SD. z >= SAR_SUPPORT_Z narrows to the workable
-#' days in that interval ("radar + weather"); otherwise rain days are struck out
-#' ("weather only"). conflict: a step more than SAR_CONFLICT_DZ stronger sits in
+#' robust interval-to-interval SD. Days are chosen on soil moisture first
+#' (soil_wetness(), moisture_days()): from that interval when z >=
+#' SAR_SUPPORT_Z ("radar + moisture"), else from the whole window
+#' ("moisture"). Where no day is dry enough the rain check's workable days are
+#' used ("radar + weather" / "weather only"), then the window ("NDVI only").
+#' moist_days counts window days that passed the moisture test.
+#' conflict: a step more than SAR_CONFLICT_DZ stronger sits in
 #' the wider search span outside the window. Read span_days, not
 #' candidate_days, as how far the date is pinned down. `rules` are the weather
 #' settings of the rain check (see workable_days()). When `phen` carries the
@@ -311,6 +390,9 @@ workable_days <- function(weather, rules = NULL) {
 s1_refine <- function(ctx, phen, weather, rules = NULL) {
   iv <- s1_intervals(ctx)
   work <- workable_days(weather, rules)
+  wet <- soil_wetness(ctx, weather)
+  moist <- list(planting = moisture_days(wet, "planting", rules),
+                harvest = moisture_days(wet, "harvest", rules))
   sd <- list(d_vv_adj = .robust_sd(iv$d_vv_adj[iv$bare_both]), d_vh = .robust_sd(iv$d_vh))
   rows <- list()
   for (i in seq_len(nrow(phen))) {
@@ -329,13 +411,20 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
       wide_i <- setdiff(which(first >= span[1] & last <= span[2] & neg), in_i)
 
       win_days <- seq(lo, hi, by = 1)
+      mok <- moist[[event]]
       win_work <- win_days[.work_on(work, win_days)]
+      win_moist <- win_days[.work_on(mok, win_days)]
       row <- list(year = y, crop = p$crop, event = event, ndvi_lo = lo, ndvi_hi = hi,
                   ndvi_days = length(win_days), workable_days = length(win_work),
+                  moist_days = length(win_moist),
                   s1_from = as.Date(NA), s1_to = as.Date(NA), step_db = NA_real_,
-                  z = NA_real_, basis = "weather only", refined_lo = as.Date(NA),
+                  z = NA_real_, basis = NA_character_, refined_lo = as.Date(NA),
                   refined_hi = as.Date(NA), span_days = NA_integer_,
                   candidate_days = NA_integer_, conflict = FALSE, note = NA_character_)
+      take <- function(row, d, basis) {
+        row$basis <- basis; row$refined_lo <- min(d); row$refined_hi <- max(d)
+        row$candidate_days <- length(d); row
+      }
       best_z <- NA_real_
       ok_sd <- !is.na(sd[[col]]) && sd[[col]] > 0
       if (length(in_i) && ok_sd) {
@@ -344,21 +433,25 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
         row$s1_from <- e$date_a; row$s1_to <- e$date
         row$step_db <- round(e[[col]], 2); row$z <- round(best_z, 2)
         if (best_z >= SAR_SUPPORT_Z) {
-          d <- seq(max(lo, e$date_a), min(hi, e$date - 1), by = 1)
-          d <- d[.work_on(work, d)]
-          if (length(d)) {
-            row$basis <- "radar + weather"; row$refined_lo <- min(d)
-            row$refined_hi <- max(d); row$candidate_days <- length(d)
+          step <- seq(max(lo, e$date_a), min(hi, e$date - 1), by = 1)
+          d_m <- step[.work_on(mok, step)]; d_w <- step[.work_on(work, step)]
+          if (length(d_m)) {
+            row <- take(row, d_m, "radar + moisture")
+          } else if (length(d_w)) {
+            row <- take(row, d_w, "radar + weather")
+            row$note <- "no dry-enough day in the radar interval"
           } else {
             row$note <- "radar step stands out but its interval has no workable day inside the window"
           }
         }
       }
-      if (row$basis == "weather only" && length(win_work)) {
-        row$refined_lo <- min(win_work); row$refined_hi <- max(win_work)
-        row$candidate_days <- length(win_work)
+      if (is.na(row$basis) && length(win_moist)) {
+        row <- take(row, win_moist, "moisture")
+      } else if (is.na(row$basis) && length(win_work)) {
+        row <- take(row, win_work, "weather only")
+        if (is.na(row$note)) row$note <- "no dry-enough day in window"
       }
-      if (is.na(row$candidate_days)) {
+      if (is.na(row$basis)) {
         row$refined_lo <- lo; row$refined_hi <- hi; row$candidate_days <- length(win_days)
         row$basis <- "NDVI only"
         if (is.na(row$note)) row$note <- "no workable day in window"
@@ -384,6 +477,7 @@ s1_refine <- function(ctx, phen, weather, rules = NULL) {
   }
   out <- if (length(rows)) do.call(rbind, rows) else data.frame()
   attr(out, "noise_sd_db") <- lapply(sd, function(v) round(v, 2))
+  attr(out, "wet_threshold") <- attr(wet, "wet_threshold")
   out
 }
 
@@ -410,7 +504,8 @@ s1_analysis <- function(aoi, start, end, ts, phen, only_cached = FALSE, workers 
   events  <- if (has_phen) s1_events(ctx, phen) else data.frame()
   refined <- if (has_phen) s1_refine(ctx, phen, weather, rules) else data.frame()
   cuts <- forage_cuts(ndvi, phen, ctx, weather, rules)
-  list(s1 = s1, ctx = ctx, weather = weather, ndvi = ndvi, events = events,
+  list(s1 = s1, ctx = ctx, weather = weather, ndvi = ndvi,
+       wetness = soil_wetness(ctx, weather), events = events,
        refined = refined, cuts = cuts, orbits = sort(unique(s1$orbit)))
 }
 
@@ -485,8 +580,17 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
         span(ey$s1_from[i], ey$s1_to[i],
              S1_EVENT_COLOUR[[ey$event[i]]], 6.1, 7)
     }
+    wet <- res$wetness
+    if (!is.null(wet) && nrow(wet)) {
+      # Runs of dry-enough days (soil_wetness()) as a tan strip just above the
+      # narrowed-window bars.
+      wy <- wet[as.integer(format(wet$date, "%Y")) == y, ]
+      rl <- rle(wy$dry); ends <- cumsum(rl$lengths); starts <- ends - rl$lengths + 1
+      for (j in which(rl$values))
+        span(wy$date[starts[j]], wy$date[ends[j]] + 1, "#c9a66b", -6.1, -5.6)
+    }
     if (!is.null(ref) && nrow(ref)) {
-      ry <- ref[ref$basis == "radar + weather", ]    # all seasons; plot clips
+      ry <- ref[startsWith(ref$basis, "radar"), ]     # all seasons; plot clips
       for (i in seq_len(nrow(ry))) span(ry$refined_lo[i], ry$refined_hi[i] + 1, "black", -7, -6.1)
     }
     graphics::abline(h = 0, col = "grey70", lwd = 0.5)
@@ -521,17 +625,18 @@ plot_s1 <- function(res, phen = NULL, title = NULL, cover = NULL) {
     legend = c("VV, moisture-adjusted (dB)", "VH, orbit-centred (dB)", "NDVI × 10 − 6",
                "frozen (dropped)", "NDVI planting window", "NDVI harvest window",
                "NDVI estimate (dashed)", "weather-checked date (solid)",
-               "radar interval (top)", "narrowed: radar + weather (bottom)", "hay cut (purple)",
+               "radar interval (top)", "soil dry enough (radar + rain)",
+               "narrowed: radar + moisture (bottom)", "hay cut (purple)",
                "stand seeding (green)", "cover crop seeding / termination (dotted)"),
     col = c("#1f77b4", "forestgreen", "darkgreen", "grey50",
             grDevices::adjustcolor(S1_EVENT_COLOUR[["planting"]], 0.3),
             grDevices::adjustcolor(S1_EVENT_COLOUR[["harvest"]], 0.3), "grey30", "grey30",
-            S1_EVENT_COLOUR[["harvest"]], "black", "purple",
+            S1_EVENT_COLOUR[["harvest"]], "#c9a66b", "black", "purple",
             STAND_COLOUR, COVER_SEED_COLOUR),
-    lwd = c(1, 1, 1.6, NA, NA, NA, 1.2, 2.2, NA, NA, NA, 1.6, 1.8),
-    lty = c(1, 1, 1, NA, NA, NA, 2, 1, NA, NA, NA, 2, 3),
-    pch = c(16, NA, NA, 4, 15, 15, NA, NA, 15, 15, 15, NA, NA),
-    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, NA, NA, 1.4, 1.4, 1.4, NA, NA))
+    lwd = c(1, 1, 1.6, NA, NA, NA, 1.2, 2.2, NA, NA, NA, NA, 1.6, 1.8),
+    lty = c(1, 1, 1, NA, NA, NA, 2, 1, NA, NA, NA, NA, 2, 3),
+    pch = c(16, NA, NA, 4, 15, 15, NA, NA, 15, 15, 15, 15, NA, NA),
+    pt.cex = c(0.6, NA, NA, 0.8, 1.6, 1.6, NA, NA, 1.4, 1.4, 1.4, 1.4, NA, NA))
   if (!is.null(title)) graphics::mtext(title, side = 3, line = -1.1, cex = 0.9, font = 2)
   invisible()
 }

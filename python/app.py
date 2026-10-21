@@ -933,10 +933,11 @@ with tab_moisture:
                "estimate and a solid one at the weather-checked date. **Bars along "
                "the top of each panel** mark the interval holding the largest VV "
                "drop in spring (seedbed or planter smoothing the surface) and the "
-               "largest VH drop near the harvest window (canopy removed). **Black "
-               "bars along the bottom** are NDVI windows narrowed by radar and the "
-               "sidebar's weather settings together. In hay years, **purple** marks "
-               "each cutting. Light-blue bars are daily rain.")
+               "largest VH drop near the harvest window (canopy removed). The "
+               "**tan strip along the bottom** marks days the soil is dry enough "
+               "(radar + rain memory), and **black bars** under it are NDVI windows "
+               "narrowed by a radar step and those dry days together. In hay years, "
+               "**purple** marks each cutting. Light-blue bars are daily rain.")
     with c3:
         st.write("")
         run_s1 = st.button("Run radar analysis", type="primary",
@@ -998,7 +999,7 @@ with tab_moisture:
                                 "accuracy.")
             for col, name in zip(m[2:], ("harvest", "planting")):
                 e = ref[ref["event"] == name]
-                rw = e[e["basis"] == "radar + weather"]
+                rw = e[e["basis"].str.startswith("radar")]
                 val = (f"{len(rw)} of {len(e)} · {int(rw['ndvi_days'].median())}→"
                        f"{int(rw['span_days'].median())} d" if len(rw)
                        else f"0 of {len(e)}")
@@ -1030,7 +1031,7 @@ with tab_moisture:
 
         _show(viz.plot_s1(s1_res["ctx"], s1_res["weather"], s1_res["ndvi"],
                           result.phenology, ev, ref, cuts=cuts,
-                          cover=result.covercrop),
+                          cover=result.covercrop, wetness=s1_res.get("wetness")),
               "sentinel1-radar-by-year")
 
         if has_cuts:
@@ -1048,16 +1049,25 @@ with tab_moisture:
 
         if len(ref):
             st.subheader("Narrowed windows")
-            st.caption("Inside each NDVI window: a radar drop that stands out from "
-                       "this field's scene-to-scene noise narrows the date to the "
-                       "workable days in its interval; otherwise only rain days are "
-                       "struck out. Agreement with NDVI is built in here, so it is "
-                       "not a result. **Read span_days, not candidate_days**, as how "
-                       "far the date is pinned down. Workable days follow the "
-                       "sidebar's weather settings when the check is on (defaults "
-                       "otherwise), plus no frozen days; weather_date is the Season "
-                       "analysis tab's weather-checked date, and "
-                       "weather_date_in_window says whether the radar agrees with it.")
+            st.caption("Inside each NDVI window the date is narrowed to days when "
+                       "**the soil is dry enough first, and the weather second**: "
+                       "soil wetness is the rain memory from gridMET (rain wets the "
+                       "soil over days and it dries out slowly), corrected by the "
+                       "radar on bare-soil passes; a day is dry enough when it is at "
+                       "or below this field's April-November median "
+                       f"(threshold {ref.attrs.get('wet_threshold', float('nan')):.2f}). "
+                       "On top of that, **planting** allows light rain and rules out "
+                       "only heavy rain (the sidebar's heavy-rain value), **harvest** "
+                       "needs a rain-free day, and wind counts when the wind check is "
+                       "on. A radar drop that stands out from this field's noise "
+                       "narrows further to its interval. Where no day is dry enough "
+                       "the old weather-only rule is used, and the basis column says "
+                       "which. moist_days is how many window days passed the moisture "
+                       "test. Agreement with NDVI is built in here, so it is not a "
+                       "result. **Read span_days, not candidate_days**, as how far "
+                       "the date is pinned down. weather_date is the Season analysis "
+                       "tab's weather-checked date, and weather_date_in_window says "
+                       "whether it falls in the narrowed window.")
             st.dataframe(_fmt_dates(ref), hide_index=True, use_container_width=True)
         if len(ev):
             with st.expander("Radar searched beyond the NDVI windows"):

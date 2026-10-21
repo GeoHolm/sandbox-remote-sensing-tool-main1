@@ -719,9 +719,11 @@ ui <- page_navbar(
                  " mark the interval holding the largest VV drop in spring (seedbed or ",
                  "planter smoothing the surface) and the largest VH drop near the harvest ",
                  "window (canopy removed). ",
-                 tags$strong("Black bars along the bottom"), " are NDVI windows narrowed ",
-                 "by radar and the sidebar's weather settings together. In hay years, ",
-                 tags$strong("purple"), " marks each cutting. Light-blue bars are daily rain."),
+                 "The ", tags$strong("tan strip along the bottom"), " marks days the soil ",
+                 "is dry enough (radar + rain memory), and ", tags$strong("black bars"),
+                 " under it are NDVI windows narrowed by a radar step and those dry days ",
+                 "together. In hay years, ", tags$strong("purple"),
+                 " marks each cutting. Light-blue bars are daily rain."),
              actionButton("run_s1", "Run radar analysis", class = "btn-primary w-100")),
            uiOutput("s1_status"),
            uiOutput("s1_metrics"),
@@ -1886,7 +1888,7 @@ server <- function(input, output, session) {
           p(class = "small mb-0", "Radar searched beyond the window. Agreement, not accuracy."))
       }
       for (name in c("harvest", "planting")) {
-        e <- ref[ref$event == name, ]; rw <- e[e$basis == "radar + weather", ]
+        e <- ref[ref$event == name, ]; rw <- e[startsWith(e$basis, "radar"), ]
         boxes[[length(boxes) + 1]] <- value_box(
           title = sprintf("%s narrowed by radar", tools::toTitleCase(name)),
           value = if (nrow(rw)) sprintf("%d of %d \u00b7 %d\u2192%d d", nrow(rw), nrow(e),
@@ -1938,12 +1940,22 @@ server <- function(input, output, session) {
       if (nrow(res$refined)) card(
         card_header("Narrowed windows"),
         div(class = "text-muted small mb-2",
-            "Agreement with NDVI is built in here, so it is not a result. Read span_days, ",
-            "not candidate_days, as how far the date is pinned down. Workable days follow ",
-            "the sidebar's weather settings when the check is on (defaults otherwise), ",
-            "plus no frozen days; weather_date is the Season analysis tab's ",
-            "weather-checked date, and weather_date_in_window says whether the radar ",
-            "agrees with it."),
+            "Inside each NDVI window the date is narrowed to days when ",
+            tags$strong("the soil is dry enough first, and the weather second"), ": soil ",
+            "wetness is the rain memory from gridMET (rain wets the soil over days and it ",
+            "dries out slowly), corrected by the radar on bare-soil passes; a day is dry ",
+            "enough at or below this field's April-November median ",
+            sprintf("(threshold %.2f). ", attr(res$refined, "wet_threshold") %||% NA_real_),
+            "On top of that, ", tags$strong("planting"), " allows light rain and rules out ",
+            "only heavy rain (the sidebar's heavy-rain value), ", tags$strong("harvest"),
+            " needs a rain-free day, and wind counts when the wind check is on. A radar ",
+            "drop that stands out from this field's noise narrows further to its ",
+            "interval. Where no day is dry enough the old weather-only rule is used, and ",
+            "the basis column says which. moist_days is how many window days passed the ",
+            "moisture test. Agreement with NDVI is built in here, so it is not a result. ",
+            "Read span_days, not candidate_days, as how far the date is pinned down. ",
+            "weather_date is the Season analysis tab's weather-checked date, and ",
+            "weather_date_in_window says whether it falls in the narrowed window."),
         DTOutput("tbl_s1_refined")),
       if (nrow(res$events)) tags$details(class = "mt-2",
         tags$summary("Radar searched beyond the NDVI windows"), DTOutput("tbl_s1_events")))

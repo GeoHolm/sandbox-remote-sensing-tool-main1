@@ -734,7 +734,7 @@ def _mark_suspect(ax, d: pd.DataFrame, s: float = 50) -> None:
 def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
             phen: pd.DataFrame, events: pd.DataFrame, refined: pd.DataFrame,
             title: str | None = None, cuts: pd.DataFrame | None = None,
-            cover: pd.DataFrame | None = None):
+            cover: pd.DataFrame | None = None, wetness: pd.DataFrame | None = None):
     """Sentinel-1 backscatter against NDVI phenology, one panel per year.
 
     ``ctx``, ``events`` and ``refined`` come from fieldrs.sar (s1_context,
@@ -805,11 +805,20 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
                 c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
                 ax.axvspan(e.s1_from, e.s1_to, ymin=0.9, ymax=1.0, color=c,
                            label=f"radar {e.event} interval")
+        if wetness is not None and len(wetness):
+            # Runs of dry-enough days (sar.soil_wetness) as a tan strip just
+            # above the narrowed-window bars.
+            wy = wetness[wetness["date"].dt.year == y]
+            run = (wy["dry"] != wy["dry"].shift()).cumsum()
+            for _, g in wy[wy["dry"]].groupby(run[wy["dry"]]):
+                ax.axvspan(g["date"].iloc[0], g["date"].iloc[-1] + pd.Timedelta(days=1),
+                           ymin=0.08, ymax=0.12, color="#c9a66b",
+                           label="soil dry enough (radar + rain)")
         if refined is not None and len(refined):
-            for e in refined[refined["basis"] == "radar + weather"].itertuples():
+            for e in refined[refined["basis"].str.startswith("radar")].itertuples():
                 ax.axvspan(e.refined_lo, e.refined_hi + pd.Timedelta(days=1),
                            ymin=0.0, ymax=0.08, color="black",
-                           label="narrowed by radar + weather")
+                           label="narrowed by radar + moisture")
         if cuts is not None and len(cuts):
             for c in cuts[cuts["year"] == y].itertuples():
                 bare = c.kind == "to bare soil"

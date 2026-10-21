@@ -406,9 +406,99 @@ def _robust_sd(x: pd.Series) -> float:
     return float(1.4826 * (x - x.median()).abs().median()) if len(x) >= 10 else float("nan")
 
 
+# --------------------------------------------------------- soil wetness ---
+#
+# Soil moisture, not the day's rain, decides whether a field can be worked:
+# rain takes time to wet the soil and the soil takes days to dry. So the
+# planting and harvest days are chosen on a daily wetness estimate first and
+# on the day's weather second.
+#
+# The estimate is log(1 + API) -- the same rain memory the VV moisture fit uses
+# -- corrected by the radar wherever it can see bare soil. On a bare, unfrozen
+# acquisition the VV residual from the moisture fit, divided by the fit's
+# slope, says how much wetter or drier the soil reads than its rain implies
+# (irrigation, snowmelt, a slow-draining soil). Only the share r^2 of that
+# residual is trusted, because the rest of VV is roughness and speckle; that
+# correction is carried forward and fades at the API's own daily decay until
+# the next acquisition. Under a canopy there is no anchor and the estimate is
+# the rain memory alone.
+
+# A day is "dry enough" when its wetness is at or below this quantile of the
+# field's own April-November unfrozen days. Radar backscatter is not calibrated
+# to volumetric moisture, so the threshold is relative to the field. 0.5 is a
+# first cut, not fitted.
+SAR_DRY_Q = 0.5
+SAR_DRY_MONTHS = range(4, 12)
+
+
+def soil_wetness(ctx: pd.DataFrame, weather: pd.DataFrame) -> pd.DataFrame:
+    """Daily soil wetness for the field, from gridMET rain and Sentinel-1 VV.
+
+    One row per local day: ``pr_mm``, ``wind_kmh`` (when gridMET has it),
+    ``api_mm``, ``wet_rain`` (log(1 + API)), ``wet_radar`` (the radar
+    correction in force that day), ``wet`` (their sum), ``anchored`` (a bare
+    acquisition that day), ``frozen`` and ``dry`` (wet at or below the field's
+    threshold, and not frozen). The threshold is in ``.attrs["wet_threshold"]``.
+    """
+    w = weather.set_index("date").asfreq("D")
+    k = SAR_API_DECAY
+    api = w["pr_mm"].fillna(0).ewm(alpha=1 - k, adjust=False).mean() / (1 - k)
+    out = pd.DataFrame({"pr_mm": w["pr_mm"], "api_mm": api,
+                        "wet_rain": np.log1p(api)}, index=w.index)
+    if "wind_kmh" in w:
+        out.insert(1, "wind_kmh", w["wind_kmh"])
+    tmean3 = ((w["tmmx_degc"] + w["tmmn_degc"]) / 2).rolling(3).mean()
+    out["frozen"] = (tmean3 <= SAR_FROZEN_C).to_numpy()
+
+    fits = ctx.attrs.get("moisture_fit", {})
+    gain = {o: f["r"] ** 2 / f["slope"] for o, f in fits.items() if f["slope"] > 0}
+    a = ctx[ctx["bare"] & ~ctx["frozen"] & ctx["orbit"].isin(gain) & ctx["vv_adj"].notna()]
+    anchor = ((a["vv_adj"] * a["orbit"].map(gain))
+              .groupby(a["date"] - pd.Timedelta(days=1)).mean())
+    corr, c = [], 0.0
+    for d in out.index:
+        c = float(anchor[d]) if d in anchor.index else c * k
+        corr.append(c)
+    out["wet_radar"] = corr
+    out["wet"] = out["wet_rain"] + out["wet_radar"]
+    out["anchored"] = out.index.isin(anchor.index)
+    season = out[out.index.month.isin(SAR_DRY_MONTHS) & ~out["frozen"]]
+    thr = float(season["wet"].quantile(SAR_DRY_Q)) if len(season) else float("nan")
+    out["dry"] = (out["wet"] <= thr) & ~out["frozen"]
+    out.attrs["wet_threshold"] = round(thr, 3)
+    return out.rename_axis("date").reset_index()
+
+
+def moisture_days(wet: pd.DataFrame, event: str, rules: dict | None = None) -> pd.Series:
+    """Per local day: dry enough soil, then weather fit for ``event``.
+
+    Planting tolerates light rain -- only a day of ``heavy_mm`` or more
+    (torrential) is ruled out. Harvest needs a rain-free day (at most
+    ``dry_mm``). Wind is checked only when ``wind_max_kmh`` is given. The wet
+    day(s) after a heavy rain need no rule of their own: the wetness estimate
+    already carries them.
+    """
+    from .climate import DRY_PR_MM, HEAVY_RAIN_MM
+
+    r = {"dry_mm": DRY_PR_MM, "wind_max_kmh": None, "heavy_mm": HEAVY_RAIN_MM,
+         **(rules or {})}
+    w = wet.set_index("date")
+    pr = w["pr_mm"].fillna(0)
+    ok = w["dry"].copy()
+    if event == "planting":
+        if r["heavy_mm"] is not None:
+            ok &= pr < r["heavy_mm"]
+    else:
+        ok &= pr <= r["dry_mm"]
+    if r["wind_max_kmh"] is not None and "wind_kmh" in w:
+        ok &= ~(w["wind_kmh"] >= r["wind_max_kmh"]).fillna(False)
+    return ok
+
+
 def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
               weather: pd.DataFrame, rules: dict | None = None) -> pd.DataFrame:
-    """Narrow each NDVI planting and harvest window with radar and weather.
+    """Narrow each NDVI planting and harvest window with radar, soil moisture
+    and weather.
 
     Per event and season:
 
@@ -417,16 +507,21 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
        in VH.
     2. The strongest is scored as ``z``: its drop over the robust SD of every
        interval of the same kind on this field.
-    3. If ``z >= SAR_SUPPORT_Z`` the window narrows to the workable days that
-       fall both in the window and in that interval (``basis = "radar +
-       weather"``). Otherwise the radar adds nothing and the window narrows to
-       its workable days only (``basis = "weather only"``).
+    3. The days left are chosen on soil moisture first (soil_wetness,
+       moisture_days): dry-enough soil, light rain allowed for planting, no
+       rain for harvest. If ``z >= SAR_SUPPORT_Z`` they are taken from inside
+       that interval (``basis = "radar + moisture"``), otherwise from the whole
+       window (``"moisture"``).
+    4. Where no day passes the moisture test, the rain check's workable days
+       are used instead (``"radar + weather"`` / ``"weather only"``), and
+       where none of those exist either, the NDVI window (``"NDVI only"``).
 
     ``candidate_days`` counts the days left; ``span_days`` is first to last of
-    them. They differ a lot for "weather only", where rain days are struck out
-    of the window but its ends barely move -- read the span, not the count, as
-    how far the date has actually been pinned down.
-    4. ``conflict`` is set when a step more than SAR_CONFLICT_DZ stronger sits
+    them. They differ a lot without the radar, where days are struck out of
+    the window but its ends barely move -- read the span, not the count, as
+    how far the date has actually been pinned down. ``moist_days`` is how many
+    days of the NDVI window passed the moisture test.
+    5. ``conflict`` is set when a step more than SAR_CONFLICT_DZ stronger sits
        in the wider search span outside the window. The NDVI window is kept
        either way; the flag says the two disagree.
 
@@ -439,6 +534,8 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
     """
     iv = s1_intervals(ctx)
     work = workable_days(weather, rules)
+    wet = soil_wetness(ctx, weather)
+    moist = {e: moisture_days(wet, e, rules) for e in ("planting", "harvest")}
     D = pd.Timedelta
     sd = {"d_vv_adj": _robust_sd(iv.loc[iv["bare_both"], "d_vv_adj"]),
           "d_vh": _robust_sd(iv["d_vh"])}
@@ -462,14 +559,20 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                          & ~pool.index.isin(inside.index)]
 
             win_days = pd.date_range(lo, hi)
+            mok = moist[event]
             win_work = [d for d in win_days if work.get(d, False)]
+            win_moist = [d for d in win_days if mok.get(d, False)]
             row = {"year": y, "crop": p.crop, "event": event,
                    "ndvi_lo": lo, "ndvi_hi": hi, "ndvi_days": len(win_days),
-                   "workable_days": len(win_work),
+                   "workable_days": len(win_work), "moist_days": len(win_moist),
                    "s1_from": pd.NaT, "s1_to": pd.NaT, "step_db": None, "z": None,
-                   "basis": "weather only", "refined_lo": pd.NaT, "refined_hi": pd.NaT,
+                   "basis": None, "refined_lo": pd.NaT, "refined_hi": pd.NaT,
                    "span_days": None, "candidate_days": None,
                    "conflict": False, "note": None}
+
+            def _take(days, basis):
+                row.update(basis=basis, refined_lo=days[0], refined_hi=days[-1],
+                           candidate_days=len(days))
 
             best_z = None
             if len(inside) and sd[col] and np.isfinite(sd[col]):
@@ -478,20 +581,23 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
                 row.update(s1_from=e["date_a"], s1_to=e["date"],
                            step_db=round(float(e[col]), 2), z=round(best_z, 2))
                 if best_z >= SAR_SUPPORT_Z:
-                    days = [d for d in pd.date_range(max(lo, e["date_a"]),
-                                                     min(hi, e["date"] - D(days=1)))
-                            if work.get(d, False)]
-                    if days:
-                        row.update(basis="radar + weather",
-                                   refined_lo=days[0], refined_hi=days[-1],
-                                   candidate_days=len(days))
+                    step = pd.date_range(max(lo, e["date_a"]), min(hi, e["date"] - D(days=1)))
+                    days_m = [d for d in step if mok.get(d, False)]
+                    days_w = [d for d in step if work.get(d, False)]
+                    if days_m:
+                        _take(days_m, "radar + moisture")
+                    elif days_w:
+                        _take(days_w, "radar + weather")
+                        row["note"] = "no dry-enough day in the radar interval"
                     else:
                         row["note"] = ("radar step stands out but its interval has "
                                        "no workable day inside the window")
-            if row["basis"] == "weather only" and win_work:
-                row.update(refined_lo=win_work[0], refined_hi=win_work[-1],
-                           candidate_days=len(win_work))
-            if row["candidate_days"] is None:
+            if row["basis"] is None and win_moist:
+                _take(win_moist, "moisture")
+            elif row["basis"] is None and win_work:
+                _take(win_work, "weather only")
+                row["note"] = row["note"] or "no dry-enough day in window"
+            if row["basis"] is None:
                 row.update(refined_lo=lo, refined_hi=hi, candidate_days=len(win_days),
                            basis="NDVI only", note=row["note"] or "no workable day in window")
             row["span_days"] = (row["refined_hi"] - row["refined_lo"]).days + 1
@@ -513,6 +619,7 @@ def s1_refine(ctx: pd.DataFrame, phen: pd.DataFrame,
             rows.append(row)
     out = pd.DataFrame(rows)
     out.attrs["noise_sd_db"] = {k: round(v, 2) for k, v in sd.items()}
+    out.attrs["wet_threshold"] = wet.attrs["wet_threshold"]
     return out
 
 
@@ -551,5 +658,6 @@ def s1_analysis(aoi: gpd.GeoDataFrame, result, *, only_cached: bool = False,
         refined = s1_refine(ctx, phen, weather, rules)
     cuts = forage_cuts(ndvi, phen, ctx, weather, rules)
     return {"s1": s1, "ctx": ctx, "weather": weather, "ndvi": ndvi,
+            "wetness": soil_wetness(ctx, weather),
             "events": events, "refined": refined, "cuts": cuts,
             "orbits": sorted(int(o) for o in s1["orbit"].unique())}
