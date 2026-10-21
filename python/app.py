@@ -913,8 +913,10 @@ with tab_armor:
     with e2:
         run_emit = st.button("Read EMIT scenes", use_container_width=True)
     try:
-        emit_res = (st.session_state.emit.get(emit_key)
-                    or emit_cai(aoi, result.start, emit_end, only_cached=True))
+        # Not `a or b`: a DataFrame has no truth value.
+        emit_res = st.session_state.emit.get(emit_key)
+        if emit_res is None:
+            emit_res = emit_cai(aoi, result.start, emit_end, only_cached=True)
     except EarthdataAuthError:
         emit_res = None
     if run_emit:
