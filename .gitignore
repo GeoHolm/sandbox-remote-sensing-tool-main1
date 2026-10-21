@@ -74,3 +74,28 @@ geodata/
 # Intermediate HTML from build_methods_pdf.py (use --keep-html to inspect)
 pitch/_methods.html
 METHODS.html
+
+# Project-level test inputs: grower-identifying data, deliberately not committed.
+# The Fieldprint payloads carry grower email addresses, farm names and yields,
+# and the boundaries are precise farm locations. The derived results are keyed
+# by a geometry hash instead, so the analysis is reviewable without them.
+# Drop the payload archive back in and re-run extract_flash.py to reproduce.
+project-level-tests/*/Fieldprint-payloads/
+project-level-tests/*/boundaries/
+project-level-tests/*/fields.csv
+project-level-tests/*/run.log
+project-level-tests/*/_flash_slides.html
+project-level-tests/4d-farm/boundaries/
+
+# The 4D farm vendor export: 120 MB of yield monitor, soil moisture, as-applied
+# and electrical-conductivity files, same grower-data reasoning as above. Some
+# of its paths also exceed the Windows path limit, so git cannot index them at
+# all. extract_4d_ancillary.py reduces it to ancillary_summary.csv, which is
+# what the workbook was built from and is committed.
+project-level-tests/4d-farm/ancillary data/
+
+# The alfalfa report pack: a Shiny export carrying a precise farm boundary,
+# same grower-data reasoning as the Fieldprint payloads above. The derived
+# cuttings.csv, the figures and the deck are committed; drop the pack back
+# into alfalfa-nm/pack/ to reproduce them.
+project-level-tests/alfalfa-nm/pack/

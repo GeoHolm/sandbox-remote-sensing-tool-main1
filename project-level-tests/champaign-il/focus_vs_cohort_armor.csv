@@ -1,0 +1,5 @@
+year,crop,stratum,focus_armor,peers_n,peer_median,percentile,window_source,n_obs
+2022,Soybeans,summer only,0.321,8,0.34,37.5,partial,3
+2023,Corn,summer only,0.148,47,0.139,57.4,phenology,3
+2024,Soybeans,summer only,0.209,44,0.151,84.1,phenology,3
+2025,Corn,summer only,0.176,49,0.181,44.9,phenology,5

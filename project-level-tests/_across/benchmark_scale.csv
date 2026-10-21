@@ -1,0 +1,10 @@
+score,county,n,county_median,pooled_median,county_median_pctile_in_pool,share_below_pooled_median
+preplant,Champaign,51,0.206,0.438,14.3,100.0
+preplant,Mitchell,51,0.329,0.438,38.4,82.4
+preplant,Sumner,101,0.594,0.438,74.9,8.9
+residue,Champaign,51,0.219,0.293,16.3,94.1
+residue,Mitchell,51,0.261,0.293,36.0,86.3
+residue,Sumner,101,0.335,0.293,74.9,9.9
+worst,Champaign,51,0.152,0.239,22.7,84.3
+worst,Mitchell,51,0.198,0.239,36.0,64.7
+worst,Sumner,101,0.297,0.239,70.4,25.7

@@ -1,0 +1,4 @@
+year,crop,stratum,focus_armor,peers_n,peer_median,percentile,window_source,n_obs
+2022,Corn,summer only,0.191,49,0.421,4.1,partial,5
+2024,Dbl Crop WinWht/Soybeans,winter crop,0.884,50,0.798,80.0,fallback,7
+2025,Cotton,summer only,0.391,44,0.334,63.6,partial,14

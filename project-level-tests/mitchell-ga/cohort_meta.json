@@ -1,0 +1,23 @@
+{
+  "source": "USDA FSA Common Land Unit, public release 2008-02-04",
+  "county": "Mitchell County, Georgia",
+  "clu_polygons": 10229,
+  "pool_after_filters": 652,
+  "cohort_n": 50,
+  "radius_m": 3885,
+  "filters": {
+    "acres": [
+      40.0,
+      400.0
+    ],
+    "polsby_popper": 0.35,
+    "cdl_purity_pct": 60.0,
+    "cropland_years_required": 3,
+    "cdl_years_screened": [
+      2022,
+      2023,
+      2024,
+      2025
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+county,year,crop,all neighbours_n,all neighbours_pct,same crop_n,same crop_pct,same pair_n,same pair_pct,same triple_n,same triple_pct
+Champaign,2022,Soybeans,50,82,27,89.0,0,,0,
+Champaign,2023,Corn,50,80,27,81.0,27,81.0,0,
+Champaign,2024,Soybeans,50,96,25,92.0,25,92.0,25,92.0
+Champaign,2025,Corn,50,72,25,80.0,25,80.0,25,80.0
+Mitchell,2022,Peanuts,50,4,18,11.0,0,,0,
+Mitchell,2023,Corn,50,24,12,8.0,7,,0,
+Mitchell,2024,Cotton,50,60,21,48.0,2,,2,
+Mitchell,2025,Peanuts,50,10,25,20.0,15,13.0,2,
+Sumner,2022,Corn,100,9,7,,0,,0,
+Sumner,2023,Winter Wheat,100,8,38,21.0,4,,0,
+Sumner,2024,Dbl Crop WinWht/Soybeans,100,97,30,100.0,10,100.0,3,
+Sumner,2025,Cotton,100,58,7,,3,,3,

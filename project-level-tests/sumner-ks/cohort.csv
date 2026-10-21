@@ -1,0 +1,102 @@
+CALCACRES,acres,compact,fid,crop_years,cdl_2022,pct_2022,cdl_2023,pct_2023,cdl_2024,pct_2024,cdl_2025,pct_2025,dist_m,role,lon,lat
+168.27,168.3,0.78,focus,4,Corn,93.7,Winter Wheat,97.9,Dbl Crop WinWht/Soybeans,98.9,Cotton,96.8,0.0,focus,-97.617248,37.231099
+72.23,72.3,0.499,f1457,4,Soybeans,88.0,Dbl Crop WinWht/Soybeans,98.8,Dbl Crop WinWht/Soybeans,71.0,Winter Wheat,98.8,642.0,cohort,-97.609983,37.231675
+62.89,62.9,0.741,f1960,4,Soybeans,70.4,Winter Wheat,97.8,Dbl Crop WinWht/Soybeans,93.5,Soybeans,97.1,788.0,cohort,-97.625914,37.22931
+83.54,83.6,0.713,f1455,4,Soybeans,78.9,Dbl Crop WinWht/Soybeans,90.4,Dbl Crop WinWht/Soybeans,62.3,Winter Wheat,62.0,833.0,cohort,-97.619669,37.238285
+40.52,40.5,0.763,f1958,3,Dbl Crop WinWht/Soybeans,42.9,Dbl Crop WinWht/Soybeans,86.4,Dbl Crop WinWht/Soybeans,67.9,Dbl Crop WinWht/Soybeans,79.3,887.0,cohort,-97.624069,37.236936
+249.79,249.9,0.485,f1456,3,Soybeans,82.6,Dbl Crop WinWht/Soybeans,91.5,Dbl Crop WinWht/Soybeans,75.2,Winter Wheat,54.1,1018.0,cohort,-97.610104,37.23825
+89.9,89.9,0.535,f1458,3,Soybeans,65.9,Dbl Crop WinWht/Soybeans,92.0,Dbl Crop WinWht/Soybeans,57.9,Winter Wheat,93.9,1031.0,cohort,-97.605542,37.230516
+73.26,73.3,0.606,f1961,3,Soybeans,77.0,Dbl Crop WinWht/Soybeans,88.2,Grass/Pasture,70.9,Dbl Crop WinWht/Soybeans,92.3,1523.0,cohort,-97.634579,37.231262
+131.53,131.6,0.569,f1462,4,Dbl Crop WinWht/Soybeans,85.8,Cotton,88.2,Soybeans,89.2,Winter Wheat,78.9,1585.0,cohort,-97.614654,37.217098
+165.59,165.7,0.766,f1453,4,Winter Wheat,95.7,Dbl Crop WinWht/Soybeans,97.0,Cotton,81.3,Soybeans,95.7,1621.0,cohort,-97.617171,37.245568
+141.86,141.9,0.482,f1476,4,Winter Wheat,94.7,Dbl Crop WinWht/Soybeans,96.3,Cotton,95.2,Corn,96.1,1660.0,cohort,-97.598369,37.231523
+45.38,45.4,0.578,f1955,3,Soybeans,40.1,Dbl Crop WinWht/Soybeans,68.1,Dbl Crop WinWht/Soybeans,63.3,Dbl Crop WinWht/Soybeans,68.6,1823.0,cohort,-97.63592,37.238184
+168.76,168.8,0.545,f1454,4,Soybeans,92.7,Dbl Crop WinWht/Soybeans,93.5,Soybeans,91.0,Winter Wheat,88.0,1827.0,cohort,-97.607653,37.245567
+82.68,82.7,0.67,f1460,4,Soybeans,84.9,Sorghum,82.2,Soybeans,95.4,Soybeans,95.4,1890.0,cohort,-97.606916,37.216303
+227.13,227.2,0.766,f1475,4,Corn,89.3,Dbl Crop WinWht/Soybeans,96.7,Cotton,91.4,Corn,99.3,2028.0,cohort,-97.596218,37.238552
+64.8,64.8,0.608,f1438,3,Winter Wheat,92.9,Winter Wheat,92.5,Grass/Pasture,98.3,Winter Wheat,91.2,2119.0,cohort,-97.63178,37.246185
+43.61,43.6,0.47,f1439,3,Winter Wheat,86.8,Winter Wheat,86.3,Grass/Pasture,53.4,Winter Wheat,87.3,2190.0,cohort,-97.63546,37.24444
+74.11,74.1,0.68,f2007,4,Winter Wheat,94.5,Dbl Crop WinWht/Soybeans,92.1,Cotton,81.8,Corn,96.0,2190.0,cohort,-97.615319,37.211613
+75.26,75.3,0.698,f1471,4,Soybeans,95.2,Winter Wheat,100.0,Dbl Crop WinWht/Soybeans,92.5,Corn,95.8,2232.0,cohort,-97.59783,37.243943
+80.39,80.4,0.713,f1953,4,Soybeans,84.1,Soybeans,83.0,Winter Wheat,85.8,Winter Wheat,87.7,2249.0,cohort,-97.641889,37.236531
+41.57,41.6,0.591,f1452,3,Cotton,62.6,Winter Wheat,92.0,Cotton,40.6,Soybeans,85.0,2280.0,cohort,-97.614267,37.251306
+42.37,42.4,0.624,f2006,4,Dbl Crop WinWht/Soybeans,84.9,Soybeans,85.9,Cotton,84.4,Winter Wheat,86.9,2297.0,cohort,-97.608039,37.211913
+92.59,92.6,0.691,f1947,4,Dbl Crop WinWht/Soybeans,97.8,Cotton,97.3,Corn,93.4,Dbl Crop WinWht/Soybeans,96.8,2370.0,cohort,-97.625741,37.211029
+48.88,48.9,0.804,f1477,4,Winter Wheat,96.7,Soybeans,76.7,Cotton,99.1,Corn,99.5,2377.0,cohort,-97.590379,37.233529
+78.79,78.8,0.695,f1952,4,Soybeans,69.3,Dbl Crop WinWht/Soybeans,82.9,Corn,92.4,Dbl Crop WinWht/Soybeans,89.4,2400.0,cohort,-97.642019,37.240114
+93.07,93.1,0.61,f1451,3,Soybeans,75.0,Winter Wheat,98.8,Cotton,21.6,Soybeans,91.1,2432.0,cohort,-97.617746,37.252797
+77.93,78.0,0.48,f1480,4,Winter Wheat,100.0,Winter Wheat,95.9,Winter Wheat,87.0,Winter Wheat,95.4,2504.0,cohort,-97.594949,37.217197
+109.09,109.1,0.716,f3711,4,Soybeans,90.3,Dbl Crop WinWht/Soybeans,88.7,Cotton,90.9,Corn,96.3,2507.0,cohort,-97.609221,37.252567
+57.15,57.2,0.669,f1470,4,Winter Wheat,99.6,Dbl Crop WinWht/Soybeans,80.4,Cotton,90.6,Corn,74.5,2563.0,cohort,-97.59684,37.247445
+46.03,46.1,0.725,f1437,4,Dbl Crop WinWht/Soybeans,69.2,Dbl Crop WinWht/Soybeans,90.4,Corn,94.7,Dbl Crop WinWht/Soybeans,92.3,2590.0,cohort,-97.632408,37.250916
+107.99,108.0,0.354,f1478,4,Winter Wheat,92.6,Soybeans,73.4,Cotton,94.7,Corn,93.5,2592.0,cohort,-97.587753,37.230942
+80.35,80.4,0.704,f1436,4,Winter Wheat,90.4,Winter Wheat,92.2,Winter Wheat,95.2,Dbl Crop WinWht/Soybeans,88.8,2600.0,cohort,-97.642004,37.243808
+161.28,161.4,0.794,f1479,4,Winter Wheat,93.2,Dbl Crop WinWht/Soybeans,84.3,Winter Wheat,98.5,Winter Wheat,93.2,2645.0,cohort,-97.588366,37.224468
+69.08,69.1,0.684,f3310,3,Dbl Crop WinWht/Soybeans,50.3,Soybeans,90.8,Dbl Crop WinWht/Soybeans,61.8,Soybeans,93.8,2807.0,cohort,-97.641559,37.247352
+79.99,80.0,0.685,f4262,4,Dbl Crop WinWht/Soybeans,92.1,Cotton,94.3,Sorghum,92.9,Winter Wheat,99.2,2811.0,cohort,-97.598174,37.251232
+76.06,76.1,0.699,f4093,4,Winter Wheat,100.0,Dbl Crop WinWht/Soybeans,99.4,Cotton,99.1,Corn,100.0,2823.0,cohort,-97.590404,37.217264
+41.84,41.9,0.518,f3370,4,Cotton,64.4,Dbl Crop WinWht/Soybeans,93.2,Cotton,92.7,Winter Wheat,95.8,2828.0,cohort,-97.586848,37.239386
+64.88,64.9,0.729,f1472,4,Winter Wheat,99.0,Winter Wheat,99.3,Winter Wheat,99.3,Winter Wheat,98.3,2845.0,cohort,-97.58967,37.244404
+95.92,96.0,0.522,f3314,4,Dbl Crop WinWht/Soybeans,94.5,Cotton,95.9,Corn,96.3,Dbl Crop WinWht/Soybeans,91.5,2860.0,cohort,-97.625158,37.206339
+154.42,154.5,0.79,f2009,4,Winter Wheat,95.3,Dbl Crop WinWht/Soybeans,94.5,Corn,97.6,Winter Wheat,75.4,2952.0,cohort,-97.597064,37.210043
+41.98,42.0,0.738,f1450,4,Cotton,87.2,Winter Wheat,98.9,Dbl Crop WinWht/Soybeans,93.6,Soybeans,82.4,3075.0,cohort,-97.61493,37.258477
+78.68,78.7,0.683,f1469,4,Winter Wheat,96.9,Winter Wheat,96.9,Winter Wheat,96.9,Winter Wheat,96.3,3122.0,cohort,-97.58908,37.248072
+87.61,87.6,0.489,f2005,4,Corn,88.8,Winter Wheat,87.8,Dbl Crop WinWht/Soybeans,79.0,Cotton,86.0,3128.0,cohort,-97.617752,37.203188
+49.51,49.5,0.747,f4131,3,Corn,90.7,Dbl Crop WinWht/Soybeans,90.3,Cotton,58.8,Corn,95.1,3142.0,cohort,-97.609702,37.25851
+77.01,77.0,0.694,f1432,4,Dbl Crop WinWht/Soybeans,84.2,Dbl Crop WinWht/Sorghum,80.6,Corn,94.1,Dbl Crop WinWht/Soybeans,81.5,3143.0,cohort,-97.639868,37.25283
+76.82,76.9,0.63,f1468,3,Dbl Crop WinWht/Soybeans,50.7,Cotton,86.5,Sorghum,76.7,Winter Wheat,97.1,3148.0,cohort,-97.598159,37.254876
+117.35,117.4,0.536,f1948,4,Winter Wheat,96.4,Winter Wheat,95.8,Soybeans,66.3,Sorghum,91.3,3149.0,cohort,-97.646805,37.215213
+76.32,76.4,0.381,f1954,4,Soybeans,89.7,Dbl Crop WinWht/Soybeans,90.0,Corn,91.5,Dbl Crop WinWht/Soybeans,81.5,3154.0,cohort,-97.651251,37.2401
+75.53,75.6,0.706,f4078,4,Winter Wheat,92.3,Dbl Crop WinWht/Soybeans,92.3,Cotton,95.3,Corn,92.3,3161.0,cohort,-97.585876,37.21731
+71.54,71.6,0.713,f3315,4,Corn,96.2,Winter Wheat,96.5,Dbl Crop WinWht/Soybeans,96.2,Soybeans,76.8,3193.0,cohort,-97.622144,37.202865
+203.65,203.7,0.449,f3357,3,Winter Wheat,59.2,Winter Wheat,88.2,Soybeans,86.3,Corn,93.6,3205.0,cohort,-97.607154,37.203616
+93.0,93.0,0.718,f1435,4,Soybeans,95.3,Dbl Crop WinWht/Soybeans,98.8,Dbl Crop WinWht/Soybeans,78.9,Dbl Crop WinWht/Soybeans,94.5,3255.0,cohort,-97.64929,37.245676
+47.2,47.2,0.518,f2016,4,Dbl Crop WinWht/Soybeans,91.6,Cotton,94.9,Dbl Crop WinWht/Soybeans,91.2,Winter Wheat,94.4,3277.0,cohort,-97.591198,37.210184
+85.59,85.6,0.517,f3309,3,Winter Wheat,91.0,Winter Wheat,97.7,Grass/Pasture,95.3,Cotton,95.1,3290.0,cohort,-97.631293,37.258319
+150.88,150.9,0.771,f4596,3,Cotton,84.3,Dbl Crop WinWht/Soybeans,49.9,Cotton,96.6,Cotton,95.5,3334.0,cohort,-97.579335,37.231987
+43.23,43.3,0.828,f1950,4,Soybeans,79.5,Winter Wheat,81.0,Soybeans,98.5,Sorghum,94.4,3353.0,cohort,-97.653701,37.222288
+81.11,81.2,0.701,f1467,4,Winter Wheat,96.2,Winter Wheat,96.2,Winter Wheat,97.0,Winter Wheat,96.2,3388.0,cohort,-97.58899,37.251664
+75.42,75.5,0.632,f3882,4,Winter Wheat,93.0,Winter Wheat,93.0,Winter Wheat,90.1,Winter Wheat,94.2,3397.0,cohort,-97.579059,37.226431
+78.97,79.0,0.695,f1433,4,Dbl Crop WinWht/Soybeans,89.2,Dbl Crop WinWht/Sorghum,92.0,Corn,95.8,Dbl Crop WinWht/Sorghum,80.9,3409.0,cohort,-97.644395,37.252837
+91.47,91.5,0.682,f3313,3,Soybeans,57.2,Soybeans,71.2,Soybeans,87.3,Winter Wheat,90.6,3435.0,cohort,-97.643151,37.208142
+152.59,152.7,0.778,f1481,3,Cotton,91.7,Dbl Crop WinWht/Soybeans,49.6,Cotton,98.8,Cotton,97.2,3440.0,cohort,-97.579476,37.239153
+77.07,77.1,0.709,f3881,4,Winter Wheat,100.0,Winter Wheat,100.0,Winter Wheat,98.8,Winter Wheat,100.0,3477.0,cohort,-97.579109,37.222863
+52.43,52.5,0.436,f4693,4,Cotton,62.7,Corn,99.1,Cotton,97.4,Winter Wheat,98.3,3543.0,cohort,-97.597712,37.258762
+52.33,52.4,0.612,f1434,4,Soybeans,92.7,Dbl Crop WinWht/Soybeans,87.6,Dbl Crop WinWht/Soybeans,94.4,Dbl Crop WinWht/Soybeans,98.7,3556.0,cohort,-97.653842,37.244645
+46.68,46.7,0.769,f4702,3,Cotton,62.2,Cotton,68.7,Dbl Crop WinWht/Soybeans,50.7,Soybeans,70.5,3562.0,cohort,-97.619805,37.262821
+103.13,103.2,0.755,f2008,4,Dbl Crop WinWht/Soybeans,87.1,Cotton,89.2,Dbl Crop WinWht/Soybeans,89.6,Winter Wheat,91.1,3576.0,cohort,-97.586592,37.210114
+118.27,118.3,0.416,f1946,4,Soybeans,75.1,Winter Wheat,93.2,Dbl Crop WinWht/Soybeans,82.8,Cotton,80.7,3586.0,cohort,-97.634838,37.202222
+50.19,50.2,0.563,f1967,3,Dbl Crop WinWht/Soybeans,41.7,Soybeans,90.6,Dbl Crop WinWht/Soybeans,90.6,Corn,93.7,3594.0,cohort,-97.658126,37.231857
+77.81,77.8,0.715,f3586,4,Soybeans,94.3,Winter Wheat,98.6,Winter Wheat,98.0,Winter Wheat,96.0,3611.0,cohort,-97.579055,37.219234
+153.18,153.2,0.781,f2010,4,Corn,94.5,Winter Wheat,65.1,Corn,96.7,Corn,83.4,3615.0,cohort,-97.597185,37.202936
+60.0,60.0,0.773,f4704,4,Cotton,86.9,Cotton,90.1,Dbl Crop WinWht/Soybeans,71.6,Soybeans,93.3,3650.0,cohort,-97.614994,37.263622
+76.96,77.0,0.708,f1466,4,Winter Wheat,94.2,Winter Wheat,94.2,Winter Wheat,97.1,Winter Wheat,93.9,3663.0,cohort,-97.589126,37.255224
+43.69,43.7,0.783,f1949,3,Winter Wheat,98.0,Winter Wheat,98.5,Grass/Pasture,69.4,Sorghum,76.0,3672.0,cohort,-97.654006,37.215519
+76.68,76.7,0.697,f3331,3,Dbl Crop WinWht/Soybeans,51.4,Soybeans,93.1,Dbl Crop WinWht/Soybeans,90.8,Corn,76.4,3680.0,cohort,-97.658107,37.238268
+111.95,112.0,0.492,f1942,4,Winter Wheat,92.7,Winter Wheat,92.9,Winter Wheat,94.7,Fallow/Idle Cropland,68.6,3816.0,cohort,-97.641838,37.203038
+89.34,89.4,0.675,f1482,4,Dbl Crop WinWht/Soybeans,94.2,Cotton,88.1,Dbl Crop WinWht/Soybeans,95.2,Winter Wheat,97.2,3842.0,cohort,-97.57823,37.215645
+157.5,157.6,0.511,f3311,4,Soybeans,97.0,Dbl Crop WinWht/Soybeans,97.0,Dbl Crop WinWht/Soybeans,89.1,Dbl Crop WinWht/Soybeans,94.5,3855.0,cohort,-97.651283,37.252804
+111.64,111.7,0.421,f4703,4,Cotton,93.7,Corn,97.0,Dbl Crop WinWht/Soybeans,81.2,Soybeans,84.6,3873.0,cohort,-97.60948,37.265117
+41.55,41.6,0.508,f2011,4,Winter Wheat,96.8,Winter Wheat,96.8,Winter Wheat,93.2,Winter Wheat,88.4,3874.0,cohort,-97.591558,37.203014
+156.8,156.9,0.762,f3312,4,Sorghum,73.6,Winter Wheat,87.6,Soybeans,93.9,Winter Wheat,97.3,3879.0,cohort,-97.651729,37.209494
+47.39,47.4,0.582,f4701,4,Cotton,88.8,Sorghum,97.7,Winter Wheat,98.6,Dbl Crop WinWht/Soybeans,94.4,3934.0,cohort,-97.601475,37.26395
+63.51,63.5,0.658,f1465,4,Cotton,62.2,Corn,90.5,Cotton,90.1,Winter Wheat,94.3,3958.0,cohort,-97.589126,37.258692
+160.55,160.6,0.642,f4513,4,Dbl Crop WinWht/Sorghum,79.8,Soybeans,95.6,Dbl Crop WinWht/Soybeans,93.4,Corn,61.7,3970.0,cohort,-97.629171,37.265268
+63.67,63.7,0.607,f2012,4,Winter Wheat,100.0,Winter Wheat,97.6,Winter Wheat,98.6,Winter Wheat,99.0,3997.0,cohort,-97.587725,37.203966
+96.57,96.6,0.526,f3358,4,Corn,97.1,Winter Wheat,95.7,Dbl Crop WinWht/Soybeans,95.5,Corn,94.6,4003.0,cohort,-97.616077,37.195385
+86.33,86.4,0.539,f4569,4,Corn,86.5,Dbl Crop WinWht/Soybeans,87.8,Cotton,75.8,Corn,92.1,4004.0,cohort,-97.604953,37.265503
+65.84,65.9,0.592,f2002,4,Soybeans,92.1,Winter Wheat,93.8,Winter Wheat,93.8,Cotton,74.3,4032.0,cohort,-97.608857,37.195722
+97.84,97.9,0.786,f1413,3,Soybeans,83.6,Dbl Crop WinWht/Soybeans,87.4,Winter Wheat,47.8,Dbl Crop WinWht/Soybeans,92.4,4058.0,cohort,-97.659256,37.246127
+97.84,97.9,0.41,f4597,3,Winter Wheat,87.6,Dbl Crop WinWht/Soybeans,67.4,Soybeans,46.8,Dbl Crop WinWht/Soybeans,80.1,4061.0,cohort,-97.572135,37.238937
+56.87,56.9,0.701,f4700,4,Cotton,90.9,Sorghum,94.5,Winter Wheat,96.8,Winter Wheat,99.6,4080.0,cohort,-97.597994,37.264229
+77.74,77.8,0.387,f1968,4,Soybeans,81.9,Winter Wheat,81.6,Winter Wheat,84.4,Winter Wheat,83.6,4092.0,cohort,-97.662898,37.238302
+143.28,143.3,0.353,f3371,4,Soybeans,93.3,Winter Wheat,90.0,Soybeans,93.7,Sorghum,96.2,4099.0,cohort,-97.579029,37.210144
+61.59,61.6,0.607,f2003,4,Soybeans,92.0,Winter Wheat,97.1,Dbl Crop WinWht/Soybeans,94.2,Cotton,96.7,4140.0,cohort,-97.604116,37.195616
+81.44,81.5,0.386,f1963,3,Winter Wheat,77.0,Dbl Crop WinWht/Soybeans,35.5,Soybeans,74.0,Winter Wheat,62.6,4188.0,cohort,-97.662217,37.21875
+78.32,78.4,0.699,f4622,4,Winter Wheat,99.4,Dbl Crop WinWht/Soybeans,96.6,Soybeans,70.9,Winter Wheat,96.3,4249.0,cohort,-97.573057,37.246479
+74.27,74.3,0.694,f1431,4,Winter Wheat,96.1,Winter Wheat,96.1,Soybeans,91.4,Sorghum,96.1,4265.0,cohort,-97.651128,37.258348
+142.51,142.6,0.782,f4484,3,Winter Wheat,96.1,Dbl Crop WinWht/Soybeans,81.5,Dbl Crop WinWht/Soybeans,47.1,Sorghum,64.6,4307.0,cohort,-97.64238,37.264098
+45.02,45.0,0.715,f1970,4,Soybeans,67.8,Winter Wheat,88.2,Dbl Crop WinWht/Soybeans,95.3,Sorghum,92.9,4315.0,cohort,-97.62633,37.193255
+127.49,127.5,0.681,f3621,4,Winter Wheat,76.3,Winter Wheat,76.1,Winter Wheat,75.6,Winter Wheat,66.3,4317.0,cohort,-97.633802,37.194834
+84.66,84.7,0.408,f1412,4,Cotton,88.9,Soybeans,85.9,Soybeans,77.7,Winter Wheat,91.0,4341.0,cohort,-97.658428,37.252495
+40.75,40.8,0.514,f2013,4,Winter Wheat,82.8,Winter Wheat,82.8,Winter Wheat,81.2,Winter Wheat,77.1,4347.0,cohort,-97.585868,37.201115

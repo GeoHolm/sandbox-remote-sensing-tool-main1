@@ -1,0 +1,52 @@
+column,unit,meaning
+field_key,id,"SHA1 of the boundary geometry, first 12 hex. One physical field."
+crop_year,year,Cash crop harvest year. Rows are aligned to this.
+county,text,County and state from the Fieldprint payload.
+lat_0p1deg / lon_0p1deg,degrees,Boundary centroid rounded to 0.1 deg (~11 km). Deliberately coarse.
+area_ha,ha,Area of the boundary as the pipeline measured it.
+acres_reported,acres,Plantable acres as entered in Fieldprint.
+boundary_verdict,category,single unit | trim | split. Whether the outline holds one management unit.
+boundary_flagged_ha,ha,Area flagged as disagreeing with the rest of the boundary.
+clear_obs_year,count,Cloud-free Sentinel-2 observations in that calendar year.
+cdl_crop,text,Dominant USDA CDL class for the crop year.
+cdl_crop_pct,%,Share of the boundary the dominant class covers. Under 75 is a weak boundary.
+cdl_n_classes,count,Distinct CDL classes inside the boundary.
+cdl_noncrop_pct,%,Share of the boundary CDL calls non-cropland.
+planting_est / harvest_est,date,ESTIMATED from the NDVI curve. Never validated against a grower record.
+"planting_lo / hi, harvest_lo / hi",date,"Uncertainty window, set by the gaps between clear images."
+season_days,days,"Harvest minus planting, both estimated."
+peak_ndvi / peak_date,index / date,Highest fitted NDVI in the season and when.
+baseline_ndvi / amplitude,index,Fitted floor and the rise above it.
+season_n_obs,count,Clear observations the season fit used.
+season_confidence,category,"high | medium | low, with the reason when low."
+winter,text,"The off-season PRECEDING this crop year, e.g. 2025-26 on crop year 2026."
+winter_window_start / end,date,Off-season window actually scored.
+winter_n_obs,count,Clear observations inside that window. Below ~10 the verdict is weak.
+winter_max_ndvi,index,Peak off-season NDVI. The threshold CC_GREEN_MIN = 0.30 acts on this.
+winter_mean_ndvi,index,Mean off-season NDVI.
+winter_green_days,days,Days the daily-interpolated curve sits above 0.30.
+cover_verdict,category,likely | possible | green cover | none | winter cash crop | not detectable.
+cover_verdict_note,text,Why the verdict is what it is.
+armor_window_start / end,date,Pre-planting window: previous harvest to this planting.
+armor_window_source,category,phenology | partial | fallback -- how many ends came from estimated dates.
+armor_n_obs,count,Usable observations in the armor window. Under 3 gives no reading.
+armor,0-1,"1 minus bare soil. GROUND COVER, not tillage. Provisional and uncalibrated."
+armor_lo / hi,0-1,Minimum and maximum across the window.
+f_pv_living,0-1,Living green cover fraction.
+f_npv_residue,0-1,"Crop residue fraction. A terminated cover crop lands here, not in f_pv."
+f_bs_bare,0-1,Bare soil fraction. The three fractions sum to 1.
+min_ndti,index,"Minimum NDTI across the window. Reported, not used as a headline."
+armor_ndvi_med,index,Median NDVI inside the armor window.
+armor_note,text,Blank when the reading is clean; otherwise why it is missing or qualified.
+entered_crop_id,id,Fieldprint crop id for the cash crop.
+entered_planting / harvest,date,Dates the grower entered. Compare against the _est columns.
+entered_yield / unit,number,Reported yield.
+entered_tillage_passes_pre_plant,count,Tillage activities dated on or before cash planting.
+entered_tillage_ops,ids,Pipe-joined tillage_operation_ids. 95% of rows are the same pair.
+entered_cover_crop,yes/not_recorded/blank,yes where a planting_cover activity exists. not_recorded means an interval covered the year but held no cover crop activity -- this is NOT a confirmed negative; planting_cover appears only in 2026 intervals across the whole archive. Blank means no interval at all. Do not compute specificity from this column.
+entered_cover_species_id,id,Fieldprint cover crop id.
+entered_cover_planted / terminated,date,Sowing and termination dates the grower entered.
+entered_cover_is_legume,bool,As entered.
+entered_planting_shared_by_n_fields,count,"How many of the 98 fields carry this exact entered planting date this year. Typically 30-65: the dates are templates, not per-field observations. A date error computed against them measures offset from a template, not accuracy."
+entered_harvest_shared_by_n_fields,count,"Same, for harvest."
+entered_cover_planted_shared_by_n_fields,count,"Same, for cover crop sowing. More varied than the cash crop dates but still clustered."

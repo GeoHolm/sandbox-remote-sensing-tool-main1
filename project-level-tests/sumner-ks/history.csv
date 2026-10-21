@@ -1,0 +1,405 @@
+fid,year,crop,pct,is_crop,n_classes
+focus,2022,Corn,93.3,True,5
+focus,2023,Winter Wheat,95.7,True,3
+focus,2024,Dbl Crop WinWht/Soybeans,97.1,True,4
+focus,2025,Cotton,97.2,True,4
+f1412,2022,Cotton,85.3,True,8
+f1412,2023,Soybeans,82.1,True,10
+f1412,2024,Soybeans,75.0,True,5
+f1412,2025,Winter Wheat,86.8,True,4
+f1413,2022,Soybeans,79.7,True,12
+f1413,2023,Dbl Crop WinWht/Soybeans,83.1,True,12
+f1413,2024,Winter Wheat,47.1,True,6
+f1413,2025,Dbl Crop WinWht/Soybeans,88.5,True,8
+f1431,2022,Winter Wheat,96.5,True,3
+f1431,2023,Winter Wheat,97.7,True,2
+f1431,2024,Soybeans,90.8,True,5
+f1431,2025,Sorghum,97.4,True,2
+f1432,2022,Dbl Crop WinWht/Soybeans,83.2,True,6
+f1432,2023,Dbl Crop WinWht/Sorghum,81.8,True,5
+f1432,2024,Corn,93.5,True,5
+f1432,2025,Dbl Crop WinWht/Soybeans,76.8,True,4
+f1433,2022,Dbl Crop WinWht/Soybeans,88.6,True,6
+f1433,2023,Dbl Crop WinWht/Sorghum,91.1,True,4
+f1433,2024,Corn,95.7,True,5
+f1433,2025,Dbl Crop WinWht/Sorghum,85.1,True,2
+f1434,2022,Soybeans,88.4,True,4
+f1434,2023,Dbl Crop WinWht/Soybeans,83.9,True,4
+f1434,2024,Dbl Crop WinWht/Soybeans,90.5,True,4
+f1434,2025,Dbl Crop WinWht/Soybeans,98.3,True,4
+f1435,2022,Soybeans,95.4,True,3
+f1435,2023,Dbl Crop WinWht/Soybeans,98.8,True,4
+f1435,2024,Dbl Crop WinWht/Soybeans,77.8,True,6
+f1435,2025,Dbl Crop WinWht/Soybeans,94.7,True,4
+f1436,2022,Winter Wheat,90.3,True,4
+f1436,2023,Winter Wheat,92.2,True,5
+f1436,2024,Winter Wheat,95.2,True,4
+f1436,2025,Dbl Crop WinWht/Soybeans,88.7,True,3
+f1437,2022,Dbl Crop WinWht/Soybeans,72.9,True,6
+f1437,2023,Dbl Crop WinWht/Soybeans,93.6,True,6
+f1437,2024,Corn,97.7,True,2
+f1437,2025,Dbl Crop WinWht/Soybeans,93.6,True,4
+f1438,2022,Winter Wheat,95.5,True,4
+f1438,2023,Winter Wheat,96.6,True,4
+f1438,2024,Grass/Pasture,98.3,False,2
+f1438,2025,Winter Wheat,97.9,True,3
+f1439,2022,Winter Wheat,92.2,True,7
+f1439,2023,Winter Wheat,91.7,True,9
+f1439,2024,Grass/Pasture,52.6,False,5
+f1439,2025,Winter Wheat,92.7,True,4
+f1450,2022,Cotton,85.0,True,4
+f1450,2023,Winter Wheat,92.7,True,2
+f1450,2024,Dbl Crop WinWht/Soybeans,97.4,True,3
+f1450,2025,Soybeans,83.4,True,3
+f1451,2022,Soybeans,72.4,True,7
+f1451,2023,Winter Wheat,97.2,True,3
+f1451,2024,Dbl Crop WinWht/Soybeans,21.7,True,6
+f1451,2025,Soybeans,91.7,True,6
+f1452,2022,Cotton,64.1,True,6
+f1452,2023,Winter Wheat,96.4,True,2
+f1452,2024,Cotton,37.0,True,5
+f1452,2025,Soybeans,96.4,True,2
+f1453,2022,Winter Wheat,95.7,True,9
+f1453,2023,Dbl Crop WinWht/Soybeans,96.9,True,5
+f1453,2024,Cotton,80.8,True,6
+f1453,2025,Soybeans,95.1,True,5
+f1454,2022,Soybeans,93.7,True,6
+f1454,2023,Dbl Crop WinWht/Soybeans,94.4,True,6
+f1454,2024,Soybeans,92.7,True,5
+f1454,2025,Winter Wheat,91.0,True,8
+f1455,2022,Soybeans,79.9,True,7
+f1455,2023,Dbl Crop WinWht/Soybeans,88.9,True,7
+f1455,2024,Dbl Crop WinWht/Soybeans,61.2,True,4
+f1455,2025,Winter Wheat,59.6,True,12
+f1456,2022,Soybeans,83.4,True,8
+f1456,2023,Dbl Crop WinWht/Soybeans,92.5,True,8
+f1456,2024,Dbl Crop WinWht/Soybeans,76.4,True,6
+f1456,2025,Winter Wheat,54.9,True,13
+f1457,2022,Soybeans,88.0,True,5
+f1457,2023,Dbl Crop WinWht/Soybeans,98.8,True,3
+f1457,2024,Dbl Crop WinWht/Soybeans,70.6,True,4
+f1457,2025,Winter Wheat,98.8,True,3
+f1458,2022,Soybeans,65.1,True,6
+f1458,2023,Dbl Crop WinWht/Soybeans,92.4,True,5
+f1458,2024,Dbl Crop WinWht/Soybeans,60.2,True,6
+f1458,2025,Winter Wheat,94.9,True,4
+f1460,2022,Soybeans,83.9,True,7
+f1460,2023,Sorghum,80.4,True,5
+f1460,2024,Soybeans,96.5,True,2
+f1460,2025,Soybeans,97.6,True,5
+f1462,2022,Dbl Crop WinWht/Soybeans,85.2,True,11
+f1462,2023,Cotton,87.9,True,9
+f1462,2024,Soybeans,88.2,True,5
+f1462,2025,Winter Wheat,78.8,True,6
+f1465,2022,Cotton,59.9,True,7
+f1465,2023,Corn,87.1,True,5
+f1465,2024,Cotton,85.7,True,5
+f1465,2025,Winter Wheat,90.6,True,3
+f1466,2022,Winter Wheat,95.1,True,3
+f1466,2023,Winter Wheat,94.3,True,5
+f1466,2024,Winter Wheat,99.7,True,2
+f1466,2025,Winter Wheat,95.1,True,3
+f1467,2022,Winter Wheat,100.0,True,1
+f1467,2023,Winter Wheat,99.2,True,3
+f1467,2024,Winter Wheat,100.0,True,1
+f1467,2025,Winter Wheat,100.0,True,1
+f1468,2022,Dbl Crop WinWht/Soybeans,50.6,True,5
+f1468,2023,Cotton,86.2,True,6
+f1468,2024,Sorghum,76.4,True,4
+f1468,2025,Winter Wheat,96.8,True,3
+f1469,2022,Winter Wheat,99.7,True,2
+f1469,2023,Winter Wheat,99.4,True,3
+f1469,2024,Winter Wheat,99.2,True,3
+f1469,2025,Winter Wheat,98.9,True,3
+f1470,2022,Winter Wheat,99.6,True,2
+f1470,2023,Dbl Crop WinWht/Soybeans,83.5,True,3
+f1470,2024,Cotton,93.3,True,5
+f1470,2025,Corn,76.9,True,6
+f1471,2022,Soybeans,93.5,True,4
+f1471,2023,Winter Wheat,94.7,True,3
+f1471,2024,Dbl Crop WinWht/Soybeans,93.0,True,6
+f1471,2025,Corn,97.9,True,2
+f1472,2022,Winter Wheat,96.2,True,4
+f1472,2023,Winter Wheat,96.5,True,3
+f1472,2024,Winter Wheat,95.8,True,4
+f1472,2025,Winter Wheat,95.1,True,3
+f1475,2022,Corn,90.2,True,8
+f1475,2023,Dbl Crop WinWht/Soybeans,97.7,True,5
+f1475,2024,Cotton,91.3,True,4
+f1475,2025,Corn,99.1,True,4
+f1476,2022,Winter Wheat,92.5,True,7
+f1476,2023,Dbl Crop WinWht/Soybeans,92.7,True,6
+f1476,2024,Cotton,92.2,True,6
+f1476,2025,Corn,93.9,True,8
+f1477,2022,Winter Wheat,97.3,True,5
+f1477,2023,Soybeans,72.3,True,8
+f1477,2024,Cotton,99.1,True,2
+f1477,2025,Corn,99.5,True,2
+f1478,2022,Winter Wheat,92.4,True,6
+f1478,2023,Soybeans,72.7,True,8
+f1478,2024,Cotton,95.4,True,3
+f1478,2025,Corn,93.6,True,3
+f1479,2022,Winter Wheat,96.1,True,4
+f1479,2023,Dbl Crop WinWht/Soybeans,85.6,True,6
+f1479,2024,Winter Wheat,99.2,True,2
+f1479,2025,Winter Wheat,96.9,True,2
+f1480,2022,Winter Wheat,100.0,True,1
+f1480,2023,Winter Wheat,100.0,True,1
+f1480,2024,Winter Wheat,91.1,True,3
+f1480,2025,Winter Wheat,99.1,True,3
+f1481,2022,Cotton,91.3,True,5
+f1481,2023,Dbl Crop WinWht/Soybeans,47.8,True,6
+f1481,2024,Cotton,98.9,True,3
+f1481,2025,Cotton,97.4,True,5
+f1482,2022,Dbl Crop WinWht/Soybeans,93.3,True,7
+f1482,2023,Cotton,85.9,True,8
+f1482,2024,Dbl Crop WinWht/Soybeans,94.8,True,3
+f1482,2025,Winter Wheat,96.5,True,3
+f1942,2022,Winter Wheat,97.4,True,5
+f1942,2023,Winter Wheat,97.0,True,5
+f1942,2024,Winter Wheat,99.6,True,3
+f1942,2025,Fallow/Idle Cropland,69.4,True,5
+f1946,2022,Soybeans,78.5,True,7
+f1946,2023,Winter Wheat,97.8,True,5
+f1946,2024,Dbl Crop WinWht/Soybeans,88.2,True,6
+f1946,2025,Cotton,87.1,True,7
+f1947,2022,Dbl Crop WinWht/Soybeans,97.1,True,5
+f1947,2023,Cotton,96.9,True,5
+f1947,2024,Corn,94.7,True,2
+f1947,2025,Dbl Crop WinWht/Soybeans,98.3,True,5
+f1948,2022,Winter Wheat,95.7,True,6
+f1948,2023,Winter Wheat,95.1,True,10
+f1948,2024,Soybeans,65.5,True,6
+f1948,2025,Sorghum,91.1,True,7
+f1949,2022,Winter Wheat,98.0,True,2
+f1949,2023,Winter Wheat,99.5,True,2
+f1949,2024,Grass/Pasture,68.5,False,4
+f1949,2025,Sorghum,77.7,True,6
+f1950,2022,Soybeans,79.1,True,3
+f1950,2023,Winter Wheat,81.1,True,5
+f1950,2024,Soybeans,98.5,True,3
+f1950,2025,Sorghum,95.0,True,7
+f1952,2022,Soybeans,72.1,True,4
+f1952,2023,Dbl Crop WinWht/Soybeans,86.3,True,6
+f1952,2024,Corn,96.9,True,3
+f1952,2025,Dbl Crop WinWht/Soybeans,94.1,True,3
+f1953,2022,Soybeans,81.1,True,7
+f1953,2023,Soybeans,81.1,True,8
+f1953,2024,Winter Wheat,85.4,True,4
+f1953,2025,Winter Wheat,87.1,True,7
+f1954,2022,Soybeans,86.2,True,8
+f1954,2023,Dbl Crop WinWht/Soybeans,86.5,True,8
+f1954,2024,Corn,91.5,True,6
+f1954,2025,Dbl Crop WinWht/Soybeans,79.4,True,5
+f1955,2022,Soybeans,38.7,True,9
+f1955,2023,Dbl Crop WinWht/Soybeans,66.0,True,11
+f1955,2024,Dbl Crop WinWht/Soybeans,62.3,True,6
+f1955,2025,Dbl Crop WinWht/Soybeans,66.5,True,8
+f1958,2022,Dbl Crop WinWht/Soybeans,43.2,True,10
+f1958,2023,Dbl Crop WinWht/Soybeans,86.9,True,9
+f1958,2024,Dbl Crop WinWht/Soybeans,68.3,True,5
+f1958,2025,Dbl Crop WinWht/Soybeans,79.8,True,4
+f1960,2022,Soybeans,73.0,True,4
+f1960,2023,Winter Wheat,99.0,True,2
+f1960,2024,Dbl Crop WinWht/Soybeans,96.6,True,5
+f1960,2025,Soybeans,99.3,True,2
+f1961,2022,Soybeans,71.6,True,13
+f1961,2023,Dbl Crop WinWht/Soybeans,82.2,True,11
+f1961,2024,Grass/Pasture,68.3,False,5
+f1961,2025,Dbl Crop WinWht/Soybeans,89.9,True,7
+f1963,2022,Winter Wheat,76.6,True,8
+f1963,2023,Dbl Crop WinWht/Soybeans,34.7,True,7
+f1963,2024,Soybeans,75.5,True,8
+f1963,2025,Winter Wheat,62.6,True,9
+f1967,2022,Dbl Crop WinWht/Soybeans,37.5,True,12
+f1967,2023,Soybeans,83.0,True,10
+f1967,2024,Dbl Crop WinWht/Soybeans,86.6,True,6
+f1967,2025,Corn,87.9,True,7
+f1968,2022,Soybeans,80.3,True,9
+f1968,2023,Winter Wheat,76.7,True,9
+f1968,2024,Winter Wheat,82.0,True,5
+f1968,2025,Winter Wheat,79.8,True,9
+f1970,2022,Soybeans,71.7,True,6
+f1970,2023,Winter Wheat,94.4,True,6
+f1970,2024,Dbl Crop WinWht/Soybeans,97.0,True,2
+f1970,2025,Sorghum,95.5,True,4
+f2002,2022,Soybeans,91.4,True,6
+f2002,2023,Winter Wheat,92.0,True,6
+f2002,2024,Winter Wheat,96.3,True,3
+f2002,2025,Cotton,74.1,True,5
+f2003,2022,Soybeans,92.5,True,8
+f2003,2023,Winter Wheat,98.2,True,5
+f2003,2024,Dbl Crop WinWht/Soybeans,95.7,True,4
+f2003,2025,Cotton,97.9,True,5
+f2005,2022,Corn,86.1,True,8
+f2005,2023,Winter Wheat,85.6,True,7
+f2005,2024,Dbl Crop WinWht/Soybeans,80.4,True,6
+f2005,2025,Cotton,89.2,True,10
+f2006,2022,Dbl Crop WinWht/Soybeans,94.3,True,6
+f2006,2023,Soybeans,95.3,True,4
+f2006,2024,Cotton,90.2,True,5
+f2006,2025,Winter Wheat,93.3,True,4
+f2007,2022,Winter Wheat,92.4,True,3
+f2007,2023,Dbl Crop WinWht/Soybeans,91.2,True,5
+f2007,2024,Cotton,77.9,True,5
+f2007,2025,Corn,96.8,True,4
+f2008,2022,Dbl Crop WinWht/Soybeans,94.7,True,4
+f2008,2023,Cotton,97.3,True,3
+f2008,2024,Dbl Crop WinWht/Soybeans,97.0,True,3
+f2008,2025,Winter Wheat,99.2,True,3
+f2009,2022,Winter Wheat,96.7,True,2
+f2009,2023,Dbl Crop WinWht/Soybeans,96.7,True,2
+f2009,2024,Corn,98.4,True,5
+f2009,2025,Winter Wheat,73.5,True,3
+f2010,2022,Corn,93.8,True,4
+f2010,2023,Winter Wheat,63.0,True,3
+f2010,2024,Corn,97.4,True,3
+f2010,2025,Corn,83.7,True,5
+f2011,2022,Winter Wheat,93.8,True,3
+f2011,2023,Winter Wheat,96.9,True,2
+f2011,2024,Winter Wheat,96.9,True,5
+f2011,2025,Winter Wheat,92.7,True,4
+f2012,2022,Winter Wheat,100.0,True,1
+f2012,2023,Winter Wheat,97.6,True,2
+f2012,2024,Winter Wheat,96.2,True,3
+f2012,2025,Winter Wheat,99.3,True,2
+f2013,2022,Winter Wheat,92.5,True,4
+f2013,2023,Winter Wheat,92.5,True,4
+f2013,2024,Winter Wheat,90.9,True,7
+f2013,2025,Winter Wheat,86.6,True,3
+f2016,2022,Dbl Crop WinWht/Soybeans,91.1,True,3
+f2016,2023,Cotton,96.3,True,3
+f2016,2024,Dbl Crop WinWht/Soybeans,92.1,True,4
+f2016,2025,Winter Wheat,99.1,True,3
+f3309,2022,Winter Wheat,90.0,True,10
+f3309,2023,Winter Wheat,96.1,True,8
+f3309,2024,Grass/Pasture,93.1,False,4
+f3309,2025,Cotton,93.8,True,5
+f3310,2022,Dbl Crop WinWht/Soybeans,47.2,True,8
+f3310,2023,Soybeans,89.0,True,8
+f3310,2024,Dbl Crop WinWht/Soybeans,62.8,True,5
+f3310,2025,Soybeans,93.9,True,5
+f3311,2022,Soybeans,96.1,True,5
+f3311,2023,Dbl Crop WinWht/Soybeans,96.1,True,6
+f3311,2024,Dbl Crop WinWht/Soybeans,91.2,True,7
+f3311,2025,Dbl Crop WinWht/Soybeans,96.7,True,5
+f3312,2022,Sorghum,73.2,True,6
+f3312,2023,Winter Wheat,83.0,True,7
+f3312,2024,Soybeans,95.0,True,4
+f3312,2025,Winter Wheat,99.2,True,2
+f3313,2022,Soybeans,57.8,True,11
+f3313,2023,Soybeans,71.4,True,10
+f3313,2024,Soybeans,91.4,True,4
+f3313,2025,Winter Wheat,94.0,True,4
+f3314,2022,Dbl Crop WinWht/Soybeans,88.1,True,11
+f3314,2023,Cotton,90.4,True,9
+f3314,2024,Corn,90.4,True,6
+f3314,2025,Dbl Crop WinWht/Soybeans,88.6,True,12
+f3315,2022,Corn,92.0,True,10
+f3315,2023,Winter Wheat,91.4,True,9
+f3315,2024,Dbl Crop WinWht/Soybeans,92.3,True,6
+f3315,2025,Soybeans,75.5,True,8
+f3331,2022,Dbl Crop WinWht/Soybeans,55.4,True,7
+f3331,2023,Soybeans,98.0,True,5
+f3331,2024,Dbl Crop WinWht/Soybeans,99.4,True,2
+f3331,2025,Corn,84.1,True,8
+f3357,2022,Winter Wheat,59.8,True,8
+f3357,2023,Winter Wheat,89.5,True,6
+f3357,2024,Soybeans,87.8,True,7
+f3357,2025,Corn,95.2,True,5
+f3358,2022,Corn,92.8,True,9
+f3358,2023,Winter Wheat,91.6,True,11
+f3358,2024,Dbl Crop WinWht/Soybeans,93.7,True,5
+f3358,2025,Corn,94.4,True,8
+f3370,2022,Cotton,61.8,True,7
+f3370,2023,Dbl Crop WinWht/Soybeans,88.0,True,9
+f3370,2024,Cotton,88.5,True,4
+f3370,2025,Winter Wheat,92.1,True,5
+f3371,2022,Soybeans,93.3,True,4
+f3371,2023,Winter Wheat,89.3,True,4
+f3371,2024,Soybeans,93.7,True,2
+f3371,2025,Sorghum,96.2,True,6
+f3586,2022,Soybeans,93.4,True,8
+f3586,2023,Winter Wheat,98.6,True,5
+f3586,2024,Winter Wheat,97.8,True,4
+f3586,2025,Winter Wheat,95.9,True,5
+f3621,2022,Winter Wheat,74.5,True,6
+f3621,2023,Winter Wheat,74.1,True,4
+f3621,2024,Winter Wheat,73.9,True,5
+f3621,2025,Winter Wheat,63.1,True,4
+f3711,2022,Soybeans,94.6,True,5
+f3711,2023,Dbl Crop WinWht/Soybeans,92.3,True,4
+f3711,2024,Cotton,93.5,True,4
+f3711,2025,Corn,98.8,True,2
+f3881,2022,Winter Wheat,93.7,True,7
+f3881,2023,Winter Wheat,99.5,True,3
+f3881,2024,Winter Wheat,98.6,True,4
+f3881,2025,Winter Wheat,99.2,True,3
+f3882,2022,Winter Wheat,93.7,True,4
+f3882,2023,Winter Wheat,94.0,True,3
+f3882,2024,Winter Wheat,91.7,True,4
+f3882,2025,Winter Wheat,94.9,True,3
+f4078,2022,Winter Wheat,99.7,True,2
+f4078,2023,Dbl Crop WinWht/Soybeans,99.7,True,2
+f4078,2024,Cotton,99.7,True,2
+f4078,2025,Corn,100.0,True,1
+f4093,2022,Winter Wheat,100.0,True,1
+f4093,2023,Dbl Crop WinWht/Soybeans,99.4,True,2
+f4093,2024,Cotton,99.1,True,3
+f4093,2025,Corn,100.0,True,1
+f4131,2022,Corn,89.4,True,5
+f4131,2023,Dbl Crop WinWht/Soybeans,92.0,True,3
+f4131,2024,Cotton,59.7,True,4
+f4131,2025,Corn,98.7,True,3
+f4262,2022,Dbl Crop WinWht/Soybeans,92.3,True,6
+f4262,2023,Cotton,94.2,True,6
+f4262,2024,Sorghum,94.5,True,5
+f4262,2025,Winter Wheat,96.7,True,3
+f4484,2022,Winter Wheat,99.1,True,2
+f4484,2023,Dbl Crop WinWht/Soybeans,82.6,True,5
+f4484,2024,Dbl Crop WinWht/Soybeans,49.3,True,4
+f4484,2025,Sorghum,66.4,True,9
+f4513,2022,Dbl Crop WinWht/Sorghum,78.6,True,8
+f4513,2023,Soybeans,93.8,True,7
+f4513,2024,Dbl Crop WinWht/Soybeans,92.3,True,4
+f4513,2025,Corn,61.0,True,9
+f4569,2022,Corn,91.7,True,5
+f4569,2023,Dbl Crop WinWht/Soybeans,92.2,True,4
+f4569,2024,Cotton,80.5,True,5
+f4569,2025,Corn,99.0,True,4
+f4596,2022,Cotton,84.7,True,3
+f4596,2023,Dbl Crop WinWht/Soybeans,48.3,True,5
+f4596,2024,Cotton,96.8,True,4
+f4596,2025,Cotton,96.2,True,7
+f4597,2022,Winter Wheat,87.5,True,10
+f4597,2023,Dbl Crop WinWht/Soybeans,68.3,True,9
+f4597,2024,Soybeans,45.8,True,4
+f4597,2025,Dbl Crop WinWht/Soybeans,79.7,True,4
+f4622,2022,Winter Wheat,97.2,True,3
+f4622,2023,Dbl Crop WinWht/Soybeans,94.9,True,4
+f4622,2024,Soybeans,74.9,True,5
+f4622,2025,Winter Wheat,93.2,True,6
+f4693,2022,Cotton,59.4,True,5
+f4693,2023,Corn,98.0,True,4
+f4693,2024,Cotton,95.9,True,3
+f4693,2025,Winter Wheat,98.0,True,3
+f4700,2022,Cotton,93.0,True,5
+f4700,2023,Sorghum,91.8,True,5
+f4700,2024,Winter Wheat,96.9,True,2
+f4700,2025,Winter Wheat,98.1,True,2
+f4701,2022,Cotton,94.1,True,4
+f4701,2023,Sorghum,96.3,True,5
+f4701,2024,Winter Wheat,99.1,True,2
+f4701,2025,Dbl Crop WinWht/Soybeans,95.4,True,3
+f4702,2022,Cotton,62.4,True,10
+f4702,2023,Cotton,68.3,True,10
+f4702,2024,Dbl Crop WinWht/Soybeans,44.8,True,8
+f4702,2025,Soybeans,66.5,True,6
+f4703,2022,Cotton,94.7,True,3
+f4703,2023,Corn,99.0,True,4
+f4703,2024,Dbl Crop WinWht/Soybeans,82.7,True,3
+f4703,2025,Soybeans,89.3,True,3
+f4704,2022,Cotton,89.6,True,3
+f4704,2023,Cotton,92.8,True,5
+f4704,2024,Dbl Crop WinWht/Soybeans,72.4,True,5
+f4704,2025,Soybeans,96.4,True,3

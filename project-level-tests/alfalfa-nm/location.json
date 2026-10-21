@@ -1,0 +1,12 @@
+{
+  "lon": -108.22897,
+  "lat": 36.57477,
+  "county": "San Juan",
+  "state": "New Mexico",
+  "acres": 62.3,
+  "hectares": 25.2,
+  "boundary_is_drawn_rectangle": true,
+  "naip_item": "nm_m_3610831_nw_12_060_20220525",
+  "naip_flown": "2022-05-25",
+  "naip_gsd_m": 0.6
+}

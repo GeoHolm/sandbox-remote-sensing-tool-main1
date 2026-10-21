@@ -312,14 +312,80 @@ for i, (lab, sub, val, n, col) in enumerate([
     text(s, f"n = {n}", M + 3.2 + val * SCALE, y + 0.12, 0.9, 0.28, 10, GRAY)
 text(s, [[("A conservation-tilled cotton field carries roughly half again as "
            "much cover ", True),
-          ("through the spring as a conventionally tilled one. Slide 12 "
-           "explains what is really driving that gap.", False)]],
+          ("through the spring as a conventionally tilled one. \"What the "
+           "gap is really made of\" explains what is driving that.", False)]],
      M, 5.35, 11.7, 0.7, 14, GRAY, spacing=1.3)
 footer(s, "Time-weighted mean, 1 March to 15 May. Bars scaled to 0.70.")
 notes(s, "Flag the n of 9 on the reduced class honestly if asked: too small to "
          "lean on, and excluded from every accuracy figure later.")
 
-# --------------------------------------------------------------- 8 dataset ---
+# --------------------------------------------------------- 8 neighbourhood ---
+s = slide(header="Every field around it, read the same way", logo=True)
+MAP_H = 5.05
+s.shapes.add_picture(str(REPO / "project-level-tests" / "mitchell-ga" /
+                         "figures" / "deck" / "01_cohort_map.png"),
+                     Inches(M), Inches(1.62), height=Inches(MAP_H))
+RX = M + MAP_H * 1.084 + 0.45
+RW = W - M - RX
+text(s, "Mitchell County, Georgia", RX, 1.70, RW, 0.34, 17, BLACK, True, HEAD)
+text(s, [[("Fifty qualifying cropland fields inside 3.9 km of one focus "
+           "field, on 0.6 m aerial imagery. Almost every one is a centre "
+           "pivot.", False)]], RX, 2.14, RW, 0.9, 13, GRAY, spacing=1.35)
+for i, (h, d) in enumerate([
+        ("The white outlines",
+         "Boundaries from the public USDA Common Land Unit. Nobody drew "
+         "these and no grower supplied them."),
+        ("The dashed circle",
+         "How far you have to go to reach fifty fields that pass the size, "
+         "shape and cropland filters. Fields inside it without an outline "
+         "failed one."),
+        ("The orange field",
+         "The one being benchmarked. It is the only field in this picture "
+         "anyone had to ask about.")]):
+    y = 3.22 + i * 1.12
+    text(s, h, RX, y, RW, 0.28, 13, BLUE, True, HEAD)
+    text(s, d, RX, y + 0.30, RW, 0.74, 11.5, GRAY, spacing=1.3)
+# the NAIP credit is already burned into the image; add what is not
+footer(s, "Field boundaries: USDA FSA Common Land Unit, 2008 public release, "
+          "geometry and acreage only. County inset from the US Census Bureau.")
+notes(s, "Let this one sit on screen. The point to make out loud is that "
+         "every field in the picture except the orange one is a free "
+         "measurement -- no enrolment, no contact, no data request -- and "
+         "that is what makes a local comparison group possible at all. The "
+         "next slide ranks the orange field against the cotton among them.")
+
+# ----------------------------------------------------- 9 local benchmark ---
+s = slide(header="Benchmark a cotton field against its cotton neighbours",
+          logo=True)
+text(s, "Mitchell County, Georgia, 2024. Twenty-two cotton fields inside "
+        "3.9 km, 1,870 acres, every one read from free imagery. No grower "
+        "enrolled, and none of the neighbours was contacted.",
+     M, BODY_TOP, 11.4, 0.5, 15, GRAY, spacing=1.3)
+IMG_H = 3.30
+s.shapes.add_picture(str(REPO / "pitch" / "cotton-2026" / "cotton_benchmark.png"),
+                     Inches((W - IMG_H * 2.78) / 2), Inches(2.22),
+                     height=Inches(IMG_H))
+text(s, [[("Cotton carries two and a half times the pre-planting cover of "
+           "the peanut ground around it. ", True),
+          ("Peanut harvest inverts the row and leaves almost nothing, so a "
+           "cotton field looks good against a mixed neighbourhood for "
+           "reasons that have nothing to do with the farmer.", False)]],
+     M, 5.72, 5.7, 0.95, 12, GRAY, spacing=1.3)
+text(s, [[("Compared with cotton, this field is 47th percentile. Compared "
+           "with everything around it, 72nd. ", True),
+          ("That 25-point difference is the crop -- and it is why a cotton "
+           "benchmark has to be built on cotton.", False)]],
+     M + 6.15, 5.72, 5.7, 0.95, 12, GRAY, spacing=1.3)
+footer(s, "Pre-planting soil cover, 2024. Twenty of the twenty-two cotton "
+          "fields had enough clear images in the window to produce a reading.")
+notes(s, "This is the capability slide for anyone who asks what the data is "
+         "FOR. Members tell us national and state benchmarks do not describe "
+         "their farm, and this is the answer: a field against its own "
+         "neighbours, matched to its own crop, with nobody else having to "
+         "enrol. The catch is the one the rest of this deck is about -- the "
+         "cover numbers underneath it are uncalibrated on cotton.")
+
+# -------------------------------------------------------------- 10 dataset ---
 s = slide(BLUE)
 text(s, "Then we checked it against farmers", M, 0.75, 11.9, 0.65, 34, WHITE,
      True, HEAD)
@@ -347,7 +413,7 @@ notes(s, "Stress the blind scoring and the by-field cross-validation. "
          "Technical audiences will ask; getting in front of it buys trust for "
          "the next slide.")
 
-# ------------------------------------------------------------- 9 scorecard ---
+# ------------------------------------------------------------ 11 scorecard ---
 s = slide(header="The cotton scorecard", logo=True)
 table(s, [["What we measure", "Field-years", "Correct", "Catches", "False alarms"],
           ["Crop is cotton", "183", "*85.2%", "156 of 183", "25"],
@@ -368,7 +434,7 @@ notes(s, "Do not hide the footnote. The in-sample figures are the optimistic "
          "view; the cross-validated ones are what to plan against. Both are in "
          "the written report.")
 
-# --------------------------------------------------------------- 10 purity ---
+# --------------------------------------------------------------- 12 purity ---
 s = slide(header="Bad field boundaries break everything downstream", logo=True)
 text(s, "A boundary drawn around two management units blends two crops into "
         "one curve. We can detect that before reporting anything — and it "
@@ -395,7 +461,7 @@ footer(s, "Agreement with grower-reported crop, by share of the boundary CDL "
 notes(s, "This shows operational maturity rather than a science result. "
          "Knowing when to refuse to answer is what a platform needs.")
 
-# --------------------------------------------------------- 11 uncalibrated ---
+# --------------------------------------------------------- 13 uncalibrated ---
 s = slide(header="What an uncalibrated threshold costs", logo=True)
 text(s, "Our cover crop threshold came from Mid-Atlantic literature, where "
         "winter residue sits at NDVI 0.10–0.25. In Georgia the median "
@@ -427,7 +493,7 @@ notes(s, "This is the money slide for the funding ask. The defect was "
          "truth to surface. Say that plainly: we could not have found it any "
          "other way.")
 
-# ------------------------------------------------------------- 12 confound ---
+# ------------------------------------------------------------- 14 confound ---
 s = slide(header="The finding we did not want", logo=True)
 text(s, "Split the same cotton fields by tillage and cover crop, then read "
         "— down the columns rather than across the rows.",
@@ -490,7 +556,7 @@ notes(s, "Include this slide deliberately. An audience that has been sold "
          "differ in size, county and irrigation. The 174 field-years carry the "
          "claim.")
 
-# ----------------------------------------------------------------- 13 buys ---
+# ----------------------------------------------------------------- 15 buys ---
 s = slide(header="What your ground truth would buy", logo=True)
 table(s, [["What we need", "What it fixes", "Why it cannot wait"],
           ["Residue line transects", "Turns soil armor from a rank into a real percentage of ground covered",
@@ -511,7 +577,7 @@ notes(s, "We are asking for measurements that are cheap on the ground but "
          "impossible to synthesise from orbit. Make clear we are not asking "
          "anyone to fund a satellite.")
 
-# --------------------------------------------------------------- 14 invest ---
+# --------------------------------------------------------------- 16 invest ---
 s = slide(BLUE)
 text(s, "The commitment we are seeking", M, 0.75, 11.9, 0.65, 34, WHITE, True,
      HEAD)
@@ -543,7 +609,7 @@ notes(s, "Figures in brackets need filling before this is presented. Do not "
          "improvise them in the room. If pressed, offer to follow up in "
          "writing the same week.")
 
-# ---------------------------------------------------------------- 15 close ---
+# ---------------------------------------------------------------- 17 close ---
 s = slide()
 s.shapes.add_picture(str(BRAND / "FTM-H_rgb.png"), Inches(W - M - 2.5),
                      Inches(0.5), width=Inches(2.5))
@@ -571,7 +637,7 @@ notes(s, "Close on the ask, not the technology. Offer the written validation "
          "ones that did not flatter us, and handing it over is the strongest "
          "trust signal available.")
 
-# ------------------------------------------------------------- 16 appendix ---
+# ------------------------------------------------------------- 18 appendix ---
 s = slide(header="Appendix — Phase 1 engineering breakdown", logo=True)
 table(s, [["Workstream", "Hours"],
           ["Read and understand the existing pipeline", "16–24"],

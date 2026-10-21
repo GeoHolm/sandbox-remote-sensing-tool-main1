@@ -335,12 +335,66 @@ of however many scenes happened to be clear.
 - **`ARMOR_SPAN = 01-01 … 12-31`.** The imagery pass covers whole calendar years,
   so the charts show fall tillage, cover crop establishment and overwinter
   residue loss.
-- **The reported figure still comes from the pre-planting window only**, from
-  `residue_window()` (§6). Widening the extraction did not change any number the
-  validation scored.
+- **The headline `armor` figure still comes from the pre-planting window only**,
+  from `residue_window()` (§6). Widening the extraction did not change any
+  number the validation scored. Two further scores, below, do use the whole
+  span.
 
 `ARMOR_MIN_OBS = 3`: fewer usable observations in the window and the season is
 reported as unreadable rather than summarized.
+
+### Calendar-year scores: `annual_residue` and `annual_worst`
+
+The window figure cannot compare fields that grow different crops. On a winter
+cereal the pre-planting window contains a *living cash crop*, so the number
+ranks cropping systems rather than management. Measured over 101 Kansas fields
+and 505 field-years, the gap between winter-crop and summer-only years is
+**2.73 standard deviations**, and the figure correlates **0.91** with
+off-season peak NDVI — it is close to a restatement of winter greenness.
+
+Two whole-year scores are reported alongside it. Both read the same cached
+series, so neither costs an extraction.
+
+```
+annual_residue = trapezoidal average of fNPV over the calendar year
+annual_worst   = the ANNUAL_WORST_Q quantile of armor over the calendar year
+```
+
+`annual_residue` is **crop-neutral by construction**: fNPV is
+non-photosynthetic vegetation, so a living crop lands in fPV and is excluded.
+On the same 505 field-years the crop gap falls to **0.36 SD** and the
+correlation with off-season greenness to **0.23**. It correlates only 0.42 with
+the window figure, so it carries information the window figure does not.
+
+`annual_worst` is a robust annual minimum — how bare the field got at its
+worst, rather than its average. It is a plain quantile, not time-weighted,
+because it is a level the field reached rather than an average over a period.
+
+Constants, all provisional:
+
+- `ANNUAL_MIN_OBS = 8` — clear dates a year needs before it is scored at all.
+- `ANNUAL_WORST_Q = 0.10` — robust minimum; a single bad scene should not set
+  the figure.
+- `ANNUAL_FULL_DAYS = 300` — a year whose observations span less than this is
+  **scored but flagged** in `annual_note`. The current year is always partial,
+  because `analysis_window()` floors the end to the start of this month, and a
+  part-year average describes a different stretch of weather than a whole-year
+  one.
+
+Both inherit the ternary unmixing endmembers, which were fitted on eleven
+fields, so both are exactly as provisional as the window figure. Neither has
+been checked against measured residue cover, because no such measurement
+exists anywhere in this repository.
+
+**These two are Python-only.** `r/R/armor.R` has no equivalent, so
+`python/compare_with_r.py` does not check them — it merges on `year` and tests
+named columns, so the extra ones are simply ignored. Adding them changed no
+value the parity check scores; the disagreement list is byte-identical before
+and after.
+
+The comparison that selected these two over an annual mean, exposure days and a
+growing-season-excluded score is in
+`project-level-tests/ANNUAL-ARMOR-OPTIONS.md`.
 
 ### Provisional bands
 
@@ -800,7 +854,7 @@ searches in quick succession, not from sustained volume.
 ### Formulas in this document with no published source
 
 Listed rather than left implicit. Every index above traces to a paper; these
-three do not, and two of them are described elsewhere in the repository as
+four do not, and two of them are described elsewhere in the repository as
 coming from the literature without a paper ever being named. Until each line
 below is closed, treat the method as this project's own construction and say so
 when reporting it.
@@ -813,6 +867,7 @@ Guerschman et al. (2009) and Wang et al. (2019); see §4.
 | Planting and harvest extraction | §5 | A source for the amplitude-threshold-on-a-smoothed-curve approach. The thresholds and the smoothing penalty are ours; the technique is not new |
 | `CC_GREEN_MIN` 0.30, `CC_STRONG` 0.35, `CC_RESIDUE_MAX` 0.25 | §7 | Partly traced — see below. 0.30 has a documented lineage but not a verified origin; 0.35 and 0.25 have neither |
 | `CROP_LAGS` | §6 | Described as "literature-typical, never calibrated". Same problem, lower stakes |
+| `annual_residue`, `annual_worst`, and `ANNUAL_MIN_OBS` / `ANNUAL_WORST_Q` / `ANNUAL_FULL_DAYS` | §4 | Ours entirely. Annualizing a cover fraction and taking a low quantile are both obvious enough that prior art almost certainly exists, and none has been looked for. The selection evidence is internal — crop-neutrality and independence from NDVI across 101 fields — not a validation against measured cover |
 
 Closing these matters beyond tidiness. Published prior art is what narrows a
 patent claim, and an unsourced claim of a literature source is weaker than
