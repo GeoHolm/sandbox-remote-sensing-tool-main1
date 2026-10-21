@@ -40,6 +40,7 @@ from fieldrs.cropland import cdl_summary
 from fieldrs.thumbnails import available_periods, build_scene_grid, plot_scene_grid, scenes_in_period
 from fieldrs.imagery import search_scenes
 from fieldrs import viz
+import study_viewer
 from fieldrs.armor import armor_all_years, armor_band, armor_series
 from fieldrs.climate import GridmetError
 from fieldrs.sar import s1_analysis
@@ -227,6 +228,17 @@ field_stem = st.sidebar.selectbox(
     "Or pick a demo field", options=[s for s, _ in library],
     format_func=lambda s: dict(library)[s], disabled=bool(upload), key="field_pick",
 )
+
+# Study fields have results but no shared boundaries, so picking one swaps the
+# whole page for the study viewer and skips the pipeline entirely.
+study = st.sidebar.selectbox(
+    "Or view a field study", [study_viewer.NO_STUDY] + study_viewer.available_studies(),
+    disabled=bool(upload), key="study_pick",
+    help="Results from project-level-tests/. Their boundaries were not shared, so "
+         "these fields show the study's own results and cannot be re-analyzed.")
+if study != study_viewer.NO_STUDY and not upload:
+    study_viewer.render(study)
+    st.stop()
 
 years = st.sidebar.slider("Years", YEAR_MIN, date.today().year,
                           (DEFAULT_START, date.today().year),
