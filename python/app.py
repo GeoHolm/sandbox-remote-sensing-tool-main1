@@ -51,7 +51,7 @@ from fieldrs.phenology import residue_window
 # resolve(): __file__ is relative when Streamlit is started with a relative path.
 FIELDS_DIR = Path(__file__).resolve().parent.parent / "data" / "fields"
 YEAR_MIN = 2018          # earliest selectable: Sentinel-2 from 2018 (SOURCE_FIRST_YEAR)
-DEFAULT_START = 2020     # the library is pre-computed from 2020, so that stays the default
+DEFAULT_START = 2018     # the earliest Sentinel-2 year; library fields read from 2018 once, then cache
 IMG_MAX_CLOUD = 90
 
 # Directory of local NASS_<year>.tif CONUS CDL mosaics, used instead of the
@@ -242,9 +242,9 @@ if study != study_viewer.NO_STUDY and not upload:
 
 years = st.sidebar.slider("Years", YEAR_MIN, date.today().year,
                           (DEFAULT_START, date.today().year),
-                          help="Sentinel-2 from 2018, HLS from 2020. The field library "
-                               "is pre-computed from 2020; an earlier start reads the "
-                               "field again once (about two minutes), then it is cached.")
+                          help="Sentinel-2 from 2018, HLS from 2020. A field not yet read "
+                               "from the start year is read once (about two minutes) "
+                               "when you press Analyze, then it is cached.")
 
 source = st.sidebar.radio(
     "Imagery", list(SOURCE_LABELS), format_func={

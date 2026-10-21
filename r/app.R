@@ -23,7 +23,7 @@ source("pipeline.R")
 ensure_workers(6)
 
 YEAR_MIN <- 2018        # earliest selectable: Sentinel-2 L2A is too sparse before 2018
-DEFAULT_START <- 2020   # the library is pre-computed from 2020, so that stays the default
+DEFAULT_START <- 2018   # the earliest Sentinel-2 year; library fields read from 2018 once, then cache
 
 # Directory of local NASS_<year>.tif CONUS CDL mosaics, used instead of the
 # CropScape network service. Handed to R/cdl_local.R through CDL_DIR; an
