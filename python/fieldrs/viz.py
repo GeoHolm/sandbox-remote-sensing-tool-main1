@@ -735,7 +735,7 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
             phen: pd.DataFrame, events: pd.DataFrame, refined: pd.DataFrame,
             title: str | None = None, cuts: pd.DataFrame | None = None,
             cover: pd.DataFrame | None = None, wetness: pd.DataFrame | None = None,
-            eligible: pd.DataFrame | None = None):
+            eligible: pd.DataFrame | None = None, emit: pd.DataFrame | None = None):
     """Sentinel-1 backscatter against NDVI phenology, one panel per year.
 
     ``ctx``, ``events`` and ``refined`` come from fieldrs.sar (s1_context,
@@ -845,6 +845,26 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
                 c = "#2c7fb8" if e.event == "planting" else "#d95f0e"
                 ax.axvline(e.moist_date, color=c, ls=":", lw=2.0,
                            label=f"{e.event}, soil-moisture date")
+        # EMIT CAI snapshots (fieldrs.emit.emit_cai): a diamond under the top
+        # band on each usable scene's date, tan where the ground was not green
+        # (a residue reading), hollow green over canopy, with the CAI value.
+        if emit is not None and len(emit):
+            from .emit import CAI_GREEN_NDVI
+            ok = emit[emit["cai_median"].notna() & (emit["date"].dt.year == y)]
+            prev, lift = None, 0
+            for e in ok.sort_values("date").itertuples():
+                green = e.ndvi_median >= CAI_GREEN_NDVI
+                # Scenes days apart would print their labels on top of each
+                # other: step the next one down.
+                lift = (lift + 1) % 2 if prev is not None and (e.date - prev).days < 20 else 0
+                prev = e.date
+                ax.plot(e.date, 5.2, "D", ms=7, color="#1b7837" if green else "#a6761d",
+                        mfc="none" if green else "#c9a66b", mew=1.5,
+                        label="EMIT: green canopy" if green
+                        else "EMIT: not green (CAI reads residue)")
+                ax.annotate(f"CAI {e.cai_median:.1f}", (e.date, 5.2), xytext=(5, -3 - 9 * lift),
+                            textcoords="offset points", fontsize=7,
+                            color="#1b7837" if green else "#7a5513")
         if cuts is not None and len(cuts):
             for c in cuts[cuts["year"] == y].itertuples():
                 bare = c.kind == "to bare soil"

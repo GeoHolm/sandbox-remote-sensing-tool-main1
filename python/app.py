@@ -995,7 +995,10 @@ with tab_moisture:
                "strip along the bottom** marks the days inside each window that are "
                "dry enough to work (soil moisture first, then that operation's "
                "weather rule), and the **bar under it** is the narrowed window: "
-               "black when a confident radar step helped, grey otherwise. In hay years, "
+               "black when a confident radar step helped, grey otherwise. **Diamonds** "
+               "are NASA EMIT snapshots from the Soil armor tab (once read there): tan "
+               "where the ground was not green, so CAI reads dry residue, hollow green "
+               "over a canopy, with the CAI value. In hay years, "
                "**purple** marks each cutting. Light-blue bars are daily rain.")
     with c3:
         st.write("")
@@ -1090,7 +1093,7 @@ with tab_moisture:
 
         _show(viz.plot_s1(s1_res["ctx"], s1_res["weather"], s1_res["ndvi"],
                           result.phenology, ev, ref, cuts=cuts,
-                          cover=result.covercrop, eligible=s1_res.get("eligible")),
+                          cover=result.covercrop, eligible=s1_res.get("eligible"), emit=emit_res),
               "sentinel1-radar-by-year")
 
         if has_cuts:
