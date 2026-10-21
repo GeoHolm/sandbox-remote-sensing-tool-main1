@@ -44,6 +44,7 @@ import study_viewer
 from fieldrs.armor import armor_all_years, armor_band, armor_series
 from fieldrs.climate import GridmetError
 from fieldrs.sar import moisture_summary, s1_analysis
+from fieldrs.emit import EarthdataAuthError, emit_cai
 from fieldrs.phenology import residue_window
 
 # ------------------------------------------------------------- config ---
@@ -891,6 +892,56 @@ with tab_armor:
             "fields but are not validated cover percentages. Ground truth here means "
             "line transects scoring green, residue and bare separately -- which "
             "validates all three fractions at once.")
+
+    # ---- EMIT hyperspectral snapshots: the Cellulose Absorption Index -------
+    st.subheader("Crop residue snapshots: Cellulose Absorption Index (NASA EMIT)")
+    st.caption(
+        "CAI reads the cellulose and lignin absorption near 2100 nm that dry plant "
+        "material has and soil does not: **CAI = 100 × (½ (R2031 + R2211) − R2101)**. "
+        "It needs narrow bands Sentinel-2 does not have, so it comes from **EMIT**, an "
+        "imaging spectrometer on the Space Station (60 m, 2022 on). EMIT is **not a "
+        "time series**: it passes a field irregularly and many passes are cloudy, so "
+        "each point is a snapshot. Higher CAI means more dry residue; it is a residue "
+        "reading only where the ground is not green (NDVI below 0.30), and wet soil "
+        "lowers it. **Prototype, not calibrated** against measured residue cover.")
+    # Snapshots run to today, not to the start of the month like the series.
+    emit_end = date.today().isoformat()
+    emit_key = (field_key[0], years, emit_end)
+    if "emit" not in st.session_state:
+        st.session_state.emit = {}
+    e1, e2 = st.columns([9, 3])
+    with e2:
+        run_emit = st.button("Read EMIT scenes", use_container_width=True)
+    try:
+        emit_res = (st.session_state.emit.get(emit_key)
+                    or emit_cai(aoi, result.start, emit_end, only_cached=True))
+    except EarthdataAuthError:
+        emit_res = None
+    if run_emit:
+        prog = st.progress(0.0, text="Searching EMIT scenes...")
+        try:
+            emit_res = emit_cai(aoi, result.start, emit_end, progress=lambda d, t, m:
+                                prog.progress(min(d / max(t, 1), 1.0), text=m))
+            st.session_state.emit[emit_key] = emit_res
+        except EarthdataAuthError as exc:
+            st.error(str(exc))
+        except Exception as exc:                          # noqa: BLE001
+            st.error(f"EMIT read failed: {exc}")
+        prog.empty()
+    if emit_res is None:
+        e1.info("**Not read yet.** Searches NASA's catalog and reads only the part of "
+                "each scene over this field -- roughly 5-15 s per scene, cached after. "
+                "Needs a NASA Earthdata login (~/.netrc or EARTHDATA_TOKEN).")
+    elif not len(emit_res):
+        e1.info("No EMIT scenes over this field in the selected years.")
+    else:
+        usable = emit_res["cai_median"].notna()
+        e1.success(f"**{int(usable.sum())} usable snapshot(s)** from {len(emit_res)} "
+                   "EMIT scene(s) read; the rest were cloudy or missed the field.")
+        _show(viz.plot_emit_cai(emit_res, result.start, emit_end), "emit-cai")
+        st.dataframe(_fmt_dates(emit_res), hide_index=True, use_container_width=True)
+        st.download_button("Download EMIT CAI CSV", emit_res.to_csv(index=False).encode(),
+                           f"{_dl_name('emit-cai')}.csv", "text/csv")
 
 # ---- 8. Soil moisture (radar) -----------------------------------------------
 #

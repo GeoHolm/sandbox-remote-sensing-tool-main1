@@ -110,6 +110,8 @@ add_index("ndmi", lambda b: _safe_div(b["nir"] - b["swir16"], b["nir"] + b["swir
 # CAI, the hyperspectral index that paper found best, cannot be computed from
 # Sentinel-2: it needs three narrow bands inside the 2000-2200 nm cellulose
 # feature and B12 is one 180 nm-wide band covering all of it.
+# fieldrs/emit.py reads it from NASA EMIT hyperspectral scenes instead, as
+# occasional snapshots.
 
 add_index("ndti", lambda b: _safe_div(b["swir16"] - b["swir22"], b["swir16"] + b["swir22"]),
           ["swir16", "swir22"], -0.2, 0.6,

@@ -96,6 +96,23 @@ than medium confidence: none of it is fitted to recorded dates yet.
 **HLS imagery** (`source="hls"`, `--source hls`, the app's Imagery switch).
 See [HLS](#hls-sentinel-2--landsat) below.
 
+**CAI snapshots from NASA EMIT** (`fieldrs/emit.py`, Soil armor tab → *Read
+EMIT scenes*). The Cellulose Absorption Index, `100 × (½ (R2031 + R2211) −
+R2101)`, from EMIT imaging-spectrometer scenes (60 m, August 2022 on). One point
+per clear scene, not a time series. Version 001 scenes use EMIT's cloud mask;
+scenes only in version 002 use a blue-reflectance cloud test; snow (NDSI) is
+screened out. Only the part of each ~2 GB file over the field is read, over HTTP
+range requests -- 5-15 s a scene, cached after.
+
+Setup: a free NASA Earthdata account (https://urs.earthdata.nasa.gov), then
+either a `~/.netrc` line
+
+    machine urs.earthdata.nasa.gov login <username> password <password>
+
+with `chmod 600 ~/.netrc`, or `EARTHDATA_TOKEN` set to a token from the same
+site (*Generate Token*). No extra packages: `requests` and `h5py`. Scene search
+is public; only reading needs the login.
+
 ## HLS: Sentinel-2 + Landsat
 
 `source="hls"` reads NASA's Harmonized Landsat Sentinel-2 v2.0 instead of
@@ -168,6 +185,7 @@ The layout mirrors the R package one-to-one, so the two can be read side by side
 | `fieldrs/phenology.py` | `R/phenology.R` | Planting and harvest |
 | `fieldrs/covercrop.py` | `R/covercrop.R` | Off-season green cover |
 | `fieldrs/pipeline.py` | (the Shiny server) | `analyze_field()` orchestration |
+| `fieldrs/emit.py` | -- | EMIT hyperspectral CAI snapshots (Python only) |
 
 ## Where this differs from the R version
 

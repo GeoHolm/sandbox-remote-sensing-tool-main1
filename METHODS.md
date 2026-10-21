@@ -171,9 +171,11 @@ now usually called NDMI, which is what this table calls it; McFeeters' Green−N
 index, also published as NDWI, is the one this table calls `ndwi`. They measure
 different things — vegetation water content and open water respectively.
 
-**CAI is not computable here.** The hyperspectral cellulose absorption index the
-residue literature favors needs three narrow bands inside 2000–2200 nm;
-Sentinel-2 B12 is a single ~180 nm band covering the whole feature.
+**CAI is not computable from Sentinel-2, Landsat or HLS.** The hyperspectral
+cellulose absorption index the residue literature favors needs three narrow
+bands inside 2000–2200 nm; Sentinel-2 B12 is a single ~180 nm band covering the
+whole feature. The Python app reads it from NASA EMIT scenes instead, as
+occasional snapshots — see §4, *CAI snapshots from EMIT*.
 
 ### Two documented failure modes of NDTI
 
@@ -404,6 +406,43 @@ crop-specific values near 0.44 (cotton) and 0.59 (peanuts); they were
 deliberately **not** written into the source, because fitting a threshold on 226
 Georgia fields and shipping it as a global constant is the mistake the whole
 document warns about.
+
+### CAI snapshots from EMIT (Python only, `fieldrs/emit.py`)
+
+**Formula.** CAI = 100 × (½ (R2031 + R2211) − R2101) (Daughtry 2001), each R
+the mean EMIT reflectance within ±10 nm of the center (2–3 of EMIT's ~7.4 nm
+bands). Dry residue absorbs at 2100 nm, so CAI is positive over residue and near
+zero over bare soil; green canopy and wet soil pull it down.
+
+**Source.** EMIT L2A surface reflectance (LP DAAC, collection `EMITL2ARFL`),
+60 m, August 2022 on, found through the public CMR search and read with an
+Earthdata login. Both versions are searched; where an acquisition exists in
+both, version 001 is used for its cloud mask.
+
+**Which pixels.** Pixel centers inside the boundary, located with the per-pixel
+latitude/longitude in each file (the raw, unorthorectified swath geometry). A
+scene with fewer than 4 such pixels is not read; `field_cover` is the pixel
+count over the field's expected count (area / 3600 m²), noted below 0.8 (swath
+edge). The ratio sits near 0.85 for fully covered fields, because pixel centers
+on the boundary edge fall outside.
+
+**Screening.** Cloud: EMIT's *Aggregate Flag* (version 001), else blue
+(450–470 nm) reflectance above 0.20 (version 002, no mask shipped — crude).
+Snow: NDSI (560 vs 1610 nm) above 0.40 with 860 nm above 0.11, the MODIS test.
+A scene is reported only when at least 80% of the field's pixels are clear.
+Scenes the CMR rates over 80% cloudy across their whole swath are not read.
+
+**Reading it.** `cai_median` with `cai_p10`/`cai_p90` across the field, and
+`ndvi_median` from the same pixels. CAI is a residue reading only where NDVI is
+below 0.30; above that it is flagged as canopy. On Story Co. IA: ~0.2 under a
+summer canopy (NDVI ~0.9), 1.5 in February 2024 and on 9 October 2026 after
+harvest (NDVI ~0.15–0.24).
+
+**Not calibrated.** CAI relates to residue cover roughly linearly but with a
+slope that depends on residue type, age and moisture; no slope is applied here
+and no cover percentage is reported. EMIT visits are irregular — Story Co. had 14
+readable scenes in four years, 9 usable — so it cannot replace the Sentinel-2
+armor series; it is a check on it where a clear scene happens to fall.
 
 ---
 

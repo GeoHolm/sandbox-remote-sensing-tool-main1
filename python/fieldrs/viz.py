@@ -883,3 +883,42 @@ def plot_s1(ctx: pd.DataFrame, weather: pd.DataFrame, ndvi: pd.Series,
         fig.suptitle(title, y=1 - 0.05 / height, fontsize=12)
     fig.tight_layout(rect=(0, 0, 1, top))
     return fig
+
+
+# ---------------------------------------------------------- EMIT CAI ---
+
+def plot_emit_cai(df: pd.DataFrame, start=None, end=None):
+    """CAI snapshots from EMIT (fieldrs.emit.emit_cai): field median with the
+    10th-90th percentile range. Filled tan where the ground was not green (a
+    residue reading), hollow green where NDVI says canopy. Scenes read but not
+    usable (cloud, too few pixels) are grey ticks along the bottom."""
+    import matplotlib.pyplot as plt
+    from .emit import CAI_GREEN_NDVI
+
+    fig, ax = plt.subplots(figsize=(11, 3.6))
+    ok = df[df["cai_median"].notna()]
+    bad = df[df["cai_median"].isna()]
+    for green, g in ok.groupby(ok["ndvi_median"] >= CAI_GREEN_NDVI):
+        ax.errorbar(g["date"], g["cai_median"],
+                    yerr=[g["cai_median"] - g["cai_p10"], g["cai_p90"] - g["cai_median"]],
+                    fmt="o", ms=8, capsize=3, lw=1,
+                    color="#1b7837" if green else "#a6761d",
+                    mfc="none" if green else "#c9a66b",
+                    label=("green canopy (NDVI ≥ %.2f) -- not a residue reading" % CAI_GREEN_NDVI
+                           if green else "not green -- dry residue reading"))
+    ax.axhline(0, color="0.7", lw=0.6)
+    lo_y = min(0.0, float(ok["cai_p10"].min())) - 0.5 if len(ok) else -1
+    if len(bad):
+        ax.plot(bad["date"], np.full(len(bad), lo_y + 0.15), "|", ms=12, color="0.6",
+                label="scene read, not usable (cloud / footprint)")
+    if start is not None and end is not None:
+        # EMIT starts in August 2022; an earlier range would squeeze the points.
+        ax.set_xlim(max(pd.Timestamp(start), pd.Timestamp("2022-07-01")),
+                    pd.Timestamp(end) + pd.Timedelta(days=30))
+    ax.set_ylabel("CAI (×100)")
+    ax.set_title("Cellulose Absorption Index from EMIT -- one point per clear scene",
+                 loc="left", fontsize=10)
+    ax.legend(loc="upper left", fontsize=8, frameon=False)
+    ax.grid(color="#eeeeee")
+    fig.tight_layout()
+    return fig
